@@ -63,6 +63,7 @@ inductive RegistryEntry
   | morphism (e : MorphismEntry)
   | operation (e : OperationEntry)
   | inclusion (e : InclusionEntry)
+  | powerObject (e : PowerObjectEntry)
   | observation (e : ObservationEntry)
   deriving Repr
 
@@ -97,6 +98,7 @@ def RegistryEntry.stableId : RegistryEntry → String
   | .morphism e => e.id.raw
   | .operation e => e.id.raw
   | .inclusion e => e.id.raw
+  | .powerObject e => e.id.raw
   | .observation e => e.id.raw
 
 /-- Lean declarations that must resolve before this row can be persisted. -/
@@ -133,6 +135,8 @@ def RegistryEntry.declarations : RegistryEntry → Array Name
   | .morphism e => #[e.declaration]
   | .operation e => #[e.declaration]
   | .inclusion e => #[e.declaration, e.mono]
+  | .powerObject e =>
+      #[e.truth, e.member, e.transpose, e.extent, e.empty, e.singleton, e.terminal, e.image]
   | .observation e => #[e.observe]
 
 
@@ -158,6 +162,7 @@ def RegistryEntry.ofSemantic : SemanticEntry → RegistryEntry
   | .morphism e => .morphism e
   | .operation e => .operation e
   | .inclusion e => .inclusion e
+  | .powerObject e => .powerObject e
 
 /-- The semantic row a registry row is, if it is one. -/
 def RegistryEntry.toSemantic? : RegistryEntry → Option SemanticEntry
@@ -181,6 +186,7 @@ def RegistryEntry.toSemantic? : RegistryEntry → Option SemanticEntry
   | .morphism e => some (.morphism e)
   | .operation e => some (.operation e)
   | .inclusion e => some (.inclusion e)
+  | .powerObject e => some (.powerObject e)
   | _ => none
 
 /-- The realization rows. -/
