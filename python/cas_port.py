@@ -1,0 +1,59 @@
+"""Reference implementation, in Python, of the backend port protocol that `CasCatalogue/Port.lean`
+specifies: frames are the ASCII decimal byte length of the payload, a newline, then that many bytes
+of UTF-8 JSON; stdout carries only frames, stderr is the program's log stream. The core owns the
+protocol, not backend programs: a leaf's program may use this module or speak the protocol in any
+language."""
+
+import json
+import sys
+
+
+def _read_exact(n):
+    buf = b""
+    while len(buf) < n:
+        chunk = sys.stdin.buffer.read(n - len(buf))
+        if not chunk:
+            raise EOFError("EOF mid-frame (wanted %d bytes, got %d)" % (n, len(buf)))
+        buf += chunk
+    return buf
+
+
+def read_frame():
+    """One frame, or None on clean EOF at a frame boundary."""
+    line = b""
+    while True:
+        ch = sys.stdin.buffer.read(1)
+        if not ch:
+            if line:
+                raise EOFError("EOF inside frame length %r" % line)
+            return None
+        if ch == b"\n":
+            break
+        line += ch
+    return json.loads(_read_exact(int(line)).decode("utf-8"))
+
+
+def write_frame(obj):
+    payload = json.dumps(obj, separators=(",", ":")).encode("utf-8")
+    sys.stdout.buffer.write(str(len(payload)).encode("ascii") + b"\n" + payload)
+    sys.stdout.buffer.flush()
+
+
+def serve(backend, backend_version, adapter_version, ops, protocol=1):
+    """Announce `ops` (keys: registered semantic operations) and answer requests until EOF."""
+    write_frame({"op": "ready", "protocol": protocol, "backend": backend,
+                 "backend_version": backend_version, "adapter_version": adapter_version,
+                 "capabilities": sorted(ops)})
+    while True:
+        frame = read_frame()
+        if frame is None:
+            return
+        rid, op = frame.get("request_id"), frame.get("op")
+        if op not in ops:
+            write_frame({"request_id": rid, "status": "unsupported", "op": op})
+            continue
+        try:
+            write_frame({"request_id": rid, "status": "ok", "value": ops[op](frame.get("args") or {})})
+        except Exception as exc:  # the caller decodes, and rejects, whatever comes back
+            write_frame({"request_id": rid, "status": "error", "kind": type(exc).__name__,
+                         "message": str(exc)})
