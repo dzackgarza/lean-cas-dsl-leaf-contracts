@@ -14,7 +14,7 @@ package «cas_leaf_contracts» where
   version := v!"0.1.0"
 
 require lean_categories from git
-  "https://github.com/dzackgarza/lean-categories" @ "27c026cb3bf7afb99df56195af6c8d1e563e156a"
+  "https://github.com/dzackgarza/lean-categories" @ "29bad9015ea05f91149a79181da3158623f0edb1"
 
 @[default_target]
 lean_lib CasContract where
