@@ -20,19 +20,20 @@ A backend leaf contributes through one Lean command, `register_leaf`, and only:
 4. codecs — which live in the realizer's denotation and the decoders that produce its handles.
 
 Each is checked by the registry's own validators, so it must typecheck against the semantic
-universe. Everything else a backend might want to say is a *forbidden contribution*: it can be
-written down (so that the attempt is visible) but `register_leaf` rejects it, naming the §5 rule,
-and registers nothing from that leaf. New semantics come from `lean-categories` and the semantic
-registry, never from a backend package (rule 5).
+universe. Nothing else can be said. The contribution type has exactly the realization forms, so a
+category, method, property, subcategory, forgetful route, identification, coercion, refinement,
+result class, generic semantics or natural transformation cannot be written in a leaf contract at
+all. A rejection list could be shortened; an absent constructor cannot be used. New semantics come
+from `lean-categories` and the semantic registry, never from a backend package (rule 5).
 -/
 
 open Lean Meta Elab Command
 
 namespace CasCatalogue
 
-/-- One contribution a backend leaf may attempt. -/
+/-- One contribution of a backend leaf: a realization of already registered mathematics, and
+nothing else (spec §5). -/
 inductive LeafContribution
-  -- Permitted.
   | realizer (entry : RealizerEntry)
   | action (entry : FunctorActionEntry)
   | implementation (entry : ImplementationEntry)
@@ -48,103 +49,46 @@ inductive LeafContribution
   | presentation (entry : PresentationEntry)
   /-- The reading of handles as literals, with proofs. -/
   | observation (entry : ObservationEntry)
-  -- Forbidden (spec §5).
-  /-- A public category because the backend library has a class. -/
-  | category (entry : NamedCategoryEntry)
-  /-- A method attached to a mathematical object. -/
-  | method (entry : MethodEntry)
-  /-- A property presentation, i.e. a method-like predicate. -/
-  | property (entry : PropertyEntry)
-  /-- A superclass or subcategory relation. -/
-  | subcategory (entry : ClassifierEntry)
-  /-- A forgetful route: a structural functor. -/
-  | forgetfulRoute (entry : FunctorEntry)
-  /-- An identification of two presentations (a coherence between routes). -/
-  | identification (entry : CellEntry)
-  /-- A public coercion between two categories. -/
-  | coercion (source target : CategoryExpr)
-  /-- A refinement of an object's semantic type after construction. -/
-  | refineObject (handle : Name) (classifier : ClassifierId)
-  /-- A backend-specific result class. -/
-  | resultClass (name : String)
-  /-- Generic subobject, kernel or image semantics. -/
-  | genericSemantics (entry : LiftEntry)
-  /-- A natural transformation between registered functors: new semantics. -/
-  | naturalTransformation (entry : CellEntry)
 
-/-- The §5 rule a forbidden contribution violates, or `none` if it is permitted. -/
-def LeafContribution.violation : LeafContribution → Option String
-  | .realizer _ | .action _ | .implementation _ | .decider _ | .isomorphism _
-  | .limitRealization _ | .equality _ | .backendOperation _ | .presentation _ | .observation _ => none
-  | .category e => some s!"§5: a backend leaf cannot invent a public category ({e.id.raw}); \
-      categories are registered from lean-categories"
-  | .method e => some s!"§5: a backend leaf cannot attach a method to a mathematical object \
-      ({e.id.raw}); methods name registered functors"
-  | .property e => some s!"§5: a backend leaf cannot attach a method to a mathematical object \
-      ({e.id.raw}); properties are owned by classifiers"
-  | .subcategory e => some s!"§5: a backend leaf cannot declare a superclass or subcategory \
-      relation ({e.id.raw})"
-  | .forgetfulRoute e => some s!"§5: a backend leaf cannot create an implicit forgetful route \
-      ({e.id.raw})"
-  | .identification e => some s!"§5: a backend leaf cannot decide that two presentations are the \
-      same ({e.id.raw}); coherence is registered mathematics"
-  | .coercion _ _ => some "§5: a backend leaf cannot add public coercions"
-  | .refineObject handle classifier => some s!"§5: a backend leaf cannot refine an object's \
-      semantic type after construction ({handle} into {classifier.raw}); properties are \
-      decided, not assigned"
-  | .resultClass name => some s!"§5: a backend leaf cannot expose backend-specific result \
-      classes ({name}); results decode into the operation's semantic result type"
-  | .genericSemantics e => some s!"§5: a backend leaf cannot define generic subgroup, kernel or \
-      image semantics ({e.id.raw})"
-  | .naturalTransformation e => some s!"§5: a backend leaf cannot declare a natural \
-      transformation ({e.id.raw}); cells are registered from lean-categories"
-
-/-- The registry row of a permitted contribution. -/
-def LeafContribution.entry? : LeafContribution → Option RegistryEntry
-  | .realizer e => some (.realizer e)
-  | .action e => some (.action e)
-  | .implementation e => some (.implementation e)
-  | .decider e => some (.decider e)
-  | .isomorphism e => some (.handleIso e)
-  | .limitRealization e => some (.limitRealization e)
-  | .equality e => some (.equality e)
-  | .backendOperation e => some (.backendOperation e)
-  | .presentation e => some (.presentation e)
-  | .observation e => some (.observation e)
-  | _ => none
+/-- The registry row of a contribution. -/
+def LeafContribution.entry : LeafContribution → RegistryEntry
+  | .realizer e => .realizer e
+  | .action e => .action e
+  | .implementation e => .implementation e
+  | .decider e => .decider e
+  | .isomorphism e => .handleIso e
+  | .limitRealization e => .limitRealization e
+  | .equality e => .equality e
+  | .backendOperation e => .backendOperation e
+  | .presentation e => .presentation e
+  | .observation e => .observation e
 
 /-- A backend leaf's contract. -/
 structure LeafContract where
   backend : String
   contributions : List LeafContribution
 
-/-- Check a leaf contract: every contribution permitted, and each permitted row valid against the
-semantic universe. Throws on the first violation, before anything is registered. -/
+/-- Check a leaf contract: each row valid against the semantic universe. Throws on the first
+invalid row, before anything is registered. -/
 def LeafContract.check (contract : LeafContract) : MetaM (Array RegistryEntry) := do
   let mut entries := #[]
   for contribution in contract.contributions do
-    if let some rule := contribution.violation then
-      throwError "leaf {contract.backend}: {rule}"
-    let some entry := contribution.entry? | unreachable!
-    validateRegistryEntryDeclaration entry
-    entries := entries.push entry
+    validateRegistryEntryDeclaration contribution.entry
+    entries := entries.push contribution.entry
   return entries
 
 /-- Check a leaf contract, then register its rows: all of them or none. The rows are first
 registered in a discarded environment, so a row may depend on an earlier one of the same contract
 (an isomorphism of a realizer's handles), and a failure registers nothing. -/
 def registerLeaf (contract : LeafContract) : MetaM Unit := do
-  for contribution in contract.contributions do
-    if let some rule := contribution.violation then
-      throwError "leaf {contract.backend}: {rule}"
-  let entries := contract.contributions.filterMap (·.entry?)
+  let entries := contract.contributions.map (·.entry)
   withoutModifyingEnv do
     for entry in entries do addLeafRegistryEntryChecked entry
   for entry in entries do addLeafRegistryEntryChecked entry
 
 /--
 `register_leaf { backend := "sage", contributions := [ … ] }` registers a backend leaf's
-contributions, rejecting any forbidden one with the §5 rule it violates.
+realizations: all of them, or none if one is invalid.
 -/
 syntax (name := registerLeafCommand) "register_leaf " term : command
 

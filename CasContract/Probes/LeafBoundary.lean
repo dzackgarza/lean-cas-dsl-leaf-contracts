@@ -23,9 +23,9 @@ before the contract refused every module outside a leaf package (`lean-cas-dsl/s
 
 * A leaf is registered only from a leaf package: a permitted contribution written here (a module
   of the contract) is refused, naming the leaf repository.
-* Each forbidden contribution (spec §5) is refused, naming its rule; a contract with one forbidden
-  contribution registers nothing; a realizer of an unregistered category is refused.
-* A leaf cannot register a natural transformation (cells are `lean-categories`').
+* The leaf interface has exactly the realization forms (spec §5): no forbidden contribution can be
+  written. A realizer of an unregistered category is refused, and a contract with one invalid row
+  registers nothing.
 * A leaf module's direct imports are its intake contract: a leaf importing core internals is refused.
 * Semantic rows are written only in `lean-categories`, from any other module.
 * A presentation identifies the denotation of the handle it returns with the object: a handle
@@ -77,46 +77,20 @@ register_leaf
       { id := ⟨"rz.probe.contract_command"⟩, category := ⟨"cat.magmas"⟩, backend := "probe"
         denotation := `LeanCategories.Algebra.Magmas }] }
 
-/-! ### Forbidden contributions (spec §5) -/
+/-! ### The leaf interface has exactly the realization forms (spec §5)
+
+A category, method, property, subcategory, forgetful route, identification, coercion, refinement,
+result class, generic semantics or natural transformation has no constructor in
+`LeafContribution`, so no leaf contract can state one. -/
 
 run_cmd liftTermElabM do
-  let expectRule (contribution : LeafContribution) (rule : String) : MetaM Unit := do
-    let contract : LeafContract := { backend := "probe-sage", contributions := [contribution] }
-    try
-      discard <| contract.check
-      throwError "a forbidden contribution was accepted: {rule}"
-    catch err =>
-      let message ← err.toMessageData.toString
-      unless (message.splitOn rule).length > 1 do
-        throwError "the rejection does not name the rule '{rule}': {message}"
-  let state ← registryState
-  let some groups := state.categories.find? (·.id.raw == "cat.groups")
-    | throwError "cat.groups is not registered"
-  expectRule (.category { groups with id := ⟨"cat.probe.sage_group_class"⟩ })
-    "cannot invent a public category"
-  let order : MethodEntry :=
-    { id := ⟨"meth.probe.order"⟩, name := "order", owner := groups.expression,
-      functor := FunctorId.groupsMonoid, shape := .object }
-  expectRule (.method order) "cannot attach a method"
-  let isAbelian : PropertyEntry :=
-    { id := ⟨"prop.probe.is_abelian"⟩, name := "IsAbelian",
-      classifier := ClassifierId.magmasCommutative }
-  expectRule (.property isAbelian) "cannot attach a method"
-  let abelian : ClassifierEntry :=
-    { id := ⟨"clf.probe.abelian"⟩, declaration := `x, host := groups.expression,
-      realization := `x }
-  expectRule (.subcategory abelian) "cannot declare a superclass or subcategory relation"
-  let some groupsMonoid := state.functor? FunctorId.groupsMonoid
-    | throwError "fun.groups.monoid is not registered"
-  expectRule (.forgetfulRoute { groupsMonoid with id := ⟨"fun.probe.groups_to_sets"⟩ })
-    "cannot create an implicit forgetful route"
-  let some comparison := state.cells.find? (·.invertible)
-    | throwError "no comparison is registered"
-  expectRule (.identification comparison) "cannot decide that two presentations are the same"
-  expectRule (.coercion groups.expression Foundation.Sets) "cannot add public coercions"
-  expectRule (.resultClass "SageKernelSubgroup") "cannot expose backend-specific result classes"
-  let some lift := state.lifts[0]? | throwError "no lift is registered"
-  expectRule (.genericSemantics lift) "cannot define generic subgroup, kernel or image"
+  let some (.inductInfo info) := (← getEnv).find? ``LeafContribution
+    | throwError "LeafContribution is not an inductive type"
+  let forms := info.ctors.map fun c => c.getString!
+  let realizations := ["realizer", "action", "implementation", "decider", "isomorphism",
+    "limitRealization", "equality", "backendOperation", "presentation", "observation"]
+  unless forms == realizations do
+    throwError "the leaf interface has forms other than realizations: {forms}"
   -- A permitted contribution must still typecheck against the semantic universe.
   let orphan : LeafContract :=
     { backend := "probe-sage", contributions := [.realizer
@@ -124,35 +98,16 @@ run_cmd liftTermElabM do
           backend := "probe-sage", denotation := `LeanCategories.Algebra.Magmas }] }
   if (← try discard orphan.check; pure true catch _ => pure false) then
     throwError "a realizer of an unregistered category was accepted"
-  -- A contract with one forbidden contribution registers nothing.
+  -- A contract with one invalid row registers nothing.
   let before := (← registryState).realizers.size
   let mixed : LeafContract :=
     { backend := "probe-sage", contributions := [.realizer
         { id := ⟨"rz.probe.mixed"⟩, category := ⟨"cat.magmas"⟩, backend := "probe-sage",
-          denotation := `LeanCategories.Algebra.Magmas }, .resultClass "SageRing"] }
-  unless ← rejectsAs `CasLeaves.Probe "backend-specific result classes" (registerLeaf mixed) do
-    throwError "a contract with a forbidden contribution was accepted"
+          denotation := `LeanCategories.Algebra.Magmas }, orphan.contributions.head!] }
+  unless ← rejectsAs `CasLeaves.Probe "rz.probe.orphan" (registerLeaf mixed) do
+    throwError "a contract with an invalid row was accepted"
   unless (← registryState).realizers.size == before do
     throwError "a rejected contract registered part of itself"
-
-/- The command fails to elaborate on a forbidden contribution, naming the rule. -/
-/--
-error: leaf probe-sage: §5: a backend leaf cannot expose backend-specific result classes
-(SageKernelSubgroup); results decode into the operation's semantic result type
--/
-#guard_msgs (whitespace := lax) in
-register_leaf { backend := "probe-sage", contributions := [.resultClass "SageKernelSubgroup"] }
-
-/-! ### A leaf cannot register a natural transformation -/
-
-run_cmd liftTermElabM do
-  let leafCell : LeafContract :=
-    { backend := "probe", contributions := [.naturalTransformation
-        { id := ⟨"cell.probe.leaf"⟩, source := Foundation.Sets, target := Foundation.Sets
-          left := #[], right := #[.functor FunctorId.setsList]
-          declaration := `LeanCategories.Foundation.listUnit }] }
-  unless ← rejectsAs `CasLeaves.Probe "natural transformation" (registerLeaf leafCell) do
-    throwError "a leaf registered a cell"
 
 /-! ### A leaf's imports, and semantic rows -/
 
