@@ -29,8 +29,8 @@ nothing else of the kernel.
   
   The contract changes only with a mathematical justification from the formalization author,
   recorded with the change. It never changes to fit a leaf's representation or programming needs.
-* **Kernel-owned.** Changes here are kernel changes: made with `lean-cas-dsl`, released, and
-  re-pinned by the leaves and by `lean-cas-dsl`. A leaf never changes this contract to fit itself.
+* **Kernel-owned.** Changes here are kernel changes: made with `lean-cas-dsl` and merged to
+  `main`, which the leaves and `lean-cas-dsl` track. A leaf never changes this contract to fit itself.
 * **No partial maps (LC-14), no operation without its structure (LC-16).** A realization realizes
   a total operation on its domain object. No row here accepts an optional, undefined or default
   result.
@@ -45,4 +45,5 @@ Module roots: `CasContract.*` (namespaces `CasCatalogue`, shared with the kernel
 reference implementation of the port protocol is `python/cas_port.py`; `Backend.connect` puts it
 on every adapter's `PYTHONPATH`.
 
-Build: `lake build`, with the same Lean toolchain and `lean-categories` pin as `lean-cas-dsl`.
+Every `require` tracks `main`. `just test-ci` builds on Mathlib's prebuilt cache and runs the
+kernel-axiom audit (`AxiomAudit.lean`); the commit and push tiers compile nothing.

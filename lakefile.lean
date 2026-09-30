@@ -14,7 +14,7 @@ package «cas_leaf_contracts» where
   version := v!"0.1.0"
 
 require lean_categories from git
-  "https://github.com/dzackgarza/lean-categories" @ "c06aeedc8ebc16c787481a5c15a86526341a4b4e"
+  "https://github.com/dzackgarza/lean-categories" @ "main"
 
 @[default_target]
 lean_lib CasContract where
@@ -24,3 +24,5 @@ lean_lib CasContract where
     ⟨`weak.linter.mathlibStandardSet, true⟩,
     ⟨`weak.linter.style.header, false⟩,
     ⟨`maxSynthPendingDepth, (3 : Nat)⟩]
+
+lean_lib AxiomAudit
