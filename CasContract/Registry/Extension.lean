@@ -377,6 +377,19 @@ def validatePresentation (state : RegistryState) (e : PresentationEntry) : MetaM
   unless ← withTransparency .all <|
       isDefEq identification.getAppArgs[3]! (mkAppN declared objectArgs) do
     throwError "presentation {e.id.raw}: {e.presentation} does not present {object.id.raw}"
+  -- The identification is of the returned handle's own denotation: the type is exactly
+  -- `Σ h : H, d.obj h ≅ X`, so an isomorphism `X ≅ X` beside an unrelated handle is refused.
+  let denotation ← mkConstWithFreshMVarLevels realizer.denotation
+  let (denotationArgs, _, _) ← forallMetaTelescopeReducing (← inferType denotation)
+  let denotation := mkAppN denotation denotationArgs
+  let handles := (← whnfR (← inferType denotation)).getAppArgs[0]!
+  let expected ← withLocalDeclD `h handles fun h => do
+    let denoted ← mkAppM ``Prefunctor.obj
+      #[← mkAppM ``CategoryTheory.Functor.toPrefunctor #[denotation], h]
+    mkLambdaFVars #[h] (← mkAppM ``CategoryTheory.Iso #[denoted, mkAppN declared objectArgs])
+  unless ← withTransparency .all <| isDefEq type.getAppArgs[1]! expected do
+    throwError "presentation {e.id.raw}: {e.presentation} does not identify the denotation of \
+      the handle it returns with {object.id.raw}: its type must be `Σ h, d.obj h ≅ X`"
 
 /-- An observation row's `observe` reads each handle of its realizer as a literal of the registered
 literal form of the realizer's category, with the proof that the handle denotes it. -/

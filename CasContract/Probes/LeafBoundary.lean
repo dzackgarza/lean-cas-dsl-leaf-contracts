@@ -28,6 +28,8 @@ before the contract refused every module outside a leaf package (`lean-cas-dsl/s
 * A leaf cannot register a natural transformation (cells are `lean-categories`').
 * A leaf module's direct imports are its intake contract: a leaf importing core internals is refused.
 * Semantic rows are written only in `lean-categories`, from any other module.
+* A presentation identifies the denotation of the handle it returns with the object: a handle
+  returned beside an isomorphism that is not about it (`∅` beside `ℕ ≅ ℕ`) is refused.
 -/
 
 open Lean Meta Elab Term Command
@@ -177,5 +179,37 @@ run_cmd liftTermElabM do
   unless ← rejectsAs `CasLeaves.Probe "contributes only realizers"
       (addLeafRegistryEntryChecked categoryRow) do
     throwError "the leaf write path accepted a semantic row"
+
+/-! ### A presentation identifies its own handle -/
+
+/-- Two handles, denoting `ℕ` and `∅`. -/
+def probeDenotation : CategoryTheory.Discrete Bool ⥤ LeanCategories.Foundation.Mathlib.Sets.{0} :=
+  CategoryTheory.Discrete.functor fun b => if b then (ℕ : Type) else PEmpty
+
+/-- The handle denoting `∅`, returned with the identity `ℕ ≅ ℕ`: not a presentation of `ℕ`. -/
+def presentDisconnected :
+    Σ _h : CategoryTheory.Discrete Bool,
+      CasCatalogue.Foundation.Objects.naturals ≅ CasCatalogue.Foundation.Objects.naturals :=
+  ⟨⟨false⟩, CategoryTheory.Iso.refl _⟩
+
+/-- The handle denoting `ℕ`, with the identification of its denotation. -/
+def presentConnected :
+    Σ h : CategoryTheory.Discrete Bool, probeDenotation.obj h ≅ CasCatalogue.Foundation.Objects.naturals :=
+  ⟨⟨true⟩, CategoryTheory.Iso.refl _⟩
+
+run_cmd liftTermElabM do
+  let state ← registryState
+  let realizer : RealizerEntry :=
+    { id := ⟨"rz.probe.presented"⟩, category := ⟨"cat.sets"⟩, backend := "probe"
+      denotation := `CasCatalogue.ContractProbes.probeDenotation }
+  let state := { state with realizers := state.realizers.push realizer }
+  let row (name : Name) : PresentationEntry :=
+    { id := ⟨"pres.probe.naturals"⟩, object := ⟨"obj.sets.naturals"⟩
+      realizer := realizer.id, presentation := name }
+  unless ← (try validatePresentation state (row `CasCatalogue.ContractProbes.presentDisconnected);
+      pure false catch e => return ((← e.toMessageData.toString).splitOn
+        "does not identify the denotation").length > 1) do
+    throwError "a presentation whose isomorphism is not about its handle was accepted"
+  validatePresentation state (row `CasCatalogue.ContractProbes.presentConnected)
 
 end CasCatalogue.ContractProbes
