@@ -45,14 +45,14 @@ structure RealizerEntry where
 
 /-- A fused implementation row (CC-ROUTE, CC-TRUST): a backend realization of the whole composite
 `method ∘ route`, keyed by that semantic composite. It is one more realization of the same
-operation, never a new method, and carries its epistemic status. -/
+operation, never a new method. It states no epistemic status: the status of each result follows
+from the realization's type and what was checked when it ran (`CasContract/Trust.lean`). -/
 structure ImplementationEntry where
   id : ImplementationId
   method : MethodId
   route : Array EdgeRef
   realization : Lean.Name
   backend : String
-  trust : Trust
   deriving Repr
 
 /-- A registered isomorphism between two realized objects (CC-CARRIER): `evidence` names a

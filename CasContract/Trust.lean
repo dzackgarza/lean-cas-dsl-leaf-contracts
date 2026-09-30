@@ -18,7 +18,11 @@ Every computed result records how much is known about it (FOUNDATIONS Remark 46.
 * `leanChecked` — computed by actions proved to commute with denotation (`RealizedAction`);
 * `certificateChecked` — a backend answer accepted because a Lean-proved checker accepted its
   certificate;
-* `trustedAssertion` — a backend answer taken on trust.
+* `unverified` — a backend answer nothing checked.
+
+A status is established by the system for each result, never declared: it follows from what was
+actually checked (a kernel-reduced value, a proved action, a certificate the proved checker
+accepted when the result was computed). A leaf cannot state one.
 
 A composite is only as trusted as its weakest step (`Trust.meet`).
 
@@ -26,7 +30,7 @@ A backend may realize a whole composite at once — "cardinality of a formed mod
 as a *fused* realization of the semantic composite `M ∘ U` (#53 §10). It is registered against that
 composite, never as a new method (CC-ROUTE). A `TrustedImplementation` is such a realization with
 no proof: its type fixes what it claims to compute (the route functor `U`, the method functor `M`,
-the denotations), and the registry records it as a trusted assertion.
+the denotations), and its results are unverified.
 -/
 
 open CategoryTheory
@@ -38,7 +42,7 @@ inductive Trust
   | kernelTheorem
   | leanChecked
   | certificateChecked
-  | trustedAssertion
+  | unverified
   deriving DecidableEq, Repr, Inhabited
 
 namespace Trust
@@ -48,7 +52,7 @@ def rank : Trust → Nat
   | kernelTheorem => 0
   | leanChecked => 1
   | certificateChecked => 2
-  | trustedAssertion => 3
+  | unverified => 3
 
 /-- The status of a composite: the weaker of the two. -/
 def meet (a b : Trust) : Trust := if a.rank ≥ b.rank then a else b
@@ -58,7 +62,7 @@ def label : Trust → String
   | kernelTheorem => "kernel theorem"
   | leanChecked => "Lean-checked computation"
   | certificateChecked => "certificate-checked backend answer"
-  | trustedAssertion => "trusted backend assertion"
+  | unverified => "unverified backend answer"
 
 end Trust
 
@@ -120,7 +124,7 @@ the backend's assertion. (`macro_inline`: compiled code never receives the denot
     (impl : CertifiedImplementation U M dC dE) (a : RC) (provenance : String) :
     Result RE :=
   if impl.check a (impl.certificate a) then ⟨impl.obj a, .certificateChecked, provenance⟩
-  else ⟨impl.obj a, .trustedAssertion, provenance ++ " (certificate rejected)"⟩
+  else ⟨impl.obj a, .unverified, provenance ++ " (certificate rejected)"⟩
 
 /-- A result whose value is its computation's kernel-reduced normal form: the kernel checks
 `computed = value` when the enclosing declaration is added. -/

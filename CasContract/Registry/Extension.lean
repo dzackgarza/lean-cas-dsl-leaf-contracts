@@ -445,6 +445,14 @@ def validateEquality (state : RegistryState) (e : EqualityEntry) : MetaM Unit :=
     throwError "equality {e.id.raw}: {e.realization} decides equality on another realization \
       than {e.realizer.raw}"
 
+/-- Whether an implementation's realization is a `CertifiedImplementation`, whose results are
+certificate-checked when its proved checker accepts them. This is read from the realization's
+type; the row states nothing about it. -/
+def ImplementationEntry.isCertified (e : ImplementationEntry) : MetaM Bool := do
+  let realization ← mkConstWithFreshMVarLevels e.realization
+  let (_, _, type) ← forallMetaTelescopeReducing (← inferType realization)
+  return (← whnfR type).isAppOfArity ``CasCatalogue.CertifiedImplementation 14
+
 /-- A fused implementation must be typed by exactly the semantic composite it claims: its route
 functor is the route's composite and its method functor the method's (CC-ROUTE). With no proof it
 can only be a trusted assertion (CC-TRUST). -/
@@ -459,15 +467,10 @@ def validateImplementation (state : RegistryState) (e : ImplementationEntry) : M
   let realization ← mkConstWithFreshMVarLevels e.realization
   let (_, _, type) ← forallMetaTelescopeReducing (← inferType realization)
   let type ← whnfR type
-  -- The status is fixed by the evidence: no proof is a trusted assertion, a checker proved sound
-  -- is certificate-checked; nothing else may be claimed.
-  if type.isAppOfArity ``CasCatalogue.TrustedImplementation 14 then
-    unless e.trust == .trustedAssertion do
-      throwError "implementation {e.id.raw}: an unproved implementation is a trusted assertion"
-  else if type.isAppOfArity ``CasCatalogue.CertifiedImplementation 14 then
-    unless e.trust == .certificateChecked do
-      throwError "implementation {e.id.raw}: a certified implementation is certificate-checked"
-  else
+  -- The realization's type is all a row says about its results; their status is established
+  -- when each one is computed (a certificate the proved checker accepts), never declared.
+  unless type.isAppOfArity ``CasCatalogue.TrustedImplementation 14 ||
+      type.isAppOfArity ``CasCatalogue.CertifiedImplementation 14 do
     throwError "implementation {e.id.raw}: {e.realization} is neither a TrustedImplementation \
       nor a CertifiedImplementation"
   let args := type.getAppArgs
@@ -989,7 +992,6 @@ structure RegistryManifestImplementation where
   route : Array String
   realization : String
   backend : String
-  trust : String
   deriving BEq, Repr, ToJson, FromJson
 
 structure RegistryManifestHandleIso where
@@ -1145,7 +1147,7 @@ private def registryManifest (state : RegistryState) : RegistryManifest :=
       backend := e.backend }
     implementations := (state.implementations.qsort (fun a b => a.id.raw < b.id.raw)).map fun e => {
       id := e.id.raw, method := e.method.raw, route := e.route.map (·.label),
-      realization := e.realization.toString, backend := e.backend, trust := e.trust.label }
+      realization := e.realization.toString, backend := e.backend }
     handleIsos := (state.handleIsos.qsort (fun a b => a.id.raw < b.id.raw)).map fun e => {
       id := e.id.raw, realizer := e.realizer.raw, source := e.source.toString,
       target := e.target.toString, evidence := e.evidence.toString }
