@@ -15,6 +15,16 @@ These invariants bind every repository of the programme. They are stated here in
 by link, because they have been violated repeatedly by moves that each looked locally reasonable.
 The governing statement is `lean-cas-dsl/specs/architecture.md`, "The evidence model".
 
+**The firewall.** The evidence model is a one-way firewall between two sides.
+- *The formal side:* `lean-categories`' formalized mathematics, the kernel's proved contracts, and
+  the `lean-cas-dsl` acceptance suite. Every expected value there is grounded in a formal proof, a
+  cited source, or a mathematically trusted oracle. Rigid verification standards apply, and nothing
+  is taken on anyone's word.
+- *The leaf side:* anything goes, provided it fulfils the type of its contract.
+
+Only answers cross from the leaf side, and an answer is only ever checked against the formal side,
+never believed. The firewall exists because leaf code will be bad; it is the shield against that.
+
 1. **Nothing from a leaf is trusted, in any form.** Nothing a leaf says is believed by anything
    else. That includes text, a label, a comment, a status, a trust level, a certificate, a checker,
    a Lean proof, a theorem about its own code, a denotation of its values, an identification of two
@@ -44,9 +54,11 @@ The governing statement is `lean-cas-dsl/specs/architecture.md`, "The evidence m
    own standards and blind to every implementation, or the kernel discharges it automatically and
    generically, blind to every leaf. A leaf never implements a Lean-checked computation, because
    that would let a leaf certify itself.
-7. **A leaf may be arbitrarily bad.** The design assumes the worst leaf imaginable: wrong,
-   careless or adversarial. With such a leaf installed, the only possible effect is that its own
-   answers fail the suite.
+7. **A leaf can be arbitrarily bad, and leaves will be.** A leaf can be riddled with bugs, a
+   million lines that do nothing, a from-scratch reimplementation of GAP, or every method throwing an
+   error in fifteen languages. This is not a risk to be minimized; it is certain to happen, and it
+   is acceptable. Nothing a leaf does can reach the formal side. Its only effect is that its answers
+   fail the suite, which makes exactly how badly it fails visible.
 8. **A leaf bolstering its own standing is reward hacking.** Any mechanism by which a leaf raises
    its own trust or acceptance signal is the failure this programme exists to prevent. So is any
    repository, kernel, test, tool or document that consumes such a signal. Examples:
@@ -57,6 +69,14 @@ The governing statement is `lean-cas-dsl/specs/architecture.md`, "The evidence m
    - an assertion adjusted to fit a leaf.
 
    Such a mechanism is removed. It is never tolerated, labelled, or kept "for now".
+
+9. **Quality is raised by proving more, never by trusting more.** The system never guarantees an
+   implementation's correctness and never accepts a claim of it. The response to bad leaves is:
+   - formalize more mathematics in `lean-categories`;
+   - add more cited or proved assertions to the suite: results a correct implementation must
+     recover, and a wrong one fails.
+
+   It is never to inspect, certify, score, or review a leaf into trust.
 
 Consequences:
 - A leaf holds zero semantic authority. It never decides what a value is, which values are equal,
