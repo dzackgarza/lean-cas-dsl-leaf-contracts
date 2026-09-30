@@ -547,12 +547,16 @@ def leafImportViolations (imports : Array Name) (own : Name := leafRoot) : Array
 /-- The notebook's roots: it registers nothing (`CasDslTests.Boundary`). -/
 def notebookRoots : List Name := [`CasDsl, `CasDslTests]
 
+/-- The roots of `lean-cas-dsl` and of this contract: the kernel, the language, the tests, the
+notebook and the tools. No leaf is written under any of them: a leaf is written in a leaf package,
+under its own root, against this contract (`lean-cas-dsl/specs/architecture.md`). -/
+def nonLeafRoots : List Name :=
+  realizationAuthorRoots ++ notebookRoots ++ [`CasTools] ++ semanticAuthorRoots
+
 /-- Whether a module is a leaf: any module outside the core, its probes, the notebook and
 `lean-categories`. Leaves may live in other packages (`research`), under their own root. -/
 def isLeafModule (module : Name) : Bool :=
-  let root := module.getRoot
-  !(realizationAuthorRoots.contains root || semanticAuthorRoots.contains root ||
-    notebookRoots.contains root)
+  !nonLeafRoots.contains module.getRoot
 
 /- Validate the elaborated declaration and persist exactly one realization row. -/
 private def persistRealizationEntry (entry : RegistryEntry) : MetaM Unit := do
@@ -576,22 +580,25 @@ def addRegistryEntryChecked (entry : RegistryEntry) : MetaM Unit := do
   | none => throwError "registry row {entry.stableId}: a realization row is contributed by a leaf, \
       through `register_leaf`"
 
-/-- Register one row of a backend leaf: a permitted contribution, written in a leaf module (or an
-acceptance probe) whose direct imports are the leaf API, other leaves and the mathematics. -/
+/-- Register one row of a backend leaf: a permitted contribution, written in a leaf module whose
+direct imports are the leaf API, other leaves and the mathematics. A module of the kernel, the
+language, the tests, the notebook, the tools or `lean-categories` cannot register one: a leaf is
+never written there. -/
 def addLeafRegistryEntryChecked (entry : RegistryEntry) : MetaM Unit := do
   let env ← getEnv
   let module := env.mainModule
   let root := module.getRoot
-  unless isLeafModule module || realizationAuthorRoots.contains root do
-    throwError "leaf row {entry.stableId}: {module} is neither a leaf nor a core module"
+  unless isLeafModule module do
+    throwError "leaf row {entry.stableId}: {module} is a module of {root}, not of a leaf package; \
+      a leaf is written only in a leaf package (lean-cas-dsl-leaves, or another package under its \
+      own root) against the contract, never in lean-cas-dsl or the core"
   unless entry.isLeafContribution do
     throwError "leaf row {entry.stableId}: a backend leaf contributes only realizers, actions, \
       implementations, deciders and isomorphisms (spec §5)"
-  if isLeafModule module then
-    let bad := leafImportViolations (env.header.imports.map (·.module)) root
-    unless bad.isEmpty do
-      throwError "leaf module {module} imports core-internal modules {bad.toList}; a leaf \
-        imports only {leafApiModule}, {semanticsRoot}.*, other leaves, Mathlib and lean-categories"
+  let bad := leafImportViolations (env.header.imports.map (·.module)) root
+  unless bad.isEmpty do
+    throwError "leaf module {module} imports core-internal modules {bad.toList}; a leaf \
+      imports only {leafApiModule}, {semanticsRoot}.*, other leaves, Mathlib and lean-categories"
   persistRealizationEntry entry
 
 /-- Every registry row, grouped by the imported module that wrote it. -/
