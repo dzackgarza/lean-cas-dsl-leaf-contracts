@@ -10,7 +10,7 @@ nothing else of the kernel.
 | `lean-categories` | Mathlib | all mathematics, including the semantic registry (the catalogue) |
 | `lean-cas-dsl-leaf-contracts` (this) | `lean-categories` | the realization registry and its validation, realized actions, decisions and limits, the backend port protocol, `register_leaf` |
 | `lean-cas-dsl-leaves` | this, `lean-categories` | realizations only |
-| `lean-cas-dsl` | this, `lean-categories` (its current dependency on the leaves is a defect: `gov-no-leaves-here`) | the kernel's resolution and propagation, the language, the permanent tests |
+| `lean-cas-dsl` | all three (it consumes the leaves) | the kernel's resolution and propagation, the language, the permanent tests and notebooks, which run over the installed leaves; no leaf |
 
 * **Authors.** Only the orchestrator writes here. Leaves are written against this contract by the
   leaf subagent, which never edits it, never reads the tests, and never edits `lean-categories`
