@@ -76,7 +76,10 @@ never believed. The firewall exists because leaf code will be bad; it is the shi
    - add more cited or proved assertions to the suite: results a correct implementation must
      recover, and a wrong one fails.
 
-   It is never to inspect, certify, score, or review a leaf into trust.
+   It is never to trust a leaf more. A separate engineering review may check that a leaf wires
+   into existing systems (GAP, Sage, Singular, Macaulay2, Julia, research code) rather than
+   reinventing their algorithms. Its outcome is an engineering finding, never correctness evidence,
+   and nothing on the formal side reads it.
 
 Consequences:
 - A leaf holds zero semantic authority. It never decides what a value is, which values are equal,
