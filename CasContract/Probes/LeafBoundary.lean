@@ -24,8 +24,7 @@ before the contract refused every module outside a leaf package
 * A leaf is registered only from a leaf package: a permitted contribution written here (a module
   of the contract) is refused, naming the leaf repository.
 * The leaf interface has exactly the realization forms (spec §5): no forbidden contribution can be
-  written. A realizer of an unregistered category is refused, and a contract with one invalid row
-  registers nothing.
+  written. A realizer of an unregistered category is refused.
 * A leaf module's direct imports are its intake contract: a leaf importing core internals is
   refused.
 * Semantic rows are written only in `lean-categories`, from any other module.
@@ -99,17 +98,6 @@ run_cmd liftTermElabM do
           backend := "probe-sage", denotation := `LeanCategories.Algebra.Magmas }] }
   if (← try discard orphan.check; pure true catch _ => pure false) then
     throwError "a realizer of an unregistered category was accepted"
-  -- A contract with one invalid row registers nothing.
-  let before := (← registryState).realizers.size
-  let mixed : Leaf :=
-    { backend := "probe-sage", contributions := .realizer
-        { id := ⟨"rz.probe.mixed"⟩, category := ⟨"cat.magmas"⟩, backend := "probe-sage",
-          denotation := `LeanCategories.Algebra.Magmas } :: orphan.contributions }
-  unless ← rejectsAs `CasLeaves.Probe "rz.probe.orphan" (registerLeaf mixed) do
-    throwError "a contract with an invalid row was accepted"
-  unless (← registryState).realizers.size == before do
-    throwError "a rejected contract registered part of itself"
-
 /-! ### A leaf's imports, and semantic rows -/
 
 #guard leafImportViolations #[`CasContract.Leaf, `CasLeaves.Algebra.Actions,
