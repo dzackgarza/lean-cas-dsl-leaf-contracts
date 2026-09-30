@@ -18,15 +18,16 @@ public meta import LeanCategories.Catalogue
 
 What `register_leaf` and the leaf write path refuse, tested here, where the contract lives. These
 tests are the contract's own: they were in `lean-cas-dsl`'s probes, which could register leaves
-before the contract refused every module outside a leaf package (`lean-cas-dsl/specs/architecture.md`,
-"What must be impossible").
+before the contract refused every module outside a leaf package
+(`lean-cas-dsl/specs/architecture.md`, "What must be impossible").
 
 * A leaf is registered only from a leaf package: a permitted contribution written here (a module
   of the contract) is refused, naming the leaf repository.
 * The leaf interface has exactly the realization forms (spec §5): no forbidden contribution can be
   written. A realizer of an unregistered category is refused, and a contract with one invalid row
   registers nothing.
-* A leaf module's direct imports are its intake contract: a leaf importing core internals is refused.
+* A leaf module's direct imports are its intake contract: a leaf importing core internals is
+  refused.
 * Semantic rows are written only in `lean-categories`, from any other module.
 * A presentation identifies the denotation of the handle it returns with the object: a handle
   returned beside an isomorphism that is not about it (`∅` beside `ℕ ≅ ℕ`) is refused.
@@ -101,9 +102,9 @@ run_cmd liftTermElabM do
   -- A contract with one invalid row registers nothing.
   let before := (← registryState).realizers.size
   let mixed : Leaf :=
-    { backend := "probe-sage", contributions := [.realizer
+    { backend := "probe-sage", contributions := .realizer
         { id := ⟨"rz.probe.mixed"⟩, category := ⟨"cat.magmas"⟩, backend := "probe-sage",
-          denotation := `LeanCategories.Algebra.Magmas }, orphan.contributions.head!] }
+          denotation := `LeanCategories.Algebra.Magmas } :: orphan.contributions }
   unless ← rejectsAs `CasLeaves.Probe "rz.probe.orphan" (registerLeaf mixed) do
     throwError "a contract with an invalid row was accepted"
   unless (← registryState).realizers.size == before do
@@ -138,7 +139,8 @@ run_cmd liftTermElabM do
 /-! ### A presentation identifies its own handle -/
 
 /-- Two handles, denoting `ℕ` and `∅`. -/
-def probeDenotation : CategoryTheory.Discrete Bool ⥤ LeanCategories.Foundation.Mathlib.Sets.{0} :=
+def probeDenotation : CategoryTheory.Functor (CategoryTheory.Discrete Bool)
+    LeanCategories.Foundation.Mathlib.Sets.{0} :=
   CategoryTheory.Discrete.functor fun b => if b then (ℕ : Type) else PEmpty
 
 /-- The handle denoting `∅`, returned with the identity `ℕ ≅ ℕ`: not a presentation of `ℕ`. -/
@@ -149,7 +151,8 @@ def presentDisconnected :
 
 /-- The handle denoting `ℕ`, with the identification of its denotation. -/
 def presentConnected :
-    Σ h : CategoryTheory.Discrete Bool, probeDenotation.obj h ≅ CasCatalogue.Foundation.Objects.naturals :=
+    Σ h : CategoryTheory.Discrete Bool,
+      probeDenotation.obj h ≅ CasCatalogue.Foundation.Objects.naturals :=
   ⟨⟨true⟩, CategoryTheory.Iso.refl _⟩
 
 run_cmd liftTermElabM do
@@ -161,9 +164,12 @@ run_cmd liftTermElabM do
   let row (name : Name) : PresentationEntry :=
     { id := ⟨"pres.probe.naturals"⟩, object := ⟨"obj.sets.naturals"⟩
       realizer := realizer.id, presentation := name }
-  unless ← (try validatePresentation state (row `CasCatalogue.ContractProbes.presentDisconnected);
-      pure false catch e => return ((← e.toMessageData.toString).splitOn
-        "does not identify the denotation").length > 1) do
+  let refused ← try
+      validatePresentation state (row `CasCatalogue.ContractProbes.presentDisconnected)
+      pure false
+    catch e =>
+      pure (((← e.toMessageData.toString).splitOn "does not identify the denotation").length > 1)
+  unless refused do
     throwError "a presentation whose isomorphism is not about its handle was accepted"
   validatePresentation state (row `CasCatalogue.ContractProbes.presentConnected)
 
