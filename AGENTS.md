@@ -1,3 +1,14 @@
+# Ground everything in INTENT.md (read before anything else)
+
+[`INTENT.md`](INTENT.md) states the architecture these repositories exist to build: single semantic
+authority in `lean-categories`; a kernel that consumes mathematics and authors none; leaves that hold
+zero semantic authority and ship no mathematics; permanent, leaf-agnostic acceptance tests as the
+only evidence about computations; a one-way workflow in which each stage is blind to the later ones.
+Every decision, contract, gate, plan node and change here is grounded against it. Before writing
+anything, check whether it, or anything it touches, violates that model or its invariants. A
+violation found, in your task or outside it, is recorded as a defect where this repository records
+defects, never worked around or silently kept.
+
 # The leaf contract of lean-cas-dsl
 
 > **You have no memory.** Nothing that exists only in chat survives compaction or the session.
