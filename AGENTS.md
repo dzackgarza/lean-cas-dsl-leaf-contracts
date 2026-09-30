@@ -113,6 +113,11 @@ on nothing else of the kernel.
 | `lean-cas-dsl-leaves` | this, `lean-categories` | registrations of opaque implementations only: no mathematics, no Lean |
 | `lean-cas-dsl` | all three (it consumes the leaves) | the kernel's resolution and propagation, the language, the permanent tests and notebooks, which run over the installed leaves; no leaf |
 
+* **A leaf is glue.** The contract is written so that a leaf is a thin wiring from a declared input
+  form to an existing backend's routine and back to the declared result form (`lean-cas-dsl-leaves`,
+  `AGENTS.md`, "A leaf is glue over existing backends"). When writing a leaf needs kernel machinery
+  or a hand-rolled algorithm, that is a finding against the contract or the kernel. It is never
+  relaxed into the leaf.
 * **Authors.** Only the orchestrator writes here. Leaves are written against this contract by the
   leaf subagent, which never edits it, never reads the tests, and never edits `lean-categories`
   (`lean-cas-dsl/specs/architecture.md`, "Authors: one role per agent").
