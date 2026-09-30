@@ -92,7 +92,7 @@ run_cmd liftTermElabM do
   unless forms == realizations do
     throwError "the leaf interface has forms other than realizations: {forms}"
   -- A permitted contribution must still typecheck against the semantic universe.
-  let orphan : LeafContract :=
+  let orphan : Leaf :=
     { backend := "probe-sage", contributions := [.realizer
         { id := ⟨"rz.probe.orphan"⟩, category := ⟨"cat.probe.unregistered"⟩,
           backend := "probe-sage", denotation := `LeanCategories.Algebra.Magmas }] }
@@ -100,7 +100,7 @@ run_cmd liftTermElabM do
     throwError "a realizer of an unregistered category was accepted"
   -- A contract with one invalid row registers nothing.
   let before := (← registryState).realizers.size
-  let mixed : LeafContract :=
+  let mixed : Leaf :=
     { backend := "probe-sage", contributions := [.realizer
         { id := ⟨"rz.probe.mixed"⟩, category := ⟨"cat.magmas"⟩, backend := "probe-sage",
           denotation := `LeanCategories.Algebra.Magmas }, orphan.contributions.head!] }

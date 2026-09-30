@@ -63,25 +63,25 @@ def LeafContribution.entry : LeafContribution → RegistryEntry
   | .presentation e => .presentation e
   | .observation e => .observation e
 
-/-- A backend leaf's contract. -/
-structure LeafContract where
+/-- A backend leaf: its backend and the realization rows it contributes. -/
+structure Leaf where
   backend : String
   contributions : List LeafContribution
 
-/-- Check a leaf contract: each row valid against the semantic universe. Throws on the first
-invalid row, before anything is registered. -/
-def LeafContract.check (contract : LeafContract) : MetaM (Array RegistryEntry) := do
+/-- Check a leaf: each row valid against the semantic universe. Throws on the first invalid row,
+before anything is registered. -/
+def Leaf.check (leaf : Leaf) : MetaM (Array RegistryEntry) := do
   let mut entries := #[]
-  for contribution in contract.contributions do
+  for contribution in leaf.contributions do
     validateRegistryEntryDeclaration contribution.entry
     entries := entries.push contribution.entry
   return entries
 
-/-- Check a leaf contract, then register its rows: all of them or none. The rows are first
-registered in a discarded environment, so a row may depend on an earlier one of the same contract
-(an isomorphism of a realizer's handles), and a failure registers nothing. -/
-def registerLeaf (contract : LeafContract) : MetaM Unit := do
-  let entries := contract.contributions.map (·.entry)
+/-- Check a leaf, then register its rows: all of them or none. The rows are first registered in a
+discarded environment, so a row may depend on an earlier one of the same leaf (an isomorphism of a
+realizer's handles), and a failure registers nothing. -/
+def registerLeaf (leaf : Leaf) : MetaM Unit := do
+  let entries := leaf.contributions.map (·.entry)
   withoutModifyingEnv do
     for entry in entries do addLeafRegistryEntryChecked entry
   for entry in entries do addLeafRegistryEntryChecked entry
