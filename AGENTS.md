@@ -1,5 +1,12 @@
 # The leaf contract of lean-cas-dsl
 
+> **You have no memory.** Nothing that exists only in chat survives compaction or the session.
+> Every correction, finding and decision request is committed to its owning document first
+> ([`lean-cas-dsl/AGENTS.md`](https://github.com/dzackgarza/lean-cas-dsl/blob/main/AGENTS.md),
+> "You have no memory"). The orchestrator is inside the threat model
+> (`lean-cas-dsl/specs/architecture.md`).
+
+
 [`lean-cas-dsl/specs/architecture.md`](https://github.com/dzackgarza/lean-cas-dsl/blob/main/specs/architecture.md)
 owns the separation of concerns. This repository is one part of the `lean-cas-dsl` kernel: the
 interface a computational leaf is written against, published on its own so that a leaf depends on
