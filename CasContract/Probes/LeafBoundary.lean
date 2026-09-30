@@ -98,6 +98,7 @@ run_cmd liftTermElabM do
           backend := "probe-sage", denotation := `LeanCategories.Algebra.Magmas }] }
   if (← try discard orphan.check; pure true catch _ => pure false) then
     throwError "a realizer of an unregistered category was accepted"
+
 /-! ### A leaf's imports, and semantic rows -/
 
 #guard leafImportViolations #[`CasContract.Leaf, `CasLeaves.Algebra.Actions,
