@@ -2,8 +2,9 @@
 
 This is the grounding reference for `lean-categories`, `lean-cas-dsl`, `lean-cas-dsl-leaf-contracts`,
 `lean-cas-dsl-leaves`, `sage-categories` and `research`. It recapitulates a design discussion between
-the repositories' owner and an assistant, held on 2026-09-29. The owner's messages are summarized in
-the third person. The assistant's responses are reproduced as written. Where a later section corrects
+the repositories' owner and an assistant. The owner's messages are summarized in
+the third person. The assistant's responses are reproduced as written, less its progress narration
+(what it was about to check). Where a later section corrects
 an earlier one (for example the owner's correction that a leaf ships no Lean code), the later section
 governs.
 
@@ -21,11 +22,9 @@ The owner asked whether `lean-cas-dsl` is consuming `lean-categories` together w
 
 ## Response
 
-I’ll verify this from the repositories themselves: `lean-cas-dsl`, `lean-categories`, `sage-categories`, and `research`, then trace the dependency/interface flow and infer the intended `lean-cas-dsl` endpoint from code, docs, and issue/DAG context rather than from naming alone.
+The repository exists and is public; its root already shows this is not just a thin Lean wrapper: it has a substantial `DESIGN.md`, a formal `SPEC.md`, a `CasDsl` library, tests, notebooks, and a `backends/` layer.
 
-The repository exists and is public; its root already shows this is not just a thin Lean wrapper: it has a substantial `DESIGN.md`, a formal `SPEC.md`, a `CasDsl` library, tests, notebooks, and a `backends/` layer. I’m now checking the explicit cross-repository contracts and the design’s end-state claims.
-
-The architectural split is already explicit upstream: `lean-categories` says it owns the mathematical foundation and canonical declaration names, while Sage observation/routing/parity and the notebook CAS belong in `lean-cas-dsl`. One discrepancy remains: `lean-cas-dsl`’s published `main` is old (latest commit August 6) and still names `lean-lattices` in its convergence notes, so I’m checking its issue/PR state rather than treating that stale README as the current integration plan.
+The architectural split is already explicit upstream: `lean-categories` says it owns the mathematical foundation and canonical declaration names, while Sage observation/routing/parity and the notebook CAS belong in `lean-cas-dsl`. One discrepancy remains: `lean-cas-dsl`’s published `main` is old and still names `lean-lattices` in its convergence notes; that stale README is not the current integration plan.
 
 Yes. I checked the current GitHub repositories and the relationship is substantially clearer than the older `lean-cas-dsl` README makes it look.
 
@@ -143,9 +142,9 @@ The owner said that important details had been missed. Examples: the role of iso
 
 ## Response
 
-The missing piece is the transport mechanism itself, not merely “functors instead of inheritance.” I’m checking the `sage-categories` isofibration/cartesian-lifting design and the concrete failure record in `research` that motivated the hard boundary.
+The missing piece is the transport mechanism itself, not merely “functors instead of inheritance.”
 
-The central `sage-categories` insight is sharper than I stated before: **an isofibration was the criterion for when structure can be transported back across a forgetful/projection functor without identifying the source with the target.** That is what made categorical inheritance materially different from Python inheritance. I’m checking the execution tests and the research counterexamples now.
+The central `sage-categories` insight is sharper than I stated before: **an isofibration was the criterion for when structure can be transported back across a forgetful/projection functor without identifying the source with the target.** That is what made categorical inheritance materially different from Python inheritance.
 
 Yes. My previous answer flattened the architecture too much. The point of `sage-categories` was not merely “replace Sage inheritance with functors”; it was an attempt to determine exactly when computational/interface inheritance is mathematically justified, and the isofibration condition was central to that.
 
@@ -345,11 +344,9 @@ The owner said that the extent of the `research` preamble's thrash was still und
 
 ## Response
 
-I’m going to reconstruct the failure history rather than infer it from the current doctrine: preamble commit churn, recurring complaint classes, the sequence of policy/guard additions, and which repeated agent behaviors each guard was introduced to stop. Then I’ll relate that directly to the `sage-categories`/`lean-cas-dsl` remediation model.
-
 The history is much worse than “some architectural bugs.” The first 1,500 preamble-touching commits I sampled since August 1 still only reach September 12; on September 13, 15, 16, 17 alone there are hundreds of preamble commits per day. That volume is itself part of the failure mode: agents can locally “repair” enormous surfaces faster than anyone can globally reason about the new interactions.
 
-The key distinction is becoming clear: the accumulated policies are not the solution; they are forensic evidence that prompt-level discipline does not scale. The remediation has to move invariants out of agent judgment and into interfaces where the wrong move is unrepresentable or at least fails at the exact boundary. I’m checking the successor repos for those mechanically enforced boundaries now.
+The key distinction is becoming clear: the accumulated policies are not the solution; they are forensic evidence that prompt-level discipline does not scale. The remediation has to move invariants out of agent judgment and into interfaces where the wrong move is unrepresentable or at least fails at the exact boundary.
 
 Yes. The missing story is not primarily “the preamble accumulated architectural mistakes.” It is that the preamble became an experiment in what happens when many agent turns repeatedly modify a large, dynamically typed mathematical system whose invariants are global but whose feedback is overwhelmingly local. The repository history shows a self-reinforcing failure mode.
 
@@ -771,7 +768,7 @@ The owner asked for confirmation that `lean-cas-dsl` and `lean-categories` must 
 
 ## Response
 
-Yes. The crucial requirement is stronger than “well-designed inheritance”: **the leaf must not possess enough semantic authority to create a malformed special case.** I’m checking the current `lean-categories` generic `Aut`/subgroup/stabilizer constructions and the `lean-cas-dsl` resolution contract so I can state exactly what must be kernel-enforced versus merely intended.
+Yes. The crucial requirement is stronger than “well-designed inheritance”: **the leaf must not possess enough semantic authority to create a malformed special case.**
 
 Yes. That is the architecture the history demands.
 
@@ -1056,7 +1053,7 @@ The owner corrected a confusion:
 
 ## Response
 
-The correction is specific: I previously let “leaf” straddle semantics and realization. That is wrong. I’m checking the current ownership/consumer contracts to restate the architecture with **all mathematics upstream in `lean-categories` and leaves reduced to realizations only**.
+The correction is specific: I previously let “leaf” straddle semantics and realization. That is wrong: all mathematics is upstream in `lean-categories`, and leaves hold none of it.
 
 Yes. My previous formulation was still wrong in one important respect.
 
@@ -1361,8 +1358,6 @@ The owner asked whether the entire separation of concerns is understood:
 - the contracts between these silos, the invariants that must hold, the literal intended workflows, the trust boundaries, and what must never be allowed.
 
 ## Response
-
-I’m going to state this as a concrete architecture contract, not another high-level summary: ownership by repository, the one-way workflow, the interfaces exchanged at each boundary, the trust model, and the forbidden feedback loops. I’m checking the current issue/spec text for the exact intended handoffs before fixing the model.
 
 The current issue structure confirms the separation: `lean-categories#28/#31/#53/#54` owns the proof-carrying mathematical diagram, operations, typed families, and functorial method semantics; `lean-cas-dsl#19/#35` owns realizations/parity and explicitly treats `NoImplementation` as an execution-layer gap. The remaining task is to make the workflow contract stricter than the transitional code currently is.
 
