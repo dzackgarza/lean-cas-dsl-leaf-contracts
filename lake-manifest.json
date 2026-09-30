@@ -7,10 +7,10 @@
    "type": "git",
    "subDir": null,
    "scope": "",
-   "rev": "3a84ea38274c683f0c632ccd1c2f0617d5d45fec",
+   "rev": "bd31fe31e28c34909fd1ef67ea0ebd70a0d5564a",
    "name": "lean_categories",
    "manifestFile": "lake-manifest.json",
-   "inputRev": "3a84ea38274c683f0c632ccd1c2f0617d5d45fec",
+   "inputRev": "bd31fe31e28c34909fd1ef67ea0ebd70a0d5564a",
    "inherited": false,
    "configFile": "lakefile.toml"
   },
