@@ -58,7 +58,7 @@ inductive RegistryEntry
   | object (e : ObjectEntry)
   | presentation (e : PresentationEntry)
   | literal (e : LiteralEntry)
-  | elementLiteral (e : ElementLiteralEntry)
+  | numeral (e : NumeralEntry)
   | graphLiteral (e : GraphLiteralEntry)
   | morphism (e : MorphismEntry)
   | operation (e : OperationEntry)
@@ -93,7 +93,7 @@ def RegistryEntry.stableId : RegistryEntry → String
   | .object e => e.id.raw
   | .presentation e => e.id.raw
   | .literal e => e.id.raw
-  | .elementLiteral e => e.id.raw
+  | .numeral e => e.id.raw
   | .graphLiteral e => e.id.raw
   | .morphism e => e.id.raw
   | .operation e => e.id.raw
@@ -130,7 +130,7 @@ def RegistryEntry.declarations : RegistryEntry → Array Name
   | .object e => #[e.declaration]
   | .presentation e => #[e.presentation]
   | .literal e => #[e.type, e.denotation]
-  | .elementLiteral e => #[e.denotation]
+  | .numeral e => #[e.declaration]
   | .graphLiteral e => #[e.denotation]
   | .morphism e => #[e.declaration]
   | .operation e => #[e.declaration]
@@ -157,7 +157,7 @@ def RegistryEntry.ofSemantic : SemanticEntry → RegistryEntry
   | .adjunction e => .adjunction e
   | .object e => .object e
   | .literal e => .literal e
-  | .elementLiteral e => .elementLiteral e
+  | .numeral e => .numeral e
   | .graphLiteral e => .graphLiteral e
   | .morphism e => .morphism e
   | .operation e => .operation e
@@ -181,7 +181,7 @@ def RegistryEntry.toSemantic? : RegistryEntry → Option SemanticEntry
   | .adjunction e => some (.adjunction e)
   | .object e => some (.object e)
   | .literal e => some (.literal e)
-  | .elementLiteral e => some (.elementLiteral e)
+  | .numeral e => some (.numeral e)
   | .graphLiteral e => some (.graphLiteral e)
   | .morphism e => some (.morphism e)
   | .operation e => some (.operation e)
