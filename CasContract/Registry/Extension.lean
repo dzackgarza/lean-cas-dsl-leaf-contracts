@@ -55,6 +55,7 @@ inductive RegistryEntry
   | inclusion (e : InclusionEntry)
   | powerObject (e : PowerObjectEntry)
   | subsetLiteral (e : SubsetLiteralEntry)
+  | binder (e : BinderEntry)
   deriving Repr
 
 /-- The semantic row a registry row is. -/
@@ -81,6 +82,7 @@ def RegistryEntry.toSemantic : RegistryEntry → SemanticEntry
   | .inclusion e => .inclusion e
   | .powerObject e => .powerObject e
   | .subsetLiteral e => .subsetLiteral e
+  | .binder e => .binder e
 
 /-- A semantic row, as a registry row. -/
 def RegistryEntry.ofSemantic : SemanticEntry → RegistryEntry
@@ -106,6 +108,7 @@ def RegistryEntry.ofSemantic : SemanticEntry → RegistryEntry
   | .inclusion e => .inclusion e
   | .powerObject e => .powerObject e
   | .subsetLiteral e => .subsetLiteral e
+  | .binder e => .binder e
 
 /-- Stable identifier of a registry row. -/
 def RegistryEntry.stableId (entry : RegistryEntry) : String := entry.toSemantic.stableId
