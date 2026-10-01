@@ -14,8 +14,11 @@ public import Lean.Exception
 A call can fail in kinds that are never collapsed:
 
 * `invalid`: semantic. The expression names nothing registered, the operation does not apply
-  (no structural route reaches its owner), or several semantic routes are not identified by a
-  coherence.
+  (no structural route reaches its owner), or the mathematics it states is refuted.
+* `semanticAmbiguity`: semantic. The expression has several readings (several registered rows
+  bear its name, several semantic routes are not identified by a coherence), and choosing one is
+  a choice the reader does not make. It is not invalidity: the statement may be valid once the
+  ambiguity is resolved upstream.
 * `noImplementation`: the operation applies, and no admitted registration computes it on this
   form (`specs/leaf-registration.md`, "The realized reading"): a gap.
 * `ambiguousRealization`: several admitted registrations compute it on this form, and choosing
@@ -23,12 +26,14 @@ A call can fail in kinds that are never collapsed:
 * `unavailable`: a registration's backend cannot be started, or it failed while computing.
 * `malformed`: a backend answered outside the protocol, or outside the operation's result form.
 
-A well-typed wrong answer is the fifth kind. The kernel cannot see it; the acceptance suite
+A well-typed wrong answer is a further kind. The kernel cannot see it; the acceptance suite
 detects it, by comparing the decoded answer with the assertion's expected value.
 
 Each failure is thrown with its stratum as the tag of its message (`throwStratum`), and the
 stratum is read back from the exception (`Exception.stratum?`). The rendering carries the
-stratum's label, so a reader sees the kind of failure before its detail.
+stratum's label, so a reader sees the kind of failure before its detail. An exception without a
+stratum is none of these: it is an internal error of the interpreter, or exhaustion of a resource,
+and never reported as one of them.
 -/
 
 open Lean
@@ -38,6 +43,7 @@ namespace CasCatalogue
 /-- The kind of a failed call. -/
 inductive Stratum
   | invalid
+  | semanticAmbiguity
   | noImplementation
   | ambiguousRealization
   | unavailable
@@ -47,11 +53,12 @@ inductive Stratum
 namespace Stratum
 
 def all : List Stratum :=
-  [.invalid, .noImplementation, .ambiguousRealization, .unavailable, .malformed]
+  [.invalid, .semanticAmbiguity, .noImplementation, .ambiguousRealization, .unavailable, .malformed]
 
 /-- The message tag of the stratum. -/
 def tag : Stratum → Name
   | .invalid => `CasCatalogue.Stratum.invalid
+  | .semanticAmbiguity => `CasCatalogue.Stratum.semanticAmbiguity
   | .noImplementation => `CasCatalogue.Stratum.noImplementation
   | .ambiguousRealization => `CasCatalogue.Stratum.ambiguousRealization
   | .unavailable => `CasCatalogue.Stratum.unavailable
@@ -60,6 +67,7 @@ def tag : Stratum → Name
 /-- The label a reader sees first. -/
 def label : Stratum → String
   | .invalid => "not a valid call"
+  | .semanticAmbiguity => "ambiguous statement"
   | .noImplementation => "NoImplementation"
   | .ambiguousRealization => "ambiguous realization"
   | .unavailable => "realization unavailable"
