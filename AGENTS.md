@@ -160,6 +160,3 @@ program's `PYTHONPATH`.
 Every `require` tracks `main`. `just test-ci` builds on Mathlib's prebuilt cache and runs the
 kernel-axiom audit of this repository's own code (`AxiomAudit.lean`); the commit and push tiers
 compile nothing.
-
-The contract's code does not yet have this form; its replacement is tracked by the plan node
-`gov-leaf-authority` in `lean-cas-dsl/specs/computational-core-plan.md`.
