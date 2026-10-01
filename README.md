@@ -23,6 +23,10 @@ of the kernel.
   kernel in the operation's declared result form or rejected as malformed, and are only ever
   compared with the acceptance suite's expected values. No denotation, proof, identification,
   evidence or status comes from a leaf, and none can be written.
+* **The contract is the type at the firewall.** It fixes the type a leaf's computation must meet
+  and nothing else. On the leaf side anything goes that meets it. Only answers cross, and an answer
+  is checked against the formal side, the permanent acceptance suite of `lean-cas-dsl`, never
+  believed.
 * **Kernel-owned.** Changes here are kernel changes: made with `lean-cas-dsl` and merged to
   `main`, which `lean-cas-dsl` tracks. A leaf never changes this contract to fit itself.
 * **No mathematics.** Which operations and forms exist, and what they denote, is `lean-categories`'
@@ -35,4 +39,8 @@ reference implementation of the port protocol is `python/cas_port.py`; the kerne
 program's `PYTHONPATH`.
 
 Every `require` tracks `main`. `just test-ci` builds on Mathlib's prebuilt cache and runs the
-kernel-axiom audit (`AxiomAudit.lean`); the commit and push tiers compile nothing.
+kernel-axiom audit of this repository's own code (`AxiomAudit.lean`); the commit and push tiers
+compile nothing.
+
+The contract's code does not yet have this form; its replacement is tracked by the plan node
+`gov-leaf-authority` in `lean-cas-dsl/specs/computational-core-plan.md`.
