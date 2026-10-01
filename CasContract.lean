@@ -4,5 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 module
 
-public import CasContract.Leaf
+public import CasContract.Failure
+public import CasContract.Port
+public import CasContract.Registration
 public import CasContract.Registry.Extension

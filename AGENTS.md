@@ -102,16 +102,18 @@ Consequences:
 
 
 [`lean-cas-dsl/specs/architecture.md`](https://github.com/dzackgarza/lean-cas-dsl/blob/main/specs/architecture.md)
-owns the separation of concerns. This repository is one part of the `lean-cas-dsl` kernel: the
-declared type a computational leaf is written against, published on its own so that a leaf depends
-on nothing else of the kernel.
+owns the separation of concerns, and
+[`lean-cas-dsl/specs/leaf-registration.md`](https://github.com/dzackgarza/lean-cas-dsl/blob/main/specs/leaf-registration.md)
+the design of leaves. This repository is one part of the `lean-cas-dsl` kernel: the interface a
+computational leaf is written against, published on its own so that a leaf depends on nothing else
+of the kernel.
 
 | Package | Depends on | Owns |
 | --- | --- | --- |
 | `lean-categories` | Mathlib | all mathematics, including the semantic registry (the catalogue) |
-| `lean-cas-dsl-leaf-contracts` (this) | `lean-categories` | the form of a leaf registration (operation, input form, opaque implementation), the declared input and result forms of registered operations, the backend port protocol, the failure strata of a call |
-| `lean-cas-dsl-leaves` | this, `lean-categories` | registrations of opaque implementations only: no mathematics, no Lean |
-| `lean-cas-dsl` | all three (it consumes the leaves) | the kernel's resolution and propagation, the language, the permanent tests and notebooks, which run over the installed leaves; no leaf |
+| `lean-cas-dsl-leaf-contracts` (this) | `lean-categories` | the shape of a leaf's manifest (`CasContract.Registration`), the backend port protocol (`CasContract.Port`), the failure strata (`CasContract.Failure`), and the kernel's reading of the semantic registry (`CasContract.Registry.Extension`) |
+| `lean-cas-dsl-leaves` | nothing | a manifest `leaves.json` of registrations, and the programs it names; no Lean |
+| `lean-cas-dsl` | `lean-categories`, this (it runs the leaves' manifest) | the kernel's resolution and reading of statements, the language, the acceptance suite and notebooks; no leaf |
 
 * **A leaf is glue.** The contract is written so that a leaf is a thin wiring from a declared input
   form to an existing backend's routine and back to the declared result form (`lean-cas-dsl-leaves`,
@@ -121,47 +123,40 @@ on nothing else of the kernel.
 * **Authors.** Only the orchestrator writes here. Leaves are written against this contract by the
   leaf subagent, which never edits it, never reads the tests, and never edits `lean-categories`
   (`lean-cas-dsl/specs/architecture.md`, "Authors: one role per agent").
-* **What a leaf is.** A leaf registration names a registered operation and an input form, and
-  supplies an opaque implementation: a computation from that input form to the operation's declared
-  result form. The system runs it and believes nothing about it. A leaf ships no mathematics and no
-  Lean: no proof, denotation, identification of values, decision evidence, status, trust level,
-  certificate or checker. Nothing in this contract gives a leaf a way to state any of these, and
-  nothing that consumes this contract reads one.
+* **A leaf is data, and nothing it says is believed.** A registration is exactly (operation id,
+  input form, backend); a leaf ships no Lean and imports nothing. Its answers are decoded in the
+  operation's declared result form or rejected, and are compared only with the acceptance suite's
+  expected values. The forbidden forms (a denotation, a proof, an identification, evidence, a
+  status, a decoder) are unrepresentable here, not rejected.
 * **The contract is the type at the firewall.** It fixes the type a leaf's computation must meet
   and nothing else. On the leaf side anything goes that meets it. Only answers cross, and an answer
   is checked against the formal side, the permanent acceptance suite of `lean-cas-dsl`, never
-  believed. A wrong answer of the declared result form is visible to that suite and to nothing
-  else.
+  believed.
 * **Relaxing the contract is almost never the fix.** A leaf that cannot meet the contract means
   one of two things:
   - the leaf is wrong, which is a finding against the leaf;
-  - mathematics is missing, which is a formalization request to `lean-categories`.
-  
+  - mathematics is missing (an operation, a form), which is a formalization request to
+    `lean-categories`.
+
   The contract changes only with a mathematical justification from the formalization author,
   recorded with the change. It never changes to fit a leaf's representation or programming needs.
 * **Kernel-owned.** Changes here are kernel changes: made with `lean-cas-dsl` and merged to
-  `main`, which the leaves and `lean-cas-dsl` track. A leaf never changes this contract to fit itself.
+  `main`, which `lean-cas-dsl` tracks. A leaf never changes this contract to fit itself.
+* **No mathematics.** Which operations and forms exist, and what they denote, is `lean-categories`'
+  catalogue. This package reads it and declares none.
 * **No partial maps (LC-14), no operation without its structure (LC-16).** A registration is for a
   total operation on its domain object. No declared result form admits an optional, undefined or
   default result.
-* **No mathematics.** Every operation a registration names is a row of `lean-categories`'
-  catalogue, and its input and result forms are declared from that row. A registration is checked
-  only for naming a registered operation and matching its declared forms.
 * **What can be discharged in Lean is not a leaf's.** A computation that can be carried out
   entirely in Lean is proved in `lean-categories` or discharged generically by the kernel, never
   registered by a leaf.
 * **No tests.** The permanent acceptance suite is `lean-cas-dsl`'s. Nothing here, and so nothing a
-  leaf can reach, contains, names or runs it.
+  leaf can reach, contains or names it.
 
-Module roots: `CasContract.*` (namespaces `CasCatalogue`, shared with the kernel). The backend
-port protocol is length-prefixed JSON frames between the kernel and a leaf's program; its Python
-reference implementation is `python/cas_port.py`, which `Backend.connect` puts on every adapter's
-`PYTHONPATH`. A leaf's answers cross as untrusted data: one that is not a value of the declared
-result form is rejected, and one that is carries no belief with it.
+Module roots: `CasContract.*` (namespaces `CasCatalogue`, shared with the kernel). The Python
+reference implementation of the port protocol is `python/cas_port.py`; the kernel puts it on every
+program's `PYTHONPATH`.
 
 Every `require` tracks `main`. `just test-ci` builds on Mathlib's prebuilt cache and runs the
 kernel-axiom audit of this repository's own code (`AxiomAudit.lean`); the commit and push tiers
 compile nothing.
-
-The contract's code does not yet have this form; its replacement is tracked by the plan node
-`gov-leaf-authority` in `lean-cas-dsl/specs/computational-core-plan.md`.

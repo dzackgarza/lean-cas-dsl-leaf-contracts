@@ -16,16 +16,15 @@ A call can fail in kinds that are never collapsed:
 * `invalid`: semantic. The expression names nothing registered, the operation does not apply
   (no structural route reaches its owner), or several semantic routes are not identified by a
   coherence.
-* `noImplementation`: the operation applies, and no registered realization computes it on this
-  presentation: no realizer, action, implementation, decider, equality or isomorphism.
-* `ambiguousRealization`: several registered realizations apply, and choosing one is a
-  realization choice that is not made here (CC-ROUTE).
-* `unavailable`: a realization's backend cannot be started, or it failed while computing.
-* `malformed`: a realization answered outside the protocol or outside the operation's result
-  type.
+* `noImplementation`: the operation applies, and no admitted registration computes it on this
+  form (`specs/leaf-registration.md`, "The realized reading"): a gap.
+* `ambiguousRealization`: several admitted registrations compute it on this form, and choosing
+  one is a choice the kernel does not make: a gap, reported as ambiguous.
+* `unavailable`: a registration's backend cannot be started, or it failed while computing.
+* `malformed`: a backend answered outside the protocol, or outside the operation's result form.
 
-A well-typed wrong answer is the fifth kind. The kernel cannot see it; permanent acceptance
-detects it.
+A well-typed wrong answer is the fifth kind. The kernel cannot see it; the acceptance suite
+detects it, by comparing the decoded answer with the assertion's expected value.
 
 Each failure is thrown with its stratum as the tag of its message (`throwStratum`), and the
 stratum is read back from the exception (`Exception.stratum?`). The rendering carries the

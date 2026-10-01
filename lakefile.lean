@@ -2,13 +2,15 @@ import Lake
 open Lake DSL
 
 /-
-The leaf contract of `lean-cas-dsl`: the one interface a computational leaf is written against.
-It owns the realization registry (the schema and validation of realization rows against the
-semantic rows of `lean-categories`' catalogue), the realized actions, decisions and limits a leaf
-supplies, the backend port protocol, and `register_leaf`. It contains no mathematics (that is
-`lean-categories`') and no acceptance test (those are `lean-cas-dsl`'s): a leaf package depends on
-this package and `lean-categories` only, so it can neither see nor change the tests it is measured
-by. The kernel of `lean-cas-dsl` owns this contract and releases it; see `AGENTS.md`.
+The leaf contract of `lean-cas-dsl`: the one interface a computational leaf is written against
+(`lean-cas-dsl/specs/leaf-registration.md`). A leaf is a manifest of registrations (operation id,
+input form, backend) and the programs it names (`CasContract.Registration`); the kernel talks to
+a program over the port protocol (`CasContract.Port`) and reports its failures by stratum
+(`CasContract.Failure`). The kernel reads `lean-categories`' semantic registry through
+`CasContract.Registry.Extension`. A leaf ships no Lean and imports nothing; it contains no
+mathematics (that is `lean-categories`') and can neither see nor change the acceptance suite it
+is measured by (that is `lean-cas-dsl`'s). The kernel of `lean-cas-dsl` owns this contract and
+releases it; see `AGENTS.md`.
 -/
 package «cas_leaf_contracts» where
   version := v!"0.1.0"
