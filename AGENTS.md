@@ -111,7 +111,7 @@ of the kernel.
 | Package | Depends on | Owns |
 | --- | --- | --- |
 | `lean-categories` | Mathlib | all mathematics, including the semantic registry (the catalogue) |
-| `lean-cas-dsl-leaf-contracts` (this) | `lean-categories` | the shape of a leaf's manifest (`CasContract.Registration`), the backend port protocol (`CasContract.Port`), the failure strata (`CasContract.Failure`), and the kernel's reading of the semantic registry (`CasContract.Registry.Extension`) |
+| `lean-cas-dsl-leaf-contracts` (this) | `lean-categories` | the shape of a leaf's manifest (`CasContract.Registration`), the backend port protocol (`CasContract.Port`), and the failure strata (`CasContract.Failure`) |
 | `lean-cas-dsl-leaves` | nothing | a manifest `leaves.json` of registrations, and the programs it names; no Lean |
 | `lean-cas-dsl` | `lean-categories`, this (it runs the leaves' manifest) | the kernel's resolution and reading of statements, the language, the acceptance suite and notebooks; no leaf |
 

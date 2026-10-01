@@ -7,4 +7,3 @@ module
 public import CasContract.Failure
 public import CasContract.Port
 public import CasContract.Registration
-public import CasContract.Registry.Extension
