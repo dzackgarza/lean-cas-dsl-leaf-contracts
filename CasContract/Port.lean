@@ -50,6 +50,12 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
   category (`"input": "cat.sets"`) and sent as Mathlib's standard constructor of its shape with
   its explicit arguments, `{"ctor": "pair", "args": [X, Y]}` or
   `{"ctor": "cospan", "args": [f, g]}`, objects and arrows in their own encodings.
+  A retained parallel-arrow diagram is `{"ctor":"parallelPair","args":[f,g]}`.
+  Its cone or cocone has one defining arrow, so the reply is respectively
+  `{"ctor":"cone","args":[<apex>,<inclusion>]}` or
+  `{"ctor":"cocone","args":[<apex>,<projection>]}`. The two arrows in the request
+  are retained exactly, including a registered trivial or zero arrow where the
+  mathematical declaration specifies one; a shape label does not replace an arrow.
 
 A registered functor's object action receives
 `{"ctor": <functor id>, "args": [<ordered explicit declaration arguments>],
