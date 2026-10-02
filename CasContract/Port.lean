@@ -24,6 +24,27 @@ itself (`{op: "ready", backend, backend_version, capabilities}`; nothing in the 
 believed or consulted), then answers requests `{request_id, op, args}` with
 `{request_id, status, value}`, where `op` is a registration's operation id and `args` the encoded
 input. Which operations are called on it is the admitted registrations' (`CasCatalogue.Admission`).
+
+## The wire encoding of inputs and answers
+
+The kernel's codec (`CasCatalogue.Codec`) fixes one structural encoding, derived from each form's
+inductive type; a leaf reads and writes exactly this, and nothing else:
+
+* an input object is a named object of the catalogue at its parameters,
+  `{"ctor": <object id>, "args": [<parameters>]}`; a parameter that is itself a named object is
+  encoded the same way;
+* a natural number or an integer is a JSON number; a list is a JSON array; a `Multiset` or a
+  `Finset` is a list of its elements;
+* a record (one constructor, no indices: a pair, a point of `Fin n`, a subtype) is the JSON array
+  of its data fields, or that field alone when it has exactly one (a point of `Fin n` is its
+  number, a pair is `[x, y]`);
+* any other constructor application is `{"ctor": <constructor>, "args": [<data fields>]}`, the
+  constructor spelled by its short name within its type (`finite`, `aleph0`, `some`, `true`);
+* a proof field is never on the wire.
+
+An answer is a value of the operation's declared result form in this encoding. The kernel decodes
+it against that form, deciding every condition the form imposes, or rejects it; nothing in an
+answer beyond its value is read.
 -/
 
 open Lean
