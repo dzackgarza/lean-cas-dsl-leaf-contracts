@@ -40,11 +40,20 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
   number, a pair is `[x, y]`);
 * any other constructor application is `{"ctor": <constructor>, "args": [<data fields>]}`, the
   constructor spelled by its short name within its type (`finite`, `aleph0`, `some`, `true`);
-* a proof field is never on the wire.
+* a proof field is never on the wire;
+* a morphism of a concrete category is its graph, a list of pairs `[x, f x]` of points;
+* a diagram, the input of a registered limit or colimit, is registered on the form of its
+  category (`"input": "cat.sets"`) and sent as Mathlib's standard constructor of its shape with
+  its explicit arguments, `{"ctor": "pair", "args": [X, Y]}` or
+  `{"ctor": "cospan", "args": [f, g]}`, objects and arrows in their own encodings.
 
-An answer is a value of the operation's declared result form in this encoding. The kernel decodes
-it against that form, deciding every condition the form imposes, or rejects it; nothing in an
-answer beyond its value is read.
+An answer is a value of the operation's declared result form in this encoding. The answer of a
+limit is its cone, `{"ctor": "cone", "args": [<apex>, <leg>, ...]}`, and of a colimit its cocone,
+`{"ctor": "cocone", "args": [<apex>, <leg>, ...]}`: the apex a value of a registered form of the
+category (a named object at its parameters), each leg a morphism. The kernel decodes every answer
+against its form, deciding every condition the form imposes (for a cone: it rebuilds it with
+Mathlib's standard constructor of the shape and decides that the legs commute), or rejects it as
+malformed; nothing in an answer beyond its value is read.
 -/
 
 open Lean
