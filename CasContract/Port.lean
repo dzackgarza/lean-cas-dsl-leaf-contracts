@@ -54,7 +54,8 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
 * the action of a registered functor on an arrow may be represented as
   `{"ctor":"map","args":[{"ctor":<functor id>,"args":[<explicit parameters>]},<arrow>]}`.
   Structural classifier-forget edges use
-  `{"ctor":"classifierForget","args":[<registered classifier id>]}`; a registered
+  `{"ctor":"classifierForget","args":[<registered classifier id>,
+  [<ordered actual classifier declaration arguments>]]}`; a registered
   constructor's derived action uses
   `{"ctor":"constructorMap","args":[<registered constructor id>,<inner edge descriptor>]}`.
   These descriptors name the actual registered edge; they do not invent a functor row.
