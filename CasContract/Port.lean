@@ -53,6 +53,11 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
   enumerating a graph. The kernel checks the instantiated endpoints against the requested arrow;
 * the action of a registered functor on an arrow may be represented as
   `{"ctor":"map","args":[{"ctor":<functor id>,"args":[<explicit parameters>]},<arrow>]}`.
+  Structural classifier-forget edges use
+  `{"ctor":"classifierForget","args":[<registered classifier id>]}`; a registered
+  constructor's derived action uses
+  `{"ctor":"constructorMap","args":[<registered constructor id>,<inner edge descriptor>]}`.
+  These descriptors name the actual registered edge; they do not invent a functor row.
   The arrow uses its source-category encoding. The registered functor and its exact parameters
   determine the resulting arrow and endpoints. Composition is
   `{"ctor":"compose","args":[<first arrow>,<second arrow>]}` in categorical order
