@@ -96,6 +96,12 @@ The kernel may encode a completed prescribed lift for subsequent computations as
 after constructing and checking the full lifted inclusion through the registered lifts.
 It is not a backend's choice of lift or a backend proof.
 
+A named object's registered generator arrow is
+`{"ctor":"generator","args":[<registered named set object id>,
+[<ordered explicit generator declaration arguments>]]}`. The declaration and its full
+signature own the endpoint and any index; this descriptor does not introduce a new arrow row.
+A selected structured object's carrier reaches that set only along its registered structure.
+
 Closed points at selected named objects use
 `{"ctor":"element","args":[<exact selected object descriptor>,<arithmetic data>]}`.
 The descriptor includes every ordered parameter and must equal the independently selected
