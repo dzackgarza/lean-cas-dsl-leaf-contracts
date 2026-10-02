@@ -38,6 +38,11 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
 * a record (one constructor, no indices: a pair, a point of `Fin n`, a subtype) is the JSON array
   of its data fields, or that field alone when it has exactly one (a point of `Fin n` is its
   number, a pair is `[x, y]`);
+* a function whose domain has an independently synthesized finite enumeration is a graph,
+  a list of pairs `[x, f x]`, including every domain point exactly once. This also applies
+  to function data fields of a record; all declared field conditions are checked. Thus an
+  equivalence's two function fields retain both forward and inverse graphs, while its proof
+  fields are omitted. Function encoding does not change the selected source or target type;
 * any other constructor application is `{"ctor": <constructor>, "args": [<data fields>]}`, the
   constructor spelled by its short name within its type (`finite`, `aleph0`, `some`, `true`);
 * a proof field is never on the wire;
@@ -77,6 +82,47 @@ registered on that arrow category's id. Both endpoints retain their selected obj
 the map is decoded at those exact endpoints. This is an arrow-category object, so its
 applicable methods are those declared for that category; a bare named map is not retyped
 as an object of its source or target category.
+
+A value of a registered subobject category uses
+`{"ctor":"subobject","args":[<apex object>,<ambient object>,<inclusion>]}`,
+registered on that category's id. The inclusion is decoded at these exact endpoints;
+its monomorphism condition is established independently by the kernel. The reply supplies
+all three data fields and no proof. Prescribed lifts retain the resulting structured apex
+and its defining inclusion, including the selected form and value object.
+
+The kernel may encode a completed prescribed lift for subsequent computations as
+`{"ctor":"liftedSubobject","args":[<original complete subobject reply>,
+<source receiver data>,[<prescribed lift ids in route order>]]}`. It produces this data only
+after constructing and checking the full lifted inclusion through the registered lifts.
+It is not a backend's choice of lift or a backend proof.
+
+Closed points at selected named objects use
+`{"ctor":"element","args":[<exact selected object descriptor>,<arithmetic data>]}`.
+The descriptor includes every ordered parameter and must equal the independently selected
+endpoint. Arithmetic data has only `ctor` and ordered `args`: `numeral` takes one natural
+number, `generator` takes no argument or one natural index, `add` and `mul` take two data
+expressions, and `neg` takes one. These tags invoke existing registered language operations;
+they do not contain Lean source or choose an object by its carrier.
+
+A registered comparison's point application is requested under that comparison id, with
+`{"ctor":"presentationApply","args":[<ordered parameters>,<inverse boolean>,
+<exact source descriptor>,<exact target descriptor>,<input point data>]}`. The reply is an
+`element` envelope at the exact target, independently decoded and compared by the kernel.
+
+Canonical data from a registered limit or colimit uses
+`{"ctor":"limitApex","args":[<registered limit id>,<complete diagram>]}` or
+`{"ctor":"limitLeg","args":[<registered limit id>,<complete diagram>,<index>]}`.
+The kernel instantiates the registered mathematical presentation and projects its apex or
+leg. These descriptors contain no proof and assert no comparison with another apex.
+`{"ctor":"zero","args":[<source object>,<target object>]}` requires the category's
+actual zero-morphism structure. `identity` has the same endpoints syntax and requires equal
+endpoints. Every constructed value is checked at its exact expected type.
+
+An arrow of a registered presentation comparison is
+`{"ctor":"presentation","args":[<comparison id>,[<ordered explicit parameters>],
+<inverse boolean>]}`. False selects its forward arrow; true selects its inverse.
+The registered comparison fixes both endpoints and the actual isomorphism. A structural
+functor's action on this arrow uses the same `map` envelope as any other arrow.
 
 An answer is a value of the operation's declared result form in this encoding. The answer of a
 limit is its cone, `{"ctor": "cone", "args": [<apex>, <leg>, ...]}`, and of a colimit its cocone,
