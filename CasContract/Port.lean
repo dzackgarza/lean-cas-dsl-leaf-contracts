@@ -121,6 +121,17 @@ A registered comparison's point application is requested under that comparison i
 <exact source descriptor>,<exact target descriptor>,<input point data>]}`. The reply is an
 `element` envelope at the exact target, independently decoded and compared by the kernel.
 
+A complete accepted structural functor action may be carried as
+`{"ctor":"functorAction","args":[<exact edge descriptor>,<complete selected source object>]}`.
+The kernel reconstructs the actual registered functor at its full parameters and applies it
+to that source at the independently fixed target category. For a registered constructive
+functor whose result is in the registered subobjects category, its canonical apex or inclusion
+is described by `{"ctor":"subobjectApex","args":[<complete functorAction data>]}` or
+`{"ctor":"subobjectInclusion","args":[<complete functorAction data>]}`. Only the
+registered subobject construction's apex and defining inclusion may be projected. These are
+categorical data descriptions, with exact expected types checked independently; they do not
+name a new limit, supply a proof or choose a lift.
+
 Canonical data from a registered limit or colimit uses
 `{"ctor":"limitApex","args":[<registered limit id>,<complete diagram>]}` or
 `{"ctor":"limitLeg","args":[<registered limit id>,<complete diagram>,<index>]}`.
