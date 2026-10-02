@@ -46,6 +46,13 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
   `{"ctor": <morphism id>, "args": [<explicit parameters>]}`. Its declaration fixes the
   parameter types and endpoints; this permits named arrows on infinite carriers without
   enumerating a graph. The kernel checks the instantiated endpoints against the requested arrow;
+* the action of a registered functor on an arrow may be represented as
+  `{"ctor":"map","args":[{"ctor":<functor id>,"args":[<explicit parameters>]},<arrow>]}`.
+  The arrow uses its source-category encoding. The registered functor and its exact parameters
+  determine the resulting arrow and endpoints. Composition is
+  `{"ctor":"compose","args":[<first arrow>,<second arrow>]}` in categorical order
+  (first, then second); both arrows are checked at their shared endpoint. Accepted presentation
+  changes retain their actual comparison arrows in this composition, never an endpoint rename;
 * a diagram, the input of a registered limit or colimit, is registered on the form of its
   category (`"input": "cat.sets"`) and sent as Mathlib's standard constructor of its shape with
   its explicit arguments, `{"ctor": "pair", "args": [X, Y]}` or
@@ -63,6 +70,13 @@ A registered functor's object action receives
 types, source and target, including dependent parameters. The kernel checks those types and
 endpoints; a backend cannot choose the functor or its parameters. The result is decoded in
 the declared target form.
+
+An object of a registered arrow category uses
+`{"ctor":"arrow","args":[<source object>,<target object>,<defining map>]}`,
+registered on that arrow category's id. Both endpoints retain their selected object data;
+the map is decoded at those exact endpoints. This is an arrow-category object, so its
+applicable methods are those declared for that category; a bare named map is not retyped
+as an object of its source or target category.
 
 An answer is a value of the operation's declared result form in this encoding. The answer of a
 limit is its cone, `{"ctor": "cone", "args": [<apex>, <leg>, ...]}`, and of a colimit its cocone,
