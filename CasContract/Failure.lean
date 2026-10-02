@@ -14,8 +14,10 @@ public import Lean.Exception
 A call can fail in kinds that are never collapsed:
 
 * `invalid`: semantic. The expression names nothing registered, the operation does not apply
-  (no structural route reaches its owner), or several semantic routes are not identified by a
-  coherence.
+  (no structural route reaches its owner).
+* `semanticAmbiguity`: the reader has several mathematical interpretations or structural routes
+  not identified by an accepted coherence. Choosing an interpretation is not invalidity, and
+  execution cannot author either mathematical judgment.
 * `noImplementation`: the operation applies, and no admitted registration computes it on this
   form (`specs/leaf-registration.md`, "The realized reading"): a gap.
 * `ambiguousRealization`: several admitted registrations compute it on this form, and choosing
@@ -28,7 +30,8 @@ detects it, by comparing the decoded answer with the assertion's expected value.
 
 Each failure is thrown with its stratum as the tag of its message (`throwStratum`), and the
 stratum is read back from the exception (`Exception.stratum?`). The rendering carries the
-stratum's label, so a reader sees the kind of failure before its detail.
+stratum's label, so a reader sees the kind of failure before its detail. An exception without a
+stratum is an interpreter or infrastructure failure, never mathematical invalidity.
 -/
 
 open Lean
@@ -38,6 +41,7 @@ namespace CasCatalogue
 /-- The kind of a failed call. -/
 inductive Stratum
   | invalid
+  | semanticAmbiguity
   | noImplementation
   | ambiguousRealization
   | unavailable
@@ -47,11 +51,13 @@ inductive Stratum
 namespace Stratum
 
 def all : List Stratum :=
-  [.invalid, .noImplementation, .ambiguousRealization, .unavailable, .malformed]
+  [.invalid, .semanticAmbiguity, .noImplementation, .ambiguousRealization, .unavailable,
+   .malformed]
 
 /-- The message tag of the stratum. -/
 def tag : Stratum → Name
   | .invalid => `CasCatalogue.Stratum.invalid
+  | .semanticAmbiguity => `CasCatalogue.Stratum.semanticAmbiguity
   | .noImplementation => `CasCatalogue.Stratum.noImplementation
   | .ambiguousRealization => `CasCatalogue.Stratum.ambiguousRealization
   | .unavailable => `CasCatalogue.Stratum.unavailable
@@ -60,6 +66,7 @@ def tag : Stratum → Name
 /-- The label a reader sees first. -/
 def label : Stratum → String
   | .invalid => "not a valid call"
+  | .semanticAmbiguity => "ambiguous statement"
   | .noImplementation => "NoImplementation"
   | .ambiguousRealization => "ambiguous realization"
   | .unavailable => "realization unavailable"
