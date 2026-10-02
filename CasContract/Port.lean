@@ -42,10 +42,21 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
   constructor spelled by its short name within its type (`finite`, `aleph0`, `some`, `true`);
 * a proof field is never on the wire;
 * a morphism of a concrete category is its graph, a list of pairs `[x, f x]` of points;
+  a registered named morphism may instead be encoded as
+  `{"ctor": <morphism id>, "args": [<explicit parameters>]}`. Its declaration fixes the
+  parameter types and endpoints; this permits named arrows on infinite carriers without
+  enumerating a graph. The kernel checks the instantiated endpoints against the requested arrow;
 * a diagram, the input of a registered limit or colimit, is registered on the form of its
   category (`"input": "cat.sets"`) and sent as Mathlib's standard constructor of its shape with
   its explicit arguments, `{"ctor": "pair", "args": [X, Y]}` or
   `{"ctor": "cospan", "args": [f, g]}`, objects and arrows in their own encodings.
+
+A registered functor's object action receives
+`{"ctor": <functor id>, "args": [<ordered explicit declaration arguments>],
+"receiver": <source object data>}`. The registered declaration determines the argument
+types, source and target, including dependent parameters. The kernel checks those types and
+endpoints; a backend cannot choose the functor or its parameters. The result is decoded in
+the declared target form.
 
 An answer is a value of the operation's declared result form in this encoding. The answer of a
 limit is its cone, `{"ctor": "cone", "args": [<apex>, <leg>, ...]}`, and of a colimit its cocone,
@@ -54,6 +65,23 @@ category (a named object at its parameters), each leg a morphism. The kernel dec
 against its form, deciding every condition the form imposes (for a cone: it rebuilds it with
 Mathlib's standard constructor of the shape and decides that the legs commute), or rejects it as
 malformed; nothing in an answer beyond its value is read.
+
+A structured reply may additionally carry map data relating the independently declared
+presentation of the requested diagram to the returned presentation:
+
+```json
+{"ctor":"cone","args":["<apex>","<legs>"],
+ "presentation":{"hom":"<graph>","inv":"<graph>"}}
+```
+
+The same envelope is permitted for a cocone. `hom` runs from the independent presentation's
+apex to the returned apex; `inv` runs in the reverse direction. Both use the declared
+category's morphism encoding. These are computations, never proofs or a certificate. The
+kernel decodes them at those exact endpoints, checks both inverse equations and compatibility
+with every defining leg, and reconstructs the universal property from the independent
+presentation. Missing or incorrect defining maps are malformed. A missing presentation
+computation is a realization gap when the kernel cannot reconstruct the comparison itself;
+it does not authorize replacing the requested diagram or its mathematical question.
 -/
 
 open Lean
