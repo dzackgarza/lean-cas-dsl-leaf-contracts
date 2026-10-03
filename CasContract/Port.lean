@@ -144,6 +144,16 @@ Canonical data from a registered limit or colimit uses
 `{"ctor":"limitLeg","args":[<registered limit id>,<complete diagram>,<index>]}`.
 The kernel instantiates the registered mathematical presentation and projects its apex or
 leg. These descriptors contain no proof and assert no comparison with another apex.
+
+The defining leg of a complete returned construction may instead use
+`{"ctor":"constructionLeg","args":[<registered limit id>,<complete diagram>,
+<complete returned cone or cocone envelope>,<exact typed index>]}`. The index is data at
+the actual diagram's declared object type. The kernel independently reconstructs the full
+returned cone or cocone for that same fixed construction, including every defining map and
+any required checked presentation comparison, before projecting its actual leg. A different
+apex's leg cannot be replaced by the canonical leg or identified by cardinality. Any endpoint
+alignment must use the retained checked presentation maps. This is the existing registered
+universal construction's defining-map projection, not a new mathematical operation.
 `{"ctor":"zero","args":[<source object>,<target object>]}` requires the category's
 actual zero-morphism structure. `identity` has the same endpoints syntax and requires equal
 endpoints. Every constructed value is checked at its exact expected type.
