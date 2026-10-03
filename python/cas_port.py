@@ -8,6 +8,42 @@ import json
 import sys
 
 
+def point_invocation(args, operation=None):
+    """Read common invocation framing; endpoint meaning belongs to the formal caller.
+
+    Return (id, parameters, arrow, domain, source, target, argument). No mathematical
+    correctness, backend class membership, or law is established here.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "apply":
+        raise ValueError("a point invocation requires the apply envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 7:
+        raise ValueError("a point invocation requires all seven ordered fields")
+    if not isinstance(fields[0], str) or not fields[0]:
+        raise ValueError("a point invocation has no released operation id")
+    if operation is not None and fields[0] != operation:
+        raise ValueError("the invocation id differs from the requested operation")
+    if not isinstance(fields[1], list):
+        raise ValueError("invocation parameters must be ordered data")
+    return tuple(fields)
+
+
+def value_data(data):
+    """Supply inline computational data under the caller's fixed result contract."""
+    return {"ctor": "valueData", "args": [data]}
+
+
+def opaque_data(token):
+    """Supply a connection-local computational token, with no semantic authority.
+
+    The kernel retains its supplying session and owner. The adapter keeps the native
+    value alive on this connection and consumes it through its registered operations.
+    """
+    if not isinstance(token, str) or not token:
+        raise ValueError("an opaque computational value has no token")
+    return {"ctor": "opaqueData", "args": [token]}
+
+
 def _read_exact(n):
     buf = b""
     while len(buf) < n:

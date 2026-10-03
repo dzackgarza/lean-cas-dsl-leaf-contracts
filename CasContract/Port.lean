@@ -170,6 +170,35 @@ A registered comparison's point application is requested under that comparison i
 <exact source descriptor>,<exact target descriptor>,<input point data>]}`. The reply is an
 `element` envelope at the exact target, independently decoded and compared by the kernel.
 
+Every released morphism or callable operation may instead use the common point-invocation
+envelope under its original registered operation id:
+`{"ctor":"apply","args":[<operation id>,[<ordered full parameters>],
+<actual arrow descriptor>,<generalized-point domain>,<complete source object>,
+<complete target object>,<input point data>]}`. The kernel fixes these fields from the
+published signature and retained composition before dispatch; the first field must equal
+the outer request's `op`. A point has its original generalized domain, rather than an
+assumed singleton. The arrow may include registered actions, compositions or selected
+comparison maps; none is replaced by an endpoint rename. This invokes the declared map
+on the supplied computational point, without first obtaining its graph on an infinite carrier.
+
+The reply is `{"ctor":"valueData","args":[<declared computational result data>]}` or
+`{"ctor":"opaqueData","args":[<nonempty connection-local token>]}`. Its mathematical
+result and interface remain the independently fixed target at the same generalized domain.
+Inline data retain every component required by the published result contract. An opaque
+token refers to computational data or a callable implementation, never a Lean term or proof.
+The kernel retains the actual connection identity and supplying backend with the token;
+the reply cannot choose that owner. Later declared operations consume the same returned
+data. An opaque token is usable only on its original live connection and only through an
+admitted registration for the requested operation and form. A lost connection is unavailable;
+it is not restarted to reinterpret the token. Another implementation cannot be sent an
+unknown token, and a token cannot add operations or change their formal meaning. Portable
+inline data remain available to other admitted implementations under their declared contracts.
+
+This common encoding applies equally to subsequent operations on returned values and to
+callable components of complete structured results. It does not require eagerly enumerating
+an infinite carrier, proving algebraic laws, or treating a returned value as the canonical
+mathematical answer. Well-framed but wrong data remain possible and are observed by acceptance.
+
 A complete accepted structural functor action may be carried as
 `{"ctor":"functorAction","args":[<exact edge descriptor>,<complete selected source object>]}`.
 The kernel reconstructs the actual registered functor at its full parameters and applies it
@@ -250,6 +279,64 @@ does not change the formal construction, requested diagram or mathematical quest
 open Lean
 
 namespace CasCatalogue.Backend
+
+/-- A released arrow applied to an already selected generalized point. All descriptors come
+from the formal request; none is inferred from the reply or from a backend class. -/
+structure PointInvocation where
+  operation : String
+  parameters : Array Json
+  arrow : Json
+  domain : Json
+  source : Json
+  target : Json
+  argument : Json
+
+/-- The ordinary port operation remains the released operation id. `apply` is a request
+encoding, not a new mathematical operation or an implementation-selected endpoint. -/
+def PointInvocation.encode (request : PointInvocation) : Json :=
+  Json.mkObj [("ctor", toJson "apply"), ("args", Json.arr #[
+    toJson request.operation, Json.arr request.parameters, request.arrow,
+    request.domain, request.source, request.target, request.argument])]
+
+/-- Parse framing only. The kernel separately fixes and checks the released signature and
+selected descriptors before dispatch. Parsing never establishes a mathematical law. -/
+def PointInvocation.decode (json : Json) : Except String PointInvocation := do
+  unless (← json.getObjValAs? String "ctor") == "apply" do
+    throw "a point invocation requires the apply envelope"
+  let args ← (← json.getObjVal? "args").getArr?
+  let #[operation, parameters, arrow, domain, source, target, argument] := args
+    | throw "a point invocation requires all seven ordered fields"
+  let operation ← operation.getStr?
+  if operation.isEmpty then throw "a point invocation has no released operation id"
+  let parameters ← parameters.getArr?
+  return { operation, parameters, arrow, domain, source, target, argument }
+
+/-- Computational data associated with the request's independently fixed result. An opaque
+token is meaningful only to the existing connection that returned it. Its owner and session
+are retained by the kernel, never chosen by this token or serialized as semantic authority. -/
+inductive ComputationalValue where
+  | inline (data : Json)
+  | opaque (token : String)
+
+def ComputationalValue.encode : ComputationalValue → Json
+  | .inline data => Json.mkObj [("ctor", toJson "valueData"), ("args", Json.arr #[data])]
+  | .opaque token => Json.mkObj [("ctor", toJson "opaqueData"),
+      ("args", Json.arr #[toJson token])]
+
+/-- Check the computational envelope, without decoding its data into a law-bearing Lean
+value. Required inline components are checked against the published result contract by the
+consumer. An opaque value is subsequently consumed through that same declared interface. -/
+def ComputationalValue.decode (json : Json) : Except String ComputationalValue := do
+  let tag ← json.getObjValAs? String "ctor"
+  let args ← (← json.getObjVal? "args").getArr?
+  let #[data] := args | throw "a computational value requires exactly one data field"
+  match tag with
+  | "valueData" => return .inline data
+  | "opaqueData" =>
+      let token ← data.getStr?
+      if token.isEmpty then throw "an opaque computational value has no token"
+      return .opaque token
+  | _ => throw "the reply has no declared computational value envelope"
 
 /-- Why a backend call failed. -/
 inductive PortError
