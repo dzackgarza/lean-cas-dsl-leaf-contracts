@@ -19,10 +19,13 @@ of the kernel.
   and the backend that computes it. A registration has exactly those three fields; nothing else a
   manifest says carries meaning. The kernel admits a registration against the catalogue, or reports
   why it does not.
-* **Nothing a leaf says is believed.** Its answers cross the port as JSON, are decoded by the
-  kernel in the operation's declared result form or rejected as malformed, and are only ever
-  compared with the acceptance suite's expected values. No denotation, proof, identification,
-  evidence or status comes from a leaf, and none can be written.
+* **Registration and answers are computational claims and data.** The kernel checks a leaf's
+  declaration against the published contract and may invoke it. It consumes outputs for subsequent
+  computations and acceptance observations, never as authority for mathematical definitions,
+  laws, semantic placement or acceptance truth. Contract conformance does not certify correctness.
+  Required structure may be supplied as data or callable operations suitable for the object;
+  completeness does not require enumerating infinite objects or functions. The abstract obligation
+  model belongs upstream; this package owns concrete invocation and representation protocols.
 * **The contract is the type at the firewall.** It fixes the type a leaf's computation must meet
   and nothing else. On the leaf side anything goes that meets it. Only answers cross, and an answer
   is checked against the formal side, the permanent acceptance suite of `lean-cas-dsl`, never
