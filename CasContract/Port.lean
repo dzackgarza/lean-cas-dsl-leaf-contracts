@@ -89,6 +89,13 @@ the map is decoded at those exact endpoints. This is an arrow-category object, s
 applicable methods are those declared for that category; a bare named map is not retyped
 as an object of its source or target category.
 
+The stored map of a complete arrow object may be described by
+`{"ctor":"arrowHom","args":[<complete arrow object data>]}`. The receiver must decode in
+an independently fixed category with the registered arrow-constructor semantics. The result
+is that object's actual stored defining map, at its exact full source and target. This does
+not permit an arbitrary field projection, a new operation, or a different choice of endpoints.
+For an `arrow` envelope above, the stored map is its third argument.
+
 A value of a registered subobject category uses
 `{"ctor":"subobject","args":[<apex object>,<ambient object>,<inclusion>]}`,
 registered on that category's id. The inclusion is decoded at these exact endpoints;
