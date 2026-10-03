@@ -199,6 +199,15 @@ callable components of complete structured results. It does not require eagerly 
 an infinite carrier, proving algebraic laws, or treating a returned value as the canonical
 mathematical answer. Well-framed but wrong data remain possible and are observed by acceptance.
 
+A computational observation of a truth value (the published target `obj.sets.truth_values`)
+uses `valueData` containing a JSON boolean. This is an implementation's answer, not a term
+inhabiting the proposition, a decidability proof, or a certificate. A characteristic map,
+including the published equality map, is invoked on the supplied computational arguments
+through the same `apply` envelope. The consumer compares its observed boolean with the
+independently fixed expected boolean. A non-singleton generalized domain still requires
+its declared pointwise data or callable representation; one boolean cannot stand for an
+arbitrary truth-valued function. No observation changes the formal proposition.
+
 A complete accepted structural functor action may be carried as
 `{"ctor":"functorAction","args":[<exact edge descriptor>,<complete selected source object>]}`.
 The kernel reconstructs the actual registered functor at its full parameters and applies it
