@@ -108,6 +108,26 @@ Consequences:
 >
 > Preserve corrections and their causal examples in the existing owning documents. Do not assume conversational acknowledgment survives. Recording a settled correction is ordinary maintenance, not another approval transaction.
 
+> ### Touch grass: this agent is inside the failure history
+>
+> Assume that you can repeat the documented mistakes even after reading, explaining, or correcting them. This applies when planning, implementing, reviewing, assessing progress, and writing new policy.
+>
+> Before judging progress, ask what the intended user can now do through the intended interface, and whether it works by the intended general mechanism. Correct helpers, successful builds, precise gap reports, and completed review machinery do not compensate for failure to deliver that mechanism.
+>
+> At session resumption, before plans or progress verdicts, and at least once per hour of active work, step outside the current subtask: what is the actual goal, how long has this obstacle consumed across workers and branches, what capability has become usable, and why does the remaining work exist?
+>
+> Inspect the prerequisite generating repeated repairs. It may have been invented by this agent, its planner, or an earlier assistant. Existing code, plans, gates, and reviewer statements do not make that prerequisite valid.
+>
+> A verified mathematical API is not a verified backend. Contract-compliant wrong answers remain possible. Do not recreate a runtime certification burden to protect against a failure the computational model explicitly allows.
+>
+> When a loop is found, correct its cause and complete the substantive obligation. Do not respond with another checklist, approval transaction, smaller completion claim, or easier specimen.
+>
+> Missing repository or execution evidence means the corresponding judgment is unknown. No push does not mean no work.
+>
+> Use this shared process text and the causal history in these existing instructions when a plan or repair begins accumulating dependencies. Challenge your current reasoning—not merely previous agents. Role-specific authors do not inspect downstream diagnostics to obtain this guidance.
+>
+> Acknowledgment in chat is not durable correction. Record material changes in their existing owning documents through ordinary maintenance, without creating a separate documentation approval cycle.
+
 > **You have no memory.** Nothing that exists only in chat survives compaction or the session.
 > Every correction, finding and decision request is committed to its owning document first
 > ([`lean-cas-dsl/AGENTS.md`](https://github.com/dzackgarza/lean-cas-dsl/blob/main/AGENTS.md),
