@@ -103,6 +103,18 @@ its monomorphism condition is established independently by the kernel. The reply
 all three data fields and no proof. Prescribed lifts retain the resulting structured apex
 and its defining inclusion, including the selected form and value object.
 
+A returned subobject may additionally supply
+`"presentation":{"hom":<morphism data>,"inv":<morphism data>}`. As for cones below,
+`hom` runs from the independently fixed requested apex to the returned apex, and `inv`
+runs in reverse. The full ambient object must be exactly the requested ambient object.
+The kernel checks both inverse equations and the inclusion square: `hom` followed by
+the returned inclusion equals the requested inclusion. It also checks the reverse square.
+Supplied maps are checked even when the two subobjects are definitionally equal. These
+fields contain only ordinary morphism data at the independently fixed full endpoints;
+they contain no proof, assertion of equality, or choice of a different ambient object.
+Absent map data is a realization gap if the comparison cannot be reconstructed independently;
+incorrect maps or a different ambient object are malformed.
+
 The kernel may encode a completed prescribed lift for subsequent computations as
 `{"ctor":"liftedSubobject","args":[<original complete subobject reply>,
 <source receiver data>,[<prescribed lift ids in route order>]]}`. It produces this data only
