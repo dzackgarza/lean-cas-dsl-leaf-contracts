@@ -176,9 +176,14 @@ A complete accepted structural functor action may be carried as
 The kernel reconstructs the actual registered functor at its full parameters and applies it
 to that source at the independently fixed target category. For a registered constructive
 functor whose result is in the registered subobjects category, its canonical apex or inclusion
-is described by `{"ctor":"subobjectApex","args":[<complete functorAction data>]}` or
-`{"ctor":"subobjectInclusion","args":[<complete functorAction data>]}`. Only the
-registered subobject construction's apex and defining inclusion may be projected. These are
+is described by `{"ctor":"subobjectApex","args":[<complete constructed subobject data>]}` or
+`{"ctor":"subobjectInclusion","args":[<complete constructed subobject data>]}`. The receiver
+may be complete `functorAction`, `objectPresentation`, or `liftedSubobject` data. Its full
+subobjects category, ambient object, apex, and defining inclusion must first be reconstructed
+and checked. A presented receiver retains its checked comparison; a lifted receiver retains
+the complete source construction, prescribed registered lifts in order, and their full selected
+structure and defining maps. Only that reconstructed subobject's apex and defining inclusion
+may be projected. These are
 categorical data descriptions, with exact expected types checked independently; they do not
 name a new limit, supply a proof or choose a lift.
 
