@@ -178,11 +178,12 @@ functor whose result is in the registered subobjects category, its canonical ape
 is described by `{"ctor":"subobjectApex","args":[<complete constructed subobject data>]}` or
 `{"ctor":"subobjectInclusion","args":[<complete constructed subobject data>]}`. The receiver
 may be complete `functorAction`, `objectPresentation`, or `liftedSubobject` data. Its full
-subobjects category, ambient object, apex, and defining inclusion must first be reconstructed
-and checked. A presented receiver retains its full computational context; a lifted receiver retains
+subobjects category and formal selected structure remain fixed independently, while complete
+computational ambient, apex and inclusion fields are retained and validated in their declared
+forms. A presented receiver retains its full computational context; a lifted receiver retains
 the complete source construction, prescribed registered lifts in order, and their full selected
-structure and defining maps. Only that reconstructed subobject's apex and defining inclusion
-may be projected. These are
+structure and defining maps. Computational projections read those returned fields; formal
+projections derive from the independent construction. These are
 categorical data descriptions, with exact expected types checked independently; they do not
 name a new limit, supply a proof or choose a lift.
 
@@ -224,9 +225,10 @@ An answer is a value of the operation's declared result form in this encoding. T
 limit is its cone, `{"ctor": "cone", "args": [<apex>, <leg>, ...]}`, and of a colimit its cocone,
 `{"ctor": "cocone", "args": [<apex>, <leg>, ...]}`: the apex a value of a registered form of the
 category (a named object at its parameters), each leg a morphism. The kernel decodes every answer
-against its form, deciding every condition the form imposes (for a cone: it rebuilds it with
-Mathlib's standard constructor of the shape and decides that the legs commute), or rejects it as
-malformed; nothing in an answer beyond its value is read.
+against its declared computational data form, retaining every required field and exact map
+endpoint, or rejects it as malformed. It does not build a formal cone from the returned data:
+formal commutation and universal-property proofs remain with the independent construction.
+Correctness of the returned legs is judged by acceptance.
 
 A structured reply may additionally carry map data relating the independently declared
 presentation of the requested diagram to the returned presentation:
