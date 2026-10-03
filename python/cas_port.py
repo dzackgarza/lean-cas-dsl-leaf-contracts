@@ -33,6 +33,20 @@ def value_data(data):
     return {"ctor": "valueData", "args": [data]}
 
 
+def object_product(args):
+    """Read ordered endpoint descriptors for a caller-fixed public binary product.
+
+    This is concrete framing for the declared Prod source, not a semantic registry
+    entry or a claim that its computational data satisfy product laws.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "objectProduct":
+        raise ValueError("a product endpoint requires its declared envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 2:
+        raise ValueError("a product endpoint requires both ordered object descriptors")
+    return tuple(fields)
+
+
 def admitted_point(args):
     """Read an independently fixed admission context without certifying its data.
 

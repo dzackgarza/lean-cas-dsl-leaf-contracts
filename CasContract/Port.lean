@@ -230,6 +230,18 @@ callable components of complete structured results. It does not require eagerly 
 an infinite carrier, proving algebraic laws, or treating a returned value as the canonical
 mathematical answer. Well-framed but wrong data remain possible and are observed by acceptance.
 
+When a published callable's actual declared source is the public binary product
+`Prod X Y`, its full source descriptor may use
+`{"ctor":"objectProduct","args":[<full X descriptor>,<full Y descriptor>]}`.
+The caller establishes the selected product and ordered endpoints before dispatch;
+this concrete descriptor adds no semantic row and requires no named-source lookup.
+A generalized point of that source carries the two ordered component data in a
+JSON array. An observation such as the published equality characteristic map has
+`X = Y`, but this framing does not identify or replace either component's data.
+The existing complete callable form may admit that request without a separately
+registered named product object. Product or equality laws are not certified by
+the descriptor or the returned data.
+
 A computational observation of a truth value (the published target `obj.sets.truth_values`)
 uses `valueData` containing a JSON boolean. This is an implementation's answer, not a term
 inhabiting the proposition, a decidability proof, or a certificate. A characteristic map,
@@ -241,9 +253,10 @@ arbitrary truth-valued function. No observation changes the formal proposition.
 
 A complete accepted structural functor action may be carried as
 `{"ctor":"functorAction","args":[<exact edge descriptor>,<complete selected source object>]}`.
-The kernel reconstructs the actual registered functor at its full parameters and applies it
-to that source at the independently fixed target category. For a registered constructive
-functor whose result is in the registered subobjects category, its canonical apex or inclusion
+The complete selected functor and formal source are established independently of backend
+data. The computational source is retained alongside that context; it is not reconstructed
+as a law-bearing mathematical object. For a registered constructive
+functor whose result is in the registered subobjects category, its apex or inclusion
 is described by `{"ctor":"subobjectApex","args":[<complete constructed subobject data>]}` or
 `{"ctor":"subobjectInclusion","args":[<complete constructed subobject data>]}`. The receiver
 may be complete `functorAction`, `objectPresentation`, or `liftedSubobject` data. Its full
@@ -256,11 +269,13 @@ projections derive from the independent construction. These are
 categorical data descriptions, with exact expected types checked independently; they do not
 name a new limit, supply a proof or choose a lift.
 
-Canonical data from a registered limit or colimit uses
+Formal reference descriptors for a registered limit or colimit use
 `{"ctor":"limitApex","args":[<registered limit id>,<complete diagram>]}` or
 `{"ctor":"limitLeg","args":[<registered limit id>,<complete diagram>,<index>]}`.
-The kernel instantiates the registered mathematical presentation and projects its apex or
-leg. These descriptors contain no proof and assert no comparison with another apex.
+Their formal interpretation instantiates the registered mathematical presentation and
+projects its apex or leg. These descriptors contain no proof and assert no comparison with
+another apex. They do not establish that required external computation ran, and cannot
+replace an actual returned computational apex or defining map during result reuse.
 
 The defining leg of a complete returned construction may instead use
 `{"ctor":"constructionLeg","args":[<registered limit id>,<complete diagram>,
