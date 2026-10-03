@@ -38,27 +38,386 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
 * a record (one constructor, no indices: a pair, a point of `Fin n`, a subtype) is the JSON array
   of its data fields, or that field alone when it has exactly one (a point of `Fin n` is its
   number, a pair is `[x, y]`);
+* a function whose domain has an independently synthesized finite enumeration is a graph,
+  a list of pairs `[x, f x]`, including every domain point exactly once. This also applies
+  to function data fields of a record; all declared field conditions are checked. Thus an
+  equivalence's two function fields retain both forward and inverse graphs, while its proof
+  fields are omitted. Function encoding does not change the selected source or target type;
 * any other constructor application is `{"ctor": <constructor>, "args": [<data fields>]}`, the
   constructor spelled by its short name within its type (`finite`, `aleph0`, `some`, `true`);
 * a proof field is never on the wire;
 * a morphism of a concrete category is its graph, a list of pairs `[x, f x]` of points;
+  a registered named morphism may instead be encoded as
+  `{"ctor": <morphism id>, "args": [<explicit parameters>]}`. Its declaration fixes the
+  parameter types and endpoints; this permits named arrows on infinite carriers without
+  enumerating a graph. The kernel checks the instantiated endpoints against the requested arrow;
+* the action of a registered functor on an arrow may be represented as
+  `{"ctor":"map","args":[{"ctor":<functor id>,"args":[<explicit parameters>]},<arrow>]}`.
+  Structural classifier-forget edges use
+  `{"ctor":"classifierForget","args":[<registered classifier id>,
+  [<ordered actual classifier declaration arguments>]]}`; a registered
+  constructor's derived action uses
+  `{"ctor":"constructorMap","args":[<registered constructor id>,<inner edge descriptor>]}`.
+  These descriptors name the actual registered edge; they do not invent a functor row.
+  The arrow uses its source-category encoding. The registered functor and its exact parameters
+  determine the resulting arrow and endpoints. Composition is
+  `{"ctor":"compose","args":[<first arrow>,<second arrow>]}` in categorical order
+  (first, then second); both arrows are checked at their shared endpoint. Accepted presentation
+  changes retain their actual comparison arrows in this composition, never an endpoint rename;
 * a diagram, the input of a registered limit or colimit, is registered on the form of its
   category (`"input": "cat.sets"`) and sent as Mathlib's standard constructor of its shape with
   its explicit arguments, `{"ctor": "pair", "args": [X, Y]}` or
   `{"ctor": "cospan", "args": [f, g]}`, objects and arrows in their own encodings.
+  A retained parallel-arrow diagram is `{"ctor":"parallelPair","args":[f,g]}`.
+  Its cone or cocone has one defining arrow, so the reply is respectively
+  `{"ctor":"cone","args":[<apex>,<inclusion>]}` or
+  `{"ctor":"cocone","args":[<apex>,<projection>]}`. The two arrows in the request
+  are retained exactly, including a registered trivial or zero arrow where the
+  mathematical declaration specifies one; a shape label does not replace an arrow.
+
+A registered functor's object action receives
+`{"ctor": <functor id>, "args": [<ordered explicit declaration arguments>],
+"receiver": <source object data>}`. The registered declaration determines the argument
+types, source and target, including dependent parameters. The kernel checks those types and
+endpoints; a backend cannot choose the functor or its parameters. The result is decoded in
+the declared target form.
+
+An object of a registered arrow category uses
+`{"ctor":"arrow","args":[<source object>,<target object>,<defining map>]}`,
+registered on that arrow category's id. Both endpoints retain their selected object data;
+the map is decoded at those exact endpoints. This is an arrow-category object, so its
+applicable methods are those declared for that category; a bare named map is not retyped
+as an object of its source or target category.
+
+The stored map of a complete arrow object may be described by
+`{"ctor":"arrowHom","args":[<complete arrow object data>]}`. The receiver must decode in
+an independently fixed category with the registered arrow-constructor semantics. The result
+is that object's actual stored defining map, at its exact full source and target. This does
+not permit an arbitrary field projection, a new operation, or a different choice of endpoints.
+For an `arrow` envelope above, the stored map is its third argument.
+
+A value of a registered subobject category uses
+`{"ctor":"subobject","args":[<apex object>,<ambient object>,<inclusion>]}`,
+registered on that category's id. The inclusion is decoded at these exact endpoints;
+its monomorphism is part of the independent formal construction, not a proof reconstructed
+from this reply. The reply supplies all three computational data fields and no proof.
+Prescribed lifts retain the complete representation and defining inclusion while formal
+structure remains independently fixed.
+
+A returned subobject may additionally supply
+`"presentation":{"hom":<morphism data>,"inv":<morphism data>}`. As for cones below,
+`hom` runs from the independently fixed requested apex to the returned apex, and `inv`
+runs in reverse. The full ambient object must be exactly the requested ambient object.
+Inverse equations and inclusion squares are correctness obligations for acceptance;
+the computational boundary does not prove them to identify the returned data with mathematics. These
+fields contain only ordinary morphism data at the independently fixed full endpoints;
+they contain no proof, assertion of equality, or choice of a different ambient object.
+Required missing fields or maps with incompatible declared endpoints are malformed.
+A complete well-formed wrong answer remains computational data and reaches acceptance.
+
+For subsequent computations the complete context may be encoded as
+`{"ctor":"objectPresentation","args":[<complete requested functorAction descriptor>,
+<complete returned subobject envelope>]}`. The first argument is independently reconstructed
+from the exact registered functor, ordered parameters and original receiver. The second retains
+all returned data and any presentation maps above. The first argument fixes formal meaning;
+the second remains opaque computational data. This envelope establishes no isomorphism or
+universal property. Further functor actions and defining-map projections carry complete context
+without using the answer to determine formal structure or operations.
+
+The kernel may encode a completed prescribed lift for subsequent computations as
+`{"ctor":"liftedSubobject","args":[<original complete subobject reply>,
+<source receiver data>,[<prescribed lift ids in route order>]]}`. It produces this data only
+with the formal lift independently fixed and the full computational inclusion retained.
+It is not a backend's choice of lift or a backend proof.
+
+A named object's registered generator arrow is
+`{"ctor":"generator","args":[<registered named set object id>,
+[<ordered explicit generator declaration arguments>]]}`. The declaration and its full
+signature own the endpoint and any index; this descriptor does not introduce a new arrow row.
+A selected structured object's carrier reaches that set only along its registered structure.
+
+Closed points at selected named objects use
+`{"ctor":"element","args":[<exact selected object descriptor>,<arithmetic data>]}`.
+The descriptor includes every ordered parameter and must equal the independently selected
+endpoint. Arithmetic data has only `ctor` and ordered `args`: `numeral` takes one natural
+number, `generator` takes no argument or one natural index, `add` and `mul` take two data
+expressions, and `neg` takes one. These tags invoke existing registered language operations;
+they do not contain Lean source or choose an object by its carrier.
+
+The general published operation expression is
+`{"ctor":"operationExpression","args":[<registered operation id>,
+[<full ordered selected declaration parameters>],[<ordered operand expressions>]]}`
+inside that same exact selected-object envelope. The public operation signature fixes
+operand types, arity, chosen structure and result. These fields come from the retained
+formal construction, not a guessed arithmetic name. Existing short arithmetic tags remain
+portable input encodings; operations such as power use this general encoding. The kernel
+serializes the expression and checks its formal trace and types without reimplementing
+the operation or requiring an input-expression roundtrip through law-bearing Lean values.
+The leaf lowers the declared operation to its native engine at those selected parameters.
+Transport retains its actual registered action; nonidentity maps cannot be discarded.
+
+A closed point forwarded through an accepted carrier-preserving structural view uses
+`{"ctor":"pointView","args":[<complete target functorAction object descriptor>,
+<complete source element envelope>,<exact generalized-point domain descriptor>]}`.
+The kernel checks the complete registered source-object action and its selected target,
+reconstructs the source arithmetic point at that same full chosen structure, and checks
+the declared carrier identification. The domain must equal the independently fixed source
+of the original and requested generalized point. This describes only an admitted forward
+carrier identification; it cannot recover a structure from its carrier or choose a new
+domain. Nonidentity point maps retain their actual morphism action and composition instead.
+
+A nullary registered operation's point, with its actual terminal-source comparison, uses
+`{"ctor":"operationPoint","args":[<registered operation id>,
+[<ordered explicit declaration parameters>],<complete accepted presentation-arrow data>,
+<exact original generalized-domain descriptor>,<complete selected target object descriptor>]}`.
+The kernel instantiates that same operation at the complete parameters, checks the actual
+registered comparison from its global-point source to the operation's declared source, and
+reconstructs its point at the independently fixed target and original generalized domain.
+Any supported raw-map reconstruction must be checked against the actual instantiated operation;
+an unsupported reconstruction is a computational gap. This envelope supplies no proof, chooses
+no structure from a carrier, and cannot replace the operation's source with another terminal.
+
+A registered comparison's point application is requested under that comparison id, with
+`{"ctor":"presentationApply","args":[<ordered parameters>,<inverse boolean>,
+<exact source descriptor>,<exact target descriptor>,<input point data>]}`. The reply is an
+`element` envelope at the exact target, independently decoded and compared by the kernel.
+
+Every released morphism or callable operation may instead use the common point-invocation
+envelope under its original registered operation id:
+`{"ctor":"apply","args":[<operation id>,[<ordered full parameters>],
+<actual arrow descriptor>,<generalized-point domain>,<complete source object>,
+<complete target object>,<input point data>]}`. The kernel fixes these fields from the
+published signature and retained composition before dispatch; the first field must equal
+the outer request's `op`. A point has its original generalized domain, rather than an
+assumed singleton. The arrow may include registered actions, compositions or selected
+comparison maps; none is replaced by an endpoint rename. This invokes the declared map
+on the supplied computational point, without first obtaining its graph on an infinite carrier.
+
+A published `BinderEntry.operation` is addressed by its existing binder id. A published
+`ObjectEntry.application` is addressed by `<object id>#application`. These are concrete
+addresses of existing callable metadata, not new semantic rows. An application address is
+admitted only when that exact object exports the field. Its complete ordered declaration
+parameters, source and target are fixed from that field's actual signature. Binder inputs
+retain the actual admitted map and the selected bound/range parameters; the caller does not
+substitute another formally equivalent sum or product. A registration may use the complete
+callable address itself as its request form, or a supported declared source-object form.
+
+An independently admitted point retains its original computational data as
+`{"ctor":"admittedPoint","args":[<published object id>,[<full ordered parameters>],
+<original generalized domain>,<original target object>,<selected admitted target>,
+<actual original point data>]}`. The kernel fixes the category and the actual public
+admission declaration, checks the original and admitted formal endpoints, and keeps the
+formal admission evidence on the interpretation side. The wrapper supplies no proof.
+Computations consume the original point data under the selected target's interface;
+they do not substitute the canonical admitted formal value or certify backend membership.
+Opaque data keep their original owning connection through the wrapper.
+
+The reply is `{"ctor":"valueData","args":[<declared computational result data>]}` or
+`{"ctor":"opaqueData","args":[<nonempty connection-local token>]}`. Its mathematical
+result and interface remain the independently fixed target at the same generalized domain.
+Inline data retain every component required by the published result contract. An opaque
+token refers to computational data or a callable implementation, never a Lean term or proof.
+The kernel retains the actual connection identity and supplying backend with the token;
+the reply cannot choose that owner. Later declared operations consume the same returned
+data. An opaque token is usable only on its original live connection and only through an
+admitted registration for the requested operation and form. A lost connection is unavailable;
+it is not restarted to reinterpret the token. Another implementation cannot be sent an
+unknown token, and a token cannot add operations or change their formal meaning. Portable
+inline data remain available to other admitted implementations under their declared contracts.
+
+This common encoding applies equally to subsequent operations on returned values and to
+callable components of complete structured results. It does not require eagerly enumerating
+an infinite carrier, proving algebraic laws, or treating a returned value as the canonical
+mathematical answer. Well-framed but wrong data remain possible and are observed by acceptance.
+
+When a published callable's actual declared source is the public binary product
+`Prod X Y`, its full source descriptor may use
+`{"ctor":"objectProduct","args":[<full X descriptor>,<full Y descriptor>]}`.
+The caller establishes the selected product and ordered endpoints before dispatch;
+this concrete descriptor adds no semantic row and requires no named-source lookup.
+A generalized point of that source carries the two ordered component data in a
+JSON array. An observation such as the published equality characteristic map has
+`X = Y`, but this framing does not identify or replace either component's data.
+The existing complete callable form may admit that request without a separately
+registered named product object. Product or equality laws are not certified by
+the descriptor or the returned data.
+
+A computational observation of a truth value (the published target `obj.sets.truth_values`)
+uses `valueData` containing a JSON boolean. This is an implementation's answer, not a term
+inhabiting the proposition, a decidability proof, or a certificate. A characteristic map,
+including the published equality map, is invoked on the supplied computational arguments
+through the same `apply` envelope. The consumer compares its observed boolean with the
+independently fixed expected boolean. A non-singleton generalized domain still requires
+its declared pointwise data or callable representation; one boolean cannot stand for an
+arbitrary truth-valued function. No observation changes the formal proposition.
+
+A complete accepted structural functor action may be carried as
+`{"ctor":"functorAction","args":[<exact edge descriptor>,<complete selected source object>]}`.
+The complete selected functor and formal source are established independently of backend
+data. The computational source is retained alongside that context; it is not reconstructed
+as a law-bearing mathematical object. For a registered constructive
+functor whose result is in the registered subobjects category, its apex or inclusion
+is described by `{"ctor":"subobjectApex","args":[<complete constructed subobject data>]}` or
+`{"ctor":"subobjectInclusion","args":[<complete constructed subobject data>]}`. The receiver
+may be complete `functorAction`, `objectPresentation`, or `liftedSubobject` data. Its full
+subobjects category and formal selected structure remain fixed independently, while complete
+computational ambient, apex and inclusion fields are retained and validated in their declared
+forms. A presented receiver retains its full computational context; a lifted receiver retains
+the complete source construction, prescribed registered lifts in order, and their full selected
+structure and defining maps. Computational projections read those returned fields; formal
+projections derive from the independent construction. These are
+categorical data descriptions, with exact expected types checked independently; they do not
+name a new limit, supply a proof or choose a lift.
+
+Formal reference descriptors for a registered limit or colimit use
+`{"ctor":"limitApex","args":[<registered limit id>,<complete diagram>]}` or
+`{"ctor":"limitLeg","args":[<registered limit id>,<complete diagram>,<index>]}`.
+Their formal interpretation instantiates the registered mathematical presentation and
+projects its apex or leg. These descriptors contain no proof and assert no comparison with
+another apex. They do not establish that required external computation ran, and cannot
+replace an actual returned computational apex or defining map during result reuse.
+
+The defining leg of a complete returned construction may instead use
+`{"ctor":"constructionLeg","args":[<registered limit id>,<complete diagram>,
+<complete returned cone or cocone envelope>,<exact typed index>]}`. The index is data at
+the actual diagram's declared object type. Computational projection reads the returned leg;
+formal projection derives its map from the authoritative construction independently. Complete
+defining-map data is retained, without requiring a proof that the backend's cone is universal.
+A different apex's leg cannot be replaced by the canonical leg or identified by cardinality. This is the existing registered
+universal construction's defining-map projection, not a new mathematical operation.
+
+For a returned construction carried through an accepted creation lift, the complete cone
+envelope inside `constructionLeg` is
+`{"ctor":"createdCone","args":[<registered lift id>,<complete source diagram>,
+<complete returned target cone envelope>]}`.
+The formal source construction is derived from accepted creation independently of the returned
+target data. The computational envelope retains the exact lift, diagram and all target fields;
+it supplies no universal-property proof, guessed identification or named source-apex recovery.
+It cannot select a different formal lift, diagram or source structure.
+
+`{"ctor":"zero","args":[<source object>,<target object>]}` requires the category's
+actual zero-morphism structure. `identity` has the same endpoints syntax and requires equal
+endpoints. Every constructed value is checked at its exact expected type.
+
+An arrow of a registered presentation comparison is
+`{"ctor":"presentation","args":[<comparison id>,[<ordered explicit parameters>],
+<inverse boolean>]}`. False selects its forward arrow; true selects its inverse.
+The registered comparison fixes both endpoints and the actual isomorphism. A structural
+functor's action on this arrow uses the same `map` envelope as any other arrow.
 
 An answer is a value of the operation's declared result form in this encoding. The answer of a
 limit is its cone, `{"ctor": "cone", "args": [<apex>, <leg>, ...]}`, and of a colimit its cocone,
 `{"ctor": "cocone", "args": [<apex>, <leg>, ...]}`: the apex a value of a registered form of the
 category (a named object at its parameters), each leg a morphism. The kernel decodes every answer
-against its form, deciding every condition the form imposes (for a cone: it rebuilds it with
-Mathlib's standard constructor of the shape and decides that the legs commute), or rejects it as
-malformed; nothing in an answer beyond its value is read.
+against its declared computational data form, retaining every required field and exact map
+endpoint, or rejects it as malformed. It does not build a formal cone from the returned data:
+formal commutation and universal-property proofs remain with the independent construction.
+Correctness of the returned legs is judged by acceptance.
+
+A structured reply may additionally carry map data relating the independently declared
+presentation of the requested diagram to the returned presentation:
+
+```json
+{"ctor":"cone","args":["<apex>","<legs>"],
+ "presentation":{"hom":"<graph>","inv":"<graph>"}}
+```
+
+The same envelope is permitted for a cocone. `hom` runs from the independent presentation's
+apex to the returned apex; `inv` runs in the reverse direction. Both use the declared
+category's morphism encoding. These are computations, never proofs or a certificate. The
+kernel checks their declared forms and endpoints without proving their inverse equations,
+compatibility with defining legs or universality. Those are correctness questions for acceptance.
+Missing required defining maps or ill-formed data are malformed. A well-formed wrong computation
+does not change the formal construction, requested diagram or mathematical question.
 -/
 
 open Lean
 
 namespace CasCatalogue.Backend
+
+/-- Complete computational context for an independently admitted formal point. The original
+data are retained, not replaced by a formal representative or checked as an admission proof. -/
+structure AdmittedPoint where
+  object : String
+  parameters : Array Json
+  domain : Json
+  source : Json
+  target : Json
+  argument : Json
+
+def AdmittedPoint.encode (point : AdmittedPoint) : Json :=
+  Json.mkObj [("ctor", toJson "admittedPoint"), ("args", Json.arr #[
+    toJson point.object, Json.arr point.parameters, point.domain, point.source,
+    point.target, point.argument])]
+
+def AdmittedPoint.decode (json : Json) : Except String AdmittedPoint := do
+  unless (← json.getObjValAs? String "ctor") == "admittedPoint" do
+    throw "an admitted point requires its declared envelope"
+  let args ← (← json.getObjVal? "args").getArr?
+  let #[object, parameters, domain, source, target, argument] := args
+    | throw "an admitted point requires all six ordered fields"
+  let object ← object.getStr?
+  if object.isEmpty then throw "an admitted point has no published object id"
+  let parameters ← parameters.getArr?
+  return { object, parameters, domain, source, target, argument }
+
+/-- A released arrow applied to an already selected generalized point. All descriptors come
+from the formal request; none is inferred from the reply or from a backend class. -/
+structure PointInvocation where
+  operation : String
+  parameters : Array Json
+  arrow : Json
+  domain : Json
+  source : Json
+  target : Json
+  argument : Json
+
+/-- The ordinary port operation remains the released operation id. `apply` is a request
+encoding, not a new mathematical operation or an implementation-selected endpoint. -/
+def PointInvocation.encode (request : PointInvocation) : Json :=
+  Json.mkObj [("ctor", toJson "apply"), ("args", Json.arr #[
+    toJson request.operation, Json.arr request.parameters, request.arrow,
+    request.domain, request.source, request.target, request.argument])]
+
+/-- Parse framing only. The kernel separately fixes and checks the released signature and
+selected descriptors before dispatch. Parsing never establishes a mathematical law. -/
+def PointInvocation.decode (json : Json) : Except String PointInvocation := do
+  unless (← json.getObjValAs? String "ctor") == "apply" do
+    throw "a point invocation requires the apply envelope"
+  let args ← (← json.getObjVal? "args").getArr?
+  let #[operation, parameters, arrow, domain, source, target, argument] := args
+    | throw "a point invocation requires all seven ordered fields"
+  let operation ← operation.getStr?
+  if operation.isEmpty then throw "a point invocation has no released operation id"
+  let parameters ← parameters.getArr?
+  return { operation, parameters, arrow, domain, source, target, argument }
+
+/-- Computational data associated with the request's independently fixed result. An opaque
+token is meaningful only to the existing connection that returned it. Its owner and session
+are retained by the kernel, never chosen by this token or serialized as semantic authority. -/
+inductive ComputationalValue where
+  | inline (data : Json)
+  | opaque (token : String)
+
+def ComputationalValue.encode : ComputationalValue → Json
+  | .inline data => Json.mkObj [("ctor", toJson "valueData"), ("args", Json.arr #[data])]
+  | .opaque token => Json.mkObj [("ctor", toJson "opaqueData"),
+      ("args", Json.arr #[toJson token])]
+
+/-- Check the computational envelope, without decoding its data into a law-bearing Lean
+value. Required inline components are checked against the published result contract by the
+consumer. An opaque value is subsequently consumed through that same declared interface. -/
+def ComputationalValue.decode (json : Json) : Except String ComputationalValue := do
+  let tag ← json.getObjValAs? String "ctor"
+  let args ← (← json.getObjVal? "args").getArr?
+  let #[data] := args | throw "a computational value requires exactly one data field"
+  match tag with
+  | "valueData" => return .inline data
+  | "opaqueData" =>
+      let token ← data.getStr?
+      if token.isEmpty then throw "an opaque computational value has no token"
+      return .opaque token
+  | _ => throw "the reply has no declared computational value envelope"
 
 /-- Why a backend call failed. -/
 inductive PortError

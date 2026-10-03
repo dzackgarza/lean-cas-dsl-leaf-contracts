@@ -8,6 +8,92 @@ import json
 import sys
 
 
+def point_invocation(args, operation=None):
+    """Read common invocation framing; endpoint meaning belongs to the formal caller.
+
+    Return (id, parameters, arrow, domain, source, target, argument). No mathematical
+    correctness, backend class membership, or law is established here.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "apply":
+        raise ValueError("a point invocation requires the apply envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 7:
+        raise ValueError("a point invocation requires all seven ordered fields")
+    if not isinstance(fields[0], str) or not fields[0]:
+        raise ValueError("a point invocation has no released operation id")
+    if operation is not None and fields[0] != operation:
+        raise ValueError("the invocation id differs from the requested operation")
+    if not isinstance(fields[1], list):
+        raise ValueError("invocation parameters must be ordered data")
+    return tuple(fields)
+
+
+def value_data(data):
+    """Supply inline computational data under the caller's fixed result contract."""
+    return {"ctor": "valueData", "args": [data]}
+
+
+def object_product(args):
+    """Read ordered endpoint descriptors for a caller-fixed public binary product.
+
+    This is concrete framing for the declared Prod source, not a semantic registry
+    entry or a claim that its computational data satisfy product laws.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "objectProduct":
+        raise ValueError("a product endpoint requires its declared envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 2:
+        raise ValueError("a product endpoint requires both ordered object descriptors")
+    return tuple(fields)
+
+
+def admitted_point(args):
+    """Read an independently fixed admission context without certifying its data.
+
+    Return (object id, parameters, domain, original target, admitted target, data).
+    Formal evidence and the computational data's session remain with the caller.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "admittedPoint":
+        raise ValueError("an admitted point requires its declared envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 6:
+        raise ValueError("an admitted point requires all six ordered fields")
+    if not isinstance(fields[0], str) or not fields[0]:
+        raise ValueError("an admitted point has no published object id")
+    if not isinstance(fields[1], list):
+        raise ValueError("admission parameters must be ordered data")
+    return tuple(fields)
+
+
+def operation_expression(args):
+    """Read symbolic input operation data at the caller's selected structure.
+
+    Return (registered operation id, full parameters, operand expressions).
+    This framing helper executes no mathematical operation and asserts no law.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "operationExpression":
+        raise ValueError("an operation expression requires its declared envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 3:
+        raise ValueError("an operation expression requires all three ordered fields")
+    if not isinstance(fields[0], str) or not fields[0]:
+        raise ValueError("an operation expression has no registered operation id")
+    if not isinstance(fields[1], list) or not isinstance(fields[2], list):
+        raise ValueError("operation parameters and operands must be ordered data")
+    return tuple(fields)
+
+
+def opaque_data(token):
+    """Supply a connection-local computational token, with no semantic authority.
+
+    The kernel retains its supplying session and owner. The adapter keeps the native
+    value alive on this connection and consumes it through its registered operations.
+    """
+    if not isinstance(token, str) or not token:
+        raise ValueError("an opaque computational value has no token")
+    return {"ctor": "opaqueData", "args": [token]}
+
+
 def _read_exact(n):
     buf = b""
     while len(buf) < n:

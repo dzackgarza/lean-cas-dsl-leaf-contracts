@@ -6,6 +6,8 @@ module
 
 public import CasContract
 public import Lean.Util.CollectAxioms
+public import Lean.Elab.Command
+public meta import Lean.Elab.Command
 
 /-!
 # Kernel-axiom audit
