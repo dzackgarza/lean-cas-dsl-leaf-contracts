@@ -133,6 +133,17 @@ of the original and requested generalized point. This describes only an admitted
 carrier identification; it cannot recover a structure from its carrier or choose a new
 domain. Nonidentity point maps retain their actual morphism action and composition instead.
 
+A nullary registered operation's point, with its actual terminal-source comparison, uses
+`{"ctor":"operationPoint","args":[<registered operation id>,
+[<ordered explicit declaration parameters>],<complete accepted presentation-arrow data>,
+<exact original generalized-domain descriptor>,<complete selected target object descriptor>]}`.
+The kernel instantiates that same operation at the complete parameters, checks the actual
+registered comparison from its global-point source to the operation's declared source, and
+reconstructs its point at the independently fixed target and original generalized domain.
+Any supported raw-map reconstruction must be checked against the actual instantiated operation;
+an unsupported reconstruction is a computational gap. This envelope supplies no proof, chooses
+no structure from a carrier, and cannot replace the operation's source with another terminal.
+
 A registered comparison's point application is requested under that comparison id, with
 `{"ctor":"presentationApply","args":[<ordered parameters>,<inverse boolean>,
 <exact source descriptor>,<exact target descriptor>,<input point data>]}`. The reply is an
@@ -164,6 +175,19 @@ any required checked presentation comparison, before projecting its actual leg. 
 apex's leg cannot be replaced by the canonical leg or identified by cardinality. Any endpoint
 alignment must use the retained checked presentation maps. This is the existing registered
 universal construction's defining-map projection, not a new mathematical operation.
+
+For a returned construction carried through an accepted creation lift, the complete cone
+envelope inside `constructionLeg` is
+`{"ctor":"createdCone","args":[<registered lift id>,<complete source diagram>,
+<complete returned target cone envelope>,<complete realized source-apex descriptor>]}`.
+The kernel reconstructs the full source diagram and its image along the exact registered lift,
+checks the target cone and its universal evidence independently, and applies the registered
+creation datum. A different source-apex presentation requires the actual checked isomorphism
+supplied by the accepted presentation interface, with its full endpoints and defining maps;
+extending the created cone retains its universal evidence. The source-apex descriptor is checked
+against this complete construction. The envelope supplies no proof or guessed identification
+and cannot select a different lift, diagram, cone or source structure.
+
 `{"ctor":"zero","args":[<source object>,<target object>]}` requires the category's
 actual zero-morphism structure. `identity` has the same endpoints syntax and requires equal
 endpoints. Every constructed value is checked at its exact expected type.
