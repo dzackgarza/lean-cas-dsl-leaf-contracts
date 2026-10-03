@@ -115,6 +115,16 @@ they contain no proof, assertion of equality, or choice of a different ambient o
 Absent map data is a realization gap if the comparison cannot be reconstructed independently;
 incorrect maps or a different ambient object are malformed.
 
+For subsequent computations the complete checked context may be encoded as
+`{"ctor":"objectPresentation","args":[<complete requested functorAction descriptor>,
+<complete returned subobject envelope>]}`. The first argument is independently reconstructed
+from the exact registered functor, ordered parameters and original receiver. The second retains
+all returned data and any presentation maps above. The kernel checks their full categories,
+fixed ambient, inverse equations and inclusion squares, and retains the resulting isomorphism
+from the requested structured object to the returned structured object. Further functor actions
+and defining-map projections carry this complete context and use that checked comparison at
+their exact endpoints. This envelope contains no proof or arbitrary choice of expected object.
+
 The kernel may encode a completed prescribed lift for subsequent computations as
 `{"ctor":"liftedSubobject","args":[<original complete subobject reply>,
 <source receiver data>,[<prescribed lift ids in route order>]]}`. It produces this data only
