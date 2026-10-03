@@ -123,6 +123,16 @@ number, `generator` takes no argument or one natural index, `add` and `mul` take
 expressions, and `neg` takes one. These tags invoke existing registered language operations;
 they do not contain Lean source or choose an object by its carrier.
 
+A closed point forwarded through an accepted carrier-preserving structural view uses
+`{"ctor":"pointView","args":[<complete target functorAction object descriptor>,
+<complete source element envelope>,<exact generalized-point domain descriptor>]}`.
+The kernel checks the complete registered source-object action and its selected target,
+reconstructs the source arithmetic point at that same full chosen structure, and checks
+the declared carrier identification. The domain must equal the independently fixed source
+of the original and requested generalized point. This describes only an admitted forward
+carrier identification; it cannot recover a structure from its carrier or choose a new
+domain. Nonidentity point maps retain their actual morphism action and composition instead.
+
 A registered comparison's point application is requested under that comparison id, with
 `{"ctor":"presentationApply","args":[<ordered parameters>,<inverse boolean>,
 <exact source descriptor>,<exact target descriptor>,<input point data>]}`. The reply is an
