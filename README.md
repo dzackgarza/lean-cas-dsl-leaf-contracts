@@ -27,6 +27,11 @@ of the kernel.
   and nothing else. On the leaf side anything goes that meets it. Only answers cross, and an answer
   is checked against the formal side, the permanent acceptance suite of `lean-cas-dsl`, never
   believed.
+  Structured answers retain all declared computational fields, including defining maps.
+  They do not become proved identifications with the formal construction: its identity,
+  structure and operations remain independently authoritative. Runtime does not require a
+  proof that a backend returned the correct universal object; well-formed wrong answers are
+  judged by acceptance.
 * **Kernel-owned.** Changes here are kernel changes: made with `lean-cas-dsl` and merged to
   `main`, which `lean-cas-dsl` tracks. A leaf never changes this contract to fit itself.
 * **No mathematics.** Which operations and forms exist, and what they denote, is `lean-categories`'

@@ -107,28 +107,26 @@ A returned subobject may additionally supply
 `"presentation":{"hom":<morphism data>,"inv":<morphism data>}`. As for cones below,
 `hom` runs from the independently fixed requested apex to the returned apex, and `inv`
 runs in reverse. The full ambient object must be exactly the requested ambient object.
-The kernel checks both inverse equations and the inclusion square: `hom` followed by
-the returned inclusion equals the requested inclusion. It also checks the reverse square.
-Supplied maps are checked even when the two subobjects are definitionally equal. These
+Inverse equations and inclusion squares are correctness obligations for acceptance;
+the computational boundary does not prove them to identify the returned data with mathematics. These
 fields contain only ordinary morphism data at the independently fixed full endpoints;
 they contain no proof, assertion of equality, or choice of a different ambient object.
-Absent map data is a realization gap if the comparison cannot be reconstructed independently;
-incorrect maps or a different ambient object are malformed.
+Required missing fields or maps with incompatible declared endpoints are malformed.
+A complete well-formed wrong answer remains computational data and reaches acceptance.
 
-For subsequent computations the complete checked context may be encoded as
+For subsequent computations the complete context may be encoded as
 `{"ctor":"objectPresentation","args":[<complete requested functorAction descriptor>,
 <complete returned subobject envelope>]}`. The first argument is independently reconstructed
 from the exact registered functor, ordered parameters and original receiver. The second retains
-all returned data and any presentation maps above. The kernel checks their full categories,
-fixed ambient, inverse equations and inclusion squares, and retains the resulting isomorphism
-from the requested structured object to the returned structured object. Further functor actions
-and defining-map projections carry this complete context and use that checked comparison at
-their exact endpoints. This envelope contains no proof or arbitrary choice of expected object.
+all returned data and any presentation maps above. The first argument fixes formal meaning;
+the second remains opaque computational data. This envelope establishes no isomorphism or
+universal property. Further functor actions and defining-map projections carry complete context
+without using the answer to determine formal structure or operations.
 
 The kernel may encode a completed prescribed lift for subsequent computations as
 `{"ctor":"liftedSubobject","args":[<original complete subobject reply>,
 <source receiver data>,[<prescribed lift ids in route order>]]}`. It produces this data only
-after constructing and checking the full lifted inclusion through the registered lifts.
+with the formal lift independently fixed and the full computational inclusion retained.
 It is not a backend's choice of lift or a backend proof.
 
 A named object's registered generator arrow is
@@ -196,24 +194,20 @@ leg. These descriptors contain no proof and assert no comparison with another ap
 The defining leg of a complete returned construction may instead use
 `{"ctor":"constructionLeg","args":[<registered limit id>,<complete diagram>,
 <complete returned cone or cocone envelope>,<exact typed index>]}`. The index is data at
-the actual diagram's declared object type. The kernel independently reconstructs the full
-returned cone or cocone for that same fixed construction, including every defining map and
-any required checked presentation comparison, before projecting its actual leg. A different
-apex's leg cannot be replaced by the canonical leg or identified by cardinality. Any endpoint
-alignment must use the retained checked presentation maps. This is the existing registered
+the actual diagram's declared object type. Computational projection reads the returned leg;
+formal projection derives its map from the authoritative construction independently. Complete
+defining-map data is retained, without requiring a proof that the backend's cone is universal.
+A different apex's leg cannot be replaced by the canonical leg or identified by cardinality. This is the existing registered
 universal construction's defining-map projection, not a new mathematical operation.
 
 For a returned construction carried through an accepted creation lift, the complete cone
 envelope inside `constructionLeg` is
 `{"ctor":"createdCone","args":[<registered lift id>,<complete source diagram>,
-<complete returned target cone envelope>,<complete realized source-apex descriptor>]}`.
-The kernel reconstructs the full source diagram and its image along the exact registered lift,
-checks the target cone and its universal evidence independently, and applies the registered
-creation datum. A different source-apex presentation requires the actual checked isomorphism
-supplied by the accepted presentation interface, with its full endpoints and defining maps;
-extending the created cone retains its universal evidence. The source-apex descriptor is checked
-against this complete construction. The envelope supplies no proof or guessed identification
-and cannot select a different lift, diagram, cone or source structure.
+<complete returned target cone envelope>]}`.
+The formal source construction is derived from accepted creation independently of the returned
+target data. The computational envelope retains the exact lift, diagram and all target fields;
+it supplies no universal-property proof, guessed identification or named source-apex recovery.
+It cannot select a different formal lift, diagram or source structure.
 
 `{"ctor":"zero","args":[<source object>,<target object>]}` requires the category's
 actual zero-morphism structure. `identity` has the same endpoints syntax and requires equal
@@ -244,11 +238,10 @@ presentation of the requested diagram to the returned presentation:
 The same envelope is permitted for a cocone. `hom` runs from the independent presentation's
 apex to the returned apex; `inv` runs in the reverse direction. Both use the declared
 category's morphism encoding. These are computations, never proofs or a certificate. The
-kernel decodes them at those exact endpoints, checks both inverse equations and compatibility
-with every defining leg, and reconstructs the universal property from the independent
-presentation. Missing or incorrect defining maps are malformed. A missing presentation
-computation is a realization gap when the kernel cannot reconstruct the comparison itself;
-it does not authorize replacing the requested diagram or its mathematical question.
+kernel checks their declared forms and endpoints without proving their inverse equations,
+compatibility with defining legs or universality. Those are correctness questions for acceptance.
+Missing required defining maps or ill-formed data are malformed. A well-formed wrong computation
+does not change the formal construction, requested diagram or mathematical question.
 -/
 
 open Lean
