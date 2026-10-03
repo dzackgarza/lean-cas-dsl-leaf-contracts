@@ -99,9 +99,10 @@ For an `arrow` envelope above, the stored map is its third argument.
 A value of a registered subobject category uses
 `{"ctor":"subobject","args":[<apex object>,<ambient object>,<inclusion>]}`,
 registered on that category's id. The inclusion is decoded at these exact endpoints;
-its monomorphism condition is established independently by the kernel. The reply supplies
-all three data fields and no proof. Prescribed lifts retain the resulting structured apex
-and its defining inclusion, including the selected form and value object.
+its monomorphism is part of the independent formal construction, not a proof reconstructed
+from this reply. The reply supplies all three computational data fields and no proof.
+Prescribed lifts retain the complete representation and defining inclusion while formal
+structure remains independently fixed.
 
 A returned subobject may additionally supply
 `"presentation":{"hom":<morphism data>,"inv":<morphism data>}`. As for cones below,
@@ -178,7 +179,7 @@ is described by `{"ctor":"subobjectApex","args":[<complete constructed subobject
 `{"ctor":"subobjectInclusion","args":[<complete constructed subobject data>]}`. The receiver
 may be complete `functorAction`, `objectPresentation`, or `liftedSubobject` data. Its full
 subobjects category, ambient object, apex, and defining inclusion must first be reconstructed
-and checked. A presented receiver retains its checked comparison; a lifted receiver retains
+and checked. A presented receiver retains its full computational context; a lifted receiver retains
 the complete source construction, prescribed registered lifts in order, and their full selected
 structure and defining maps. Only that reconstructed subobject's apex and defining inclusion
 may be projected. These are
