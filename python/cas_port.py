@@ -33,6 +33,42 @@ def value_data(data):
     return {"ctor": "valueData", "args": [data]}
 
 
+def admitted_point(args):
+    """Read an independently fixed admission context without certifying its data.
+
+    Return (object id, parameters, domain, original target, admitted target, data).
+    Formal evidence and the computational data's session remain with the caller.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "admittedPoint":
+        raise ValueError("an admitted point requires its declared envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 6:
+        raise ValueError("an admitted point requires all six ordered fields")
+    if not isinstance(fields[0], str) or not fields[0]:
+        raise ValueError("an admitted point has no published object id")
+    if not isinstance(fields[1], list):
+        raise ValueError("admission parameters must be ordered data")
+    return tuple(fields)
+
+
+def operation_expression(args):
+    """Read symbolic input operation data at the caller's selected structure.
+
+    Return (registered operation id, full parameters, operand expressions).
+    This framing helper executes no mathematical operation and asserts no law.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "operationExpression":
+        raise ValueError("an operation expression requires its declared envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 3:
+        raise ValueError("an operation expression requires all three ordered fields")
+    if not isinstance(fields[0], str) or not fields[0]:
+        raise ValueError("an operation expression has no registered operation id")
+    if not isinstance(fields[1], list) or not isinstance(fields[2], list):
+        raise ValueError("operation parameters and operands must be ordered data")
+    return tuple(fields)
+
+
 def opaque_data(token):
     """Supply a connection-local computational token, with no semantic authority.
 

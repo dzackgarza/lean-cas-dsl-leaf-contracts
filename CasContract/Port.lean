@@ -144,6 +144,18 @@ number, `generator` takes no argument or one natural index, `add` and `mul` take
 expressions, and `neg` takes one. These tags invoke existing registered language operations;
 they do not contain Lean source or choose an object by its carrier.
 
+The general published operation expression is
+`{"ctor":"operationExpression","args":[<registered operation id>,
+[<full ordered selected declaration parameters>],[<ordered operand expressions>]]}`
+inside that same exact selected-object envelope. The public operation signature fixes
+operand types, arity, chosen structure and result. These fields come from the retained
+formal construction, not a guessed arithmetic name. Existing short arithmetic tags remain
+portable input encodings; operations such as power use this general encoding. The kernel
+serializes the expression and checks its formal trace and types without reimplementing
+the operation or requiring an input-expression roundtrip through law-bearing Lean values.
+The leaf lowers the declared operation to its native engine at those selected parameters.
+Transport retains its actual registered action; nonidentity maps cannot be discarded.
+
 A closed point forwarded through an accepted carrier-preserving structural view uses
 `{"ctor":"pointView","args":[<complete target functorAction object descriptor>,
 <complete source element envelope>,<exact generalized-point domain descriptor>]}`.
@@ -180,6 +192,25 @@ the outer request's `op`. A point has its original generalized domain, rather th
 assumed singleton. The arrow may include registered actions, compositions or selected
 comparison maps; none is replaced by an endpoint rename. This invokes the declared map
 on the supplied computational point, without first obtaining its graph on an infinite carrier.
+
+A published `BinderEntry.operation` is addressed by its existing binder id. A published
+`ObjectEntry.application` is addressed by `<object id>#application`. These are concrete
+addresses of existing callable metadata, not new semantic rows. An application address is
+admitted only when that exact object exports the field. Its complete ordered declaration
+parameters, source and target are fixed from that field's actual signature. Binder inputs
+retain the actual admitted map and the selected bound/range parameters; the caller does not
+substitute another formally equivalent sum or product. A registration may use the complete
+callable address itself as its request form, or a supported declared source-object form.
+
+An independently admitted point retains its original computational data as
+`{"ctor":"admittedPoint","args":[<published object id>,[<full ordered parameters>],
+<original generalized domain>,<original target object>,<selected admitted target>,
+<actual original point data>]}`. The kernel fixes the category and the actual public
+admission declaration, checks the original and admitted formal endpoints, and keeps the
+formal admission evidence on the interpretation side. The wrapper supplies no proof.
+Computations consume the original point data under the selected target's interface;
+they do not substitute the canonical admitted formal value or certify backend membership.
+Opaque data keep their original owning connection through the wrapper.
 
 The reply is `{"ctor":"valueData","args":[<declared computational result data>]}` or
 `{"ctor":"opaqueData","args":[<nonempty connection-local token>]}`. Its mathematical
@@ -288,6 +319,32 @@ does not change the formal construction, requested diagram or mathematical quest
 open Lean
 
 namespace CasCatalogue.Backend
+
+/-- Complete computational context for an independently admitted formal point. The original
+data are retained, not replaced by a formal representative or checked as an admission proof. -/
+structure AdmittedPoint where
+  object : String
+  parameters : Array Json
+  domain : Json
+  source : Json
+  target : Json
+  argument : Json
+
+def AdmittedPoint.encode (point : AdmittedPoint) : Json :=
+  Json.mkObj [("ctor", toJson "admittedPoint"), ("args", Json.arr #[
+    toJson point.object, Json.arr point.parameters, point.domain, point.source,
+    point.target, point.argument])]
+
+def AdmittedPoint.decode (json : Json) : Except String AdmittedPoint := do
+  unless (← json.getObjValAs? String "ctor") == "admittedPoint" do
+    throw "an admitted point requires its declared envelope"
+  let args ← (← json.getObjVal? "args").getArr?
+  let #[object, parameters, domain, source, target, argument] := args
+    | throw "an admitted point requires all six ordered fields"
+  let object ← object.getStr?
+  if object.isEmpty then throw "an admitted point has no published object id"
+  let parameters ← parameters.getArr?
+  return { object, parameters, domain, source, target, argument }
 
 /-- A released arrow applied to an already selected generalized point. All descriptors come
 from the formal request; none is inferred from the reply or from a backend class. -/
