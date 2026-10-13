@@ -14,6 +14,7 @@ releases it; see `AGENTS.md`.
 -/
 package «cas_leaf_contracts» where
   version := v!"0.1.0"
+  packagesDir := "../../.local/share/lean/v4.33.0/packages"
 
 require lean_categories from git
   "https://github.com/dzackgarza/lean-categories" @ "main"
