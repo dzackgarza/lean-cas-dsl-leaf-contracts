@@ -76,8 +76,10 @@ run_cmd do
       functors := functors.push (Json.mkObj [("id", toJson row.id.raw),
         ("signature", ← describe row.declaration)])
     let mut datatypes : Array Json := #[]
-    let mut names : Array Name := #[]
-    for name in ← declarations.get do
+    let mut typeAliases : Array Json := #[]
+    let seeds ← declarations.get
+    let mut names := seeds
+    for name in seeds do
       let info ← getConstInfo name
       names := names ++ info.type.getUsedConstants
     let mut seen : NameSet := {}
@@ -87,7 +89,30 @@ run_cmd do
       cursor := cursor + 1
       if seen.contains name then continue
       seen := seen.insert name
-      let .inductInfo info ← getConstInfo name | continue
+      if isPrivateName name then continue
+      let constant ← getConstInfo name
+      let .inductInfo info := constant | do
+        let typeReference ← forallTelescope constant.type fun params result => do
+          let .sort level := (← whnf result) | return none
+          if level == .zero then return none
+          let expression := mkAppN (mkConst name (constant.levelParams.map Level.param)) params
+          let normalized ← match constant with
+            | .defnInfo _ => whnf expression
+            | _ => pure expression
+          let exposed := normalized != expression
+          let closed ← mkForallFVars params normalized
+          if closed.hasFVar || closed.hasMVar || closed.hasLevelMVar then
+            throwError "type alias {name} has an open public type expression"
+          return some (exposed, closed)
+        if let some (exposed, closed) := typeReference then
+          names := names ++ closed.getUsedConstants
+          let rendered ← ppExpr closed
+          typeAliases := typeAliases.push (Json.mkObj [
+            ("declaration", toJson name.toString),
+            ("type", toJson (← ppExpr constant.type).pretty),
+            ("normalizedType", if exposed then toJson rendered.pretty else Json.null),
+            ("representation", toJson (if exposed then "exposed-type" else "abstract"))])
+        continue
       let mut constructors : Array Json := #[]
       for ctor in info.ctors do
         let ci ← getConstInfo ctor
@@ -108,7 +133,7 @@ run_cmd do
         ("type", toJson (← ppExpr info.type).pretty),
         ("constructors", Json.arr constructors)])
     return Json.mkObj [("entries", Json.arr entries), ("categories", Json.arr categories),
-      ("datatypes", Json.arr datatypes), ("lifts", Json.arr lifts), ("objects", Json.arr objects),
+      ("datatypes", Json.arr datatypes), ("typeAliases", Json.arr typeAliases), ("lifts", Json.arr lifts), ("objects", Json.arr objects),
       ("functors", Json.arr functors)]
   let output := (← IO.getEnv "CAS_DECLARED_PORTS_OUTPUT").getD "declared-ports.json"
   let required (name : String) : IO String := do

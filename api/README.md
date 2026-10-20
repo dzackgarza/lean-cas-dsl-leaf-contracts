@@ -28,9 +28,19 @@ from those types, recursively through constructor types. Constructor `fields` re
 Lean's declared order after datatype parameters and indicate proof slots. They are
 type reference metadata, not a generated JSON codec. The existing protocol's
 primitive encodings remain authoritative: for example, `Fin` and modular scalar
-points do not become constructor-field arrays. Proof slots are absent from wire data. The `resultType` is the same public signature with only its result type head normalized
-to expose aliases; no declaration value is exported. These signatures describe public data; no constructor
-body or proof is exported, reconstructed or certified by this documentation.
+points do not become constructor-field arrays. Proof slots are absent from wire data.
+The `resultType` is the same public signature with only its result type head
+normalized to expose aliases.
+
+`typeAliases` additionally covers public Type-valued declarations occurring in the
+reference. The exporter applies each declaration to its complete generic parameters
+and normalizes that type expression, closes it over those parameters, and follows
+its referenced datatype constructors. This exposes existing public types hidden by
+aliases without evaluating operational computations or proof propositions. An
+opaque or unreduced type has `representation: "abstract"` and a null
+`normalizedType`; no constructors are guessed. These fields are type reference
+metadata, not additional wire encodings. No operational declaration value,
+constructor body or proof is exported, reconstructed or certified.
 
 Wire shapes are fixed by `CasContract/Port.lean`: named objects and ordered
 parameters, constructor data slots, callable graphs or owned opaque callables,
