@@ -124,11 +124,42 @@ the second remains opaque computational data. This envelope establishes no isomo
 universal property. Further functor actions and defining-map projections carry complete context
 without using the answer to determine formal structure or operations.
 
-The kernel may encode a completed prescribed lift for subsequent computations as
-`{"ctor":"liftedSubobject","args":[<original complete subobject reply>,
-<source receiver data>,[<prescribed lift ids in route order>]]}`. It produces this data only
-with the formal lift independently fixed and the full computational inclusion retained.
-It is not a backend's choice of lift or a backend proof.
+A registered subobject lift's public `MonoLiftComputation` has four callable fields:
+`obj`, `hom`, `forward`, and `backward`. Their concrete port addresses are
+`<lift id>#obj`, `<lift id>#hom`, `<lift id>#forward`, and `<lift id>#backward`, each
+registered on `<lift id>#input`. These addresses expose only the published fields of
+`LiftEntry.computation`; they create no mathematical operations or laws. A request is
+`{"ctor":"liftInput","args":[<exact lift id>,<selected inner action descriptor>,
+<complete source Arrow>,<current complete base subobject>,[<earlier actual outputs>]]}`.
+The field order is fixed. `obj` sees an empty output prefix; `hom`, `forward`, and
+`backward` see respectively one, two, and three actual preceding outputs. The full
+selected action parameters, original Arrow endpoints and map, actual base apex and
+inclusion, and session ownership survive every request. No reply chooses the lift.
+
+The object reply is ordinary object data. Each map reply is
+`{"ctor":"typedMap","args":[<actual domain data>,<actual codomain data>,<callable data>]}`.
+For object output `O`, source Arrow `X → Y`, and base subobject `K → U(X)`, the map
+endpoints are `O → X`, `U(O) → K`, and `K → U(O)`, in that order. `U(O)` uses the
+complete selected inner action descriptor applied to the actual object output. Callable
+data may be opaque on infinite carriers; it is not enumerated or converted to a Lean
+morphism. Finite graphs use their actual domain and codomain descriptors. Missing fields
+or incompatible declared endpoints are malformed. Well-framed mathematically wrong
+objects or maps remain wrong data, to be tested by the independent permanent assertions;
+no inverse, monicity, factorization or universal-property proof is requested from a leaf.
+
+The kernel encodes a completed prescribed lift for subsequent computations as
+`{"ctor":"liftedSubobject","args":[<original complete base subobject reply>,
+<complete original source Arrow>,[<prescribed lift ids in route order>],
+[<completed steps in route order>]]}`. Each step is
+`{"ctor":"liftStep","args":[<exact lift id>,<selected inner action descriptor>,
+<complete source Arrow for this step>,<actual base subobject for this step>,
+[<object output>,<typed inclusion output>,<typed forward output>,<typed backward output>]]}`.
+Execution runs in reverse route order. Its next base is the subobject formed from the
+preceding step's actual object and inclusion outputs, with its actual source ambient;
+it never repeats the initial base packet for later steps. All four actual fields are
+retained, including both comparison directions. A three-field `liftedSubobject` packet
+without component outputs is incomplete and cannot claim completed execution. Formal
+meaning, the selected route, and the complete source/base types remain independently fixed.
 
 A named object's registered generator arrow is
 `{"ctor":"generator","args":[<registered named set object id>,
