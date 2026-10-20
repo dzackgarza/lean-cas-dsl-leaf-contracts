@@ -42,6 +42,9 @@ of the kernel.
 * **No tests.** The permanent acceptance suite is `lean-cas-dsl`'s. Nothing here, and so nothing a
   leaf can reach, contains or names it.
 
+The [declared API reference](api/README.md) publishes the complete registered declaration
+signatures, computational port addresses and generic wire-shape references.
+
 Module roots: `CasContract.*` (namespaces `CasCatalogue`, shared with the kernel). The Python
 reference implementation of the port protocol is `python/cas_port.py`; the kernel puts it on every
 program's `PYTHONPATH`.

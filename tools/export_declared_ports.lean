@@ -1,0 +1,123 @@
+module
+import LeanCategories.Catalogue
+meta import LeanCategories.Catalogue
+open Lean Meta Elab Command CasCatalogue
+set_option pp.explicit true
+set_option pp.universes true
+set_option pp.fullNames true
+run_cmd do
+  let result : Json ← liftTermElabM do
+    let state ← semanticState
+    let declarations ← IO.mkRef (#[] : Array Name)
+    let describe (name : Name) : TermElabM Json := do
+      declarations.modify (·.push name)
+      let info ← getConstInfo name
+      let resultType ← forallTelescope info.type fun params result => do
+        let result ← whnf result
+        let closed ← mkForallFVars params result
+        declarations.modify (· ++ closed.getUsedConstants)
+        return (← ppExpr closed).pretty
+      return Json.mkObj [("declaration", toJson name.toString),
+        ("type", toJson (← ppExpr info.type).pretty),
+        ("resultType", toJson resultType),
+        ("documentation", toJson (← findDocString? (← getEnv) name))]
+    let mut lifts : Array Json := #[]
+    for row in state.lifts do
+      let mut ports : Array Json := #[]
+      if let some declaration := row.computation then
+        let info ← getConstInfo declaration
+        ports ← forallTelescope info.type fun params _ => do
+          let value := mkAppN (mkConst declaration (info.levelParams.map Level.param)) params
+          let mut result : Array Json := #[]
+          for (field, index) in #[("obj", 0), ("hom", 1), ("forward", 2), ("backward", 3)] do
+            let term := mkProj ``MonoLiftComputation index value
+            let type ← mkForallFVars params (← inferType term)
+            if type.hasFVar || type.hasMVar || type.hasLevelMVar then
+              throwError "lift {row.id.raw} field {field} has an open public signature"
+            declarations.modify (· ++ type.getUsedConstants)
+            result := result.push (Json.mkObj [("operation", toJson s!"{row.id.raw}#{field}"),
+              ("input", toJson s!"{row.id.raw}#input"), ("field", toJson field),
+              ("type", toJson (← ppExpr type).pretty)])
+          return result
+      let computation ← match row.computation with
+        | some name => describe name
+        | none => pure Json.null
+      let sources := state.categories.filter fun category =>
+        (state.edgesFrom category.expression).any (·.ref == row.edge)
+      lifts := lifts.push (Json.mkObj [("id", toJson row.id.raw),
+        ("edge", toJson row.edge.label),
+        ("kind", toJson (reprStr row.kind)),
+        ("sourceCategories", toJson (sources.map (·.id.raw))),
+        ("input", toJson s!"{row.id.raw}#input"),
+        ("wire", toJson "CasContract/Port.lean:146"),
+        ("computation", computation),
+        ("ports", Json.arr ports)])
+    let mut entries : Array Json := #[]
+    for row in state.entries do
+      let names := row.declarations ++ match row with
+        | .object object => object.generator.toArray ++ object.application.toArray ++
+            object.constants.toArray ++ object.inclusion.toArray ++ object.admission.toArray ++
+            (object.refines.toArray.map (·.identification))
+        | _ => #[]
+      let signatures ← names.mapM describe
+      entries := entries.push (Json.mkObj [("id", toJson row.stableId),
+        ("registeredMetadata", toJson (reprStr row)),
+        ("declarations", Json.arr signatures)])
+    let mut categories : Array Json := #[]
+    for row in state.categories do
+      categories := categories.push (Json.mkObj [("id", toJson row.id.raw),
+        ("signature", ← describe row.declaration)])
+    let mut objects : Array Json := #[]
+    for row in state.objects do
+      objects := objects.push (Json.mkObj [("id", toJson row.id.raw),
+        ("category", toJson row.category.raw), ("signature", ← describe row.declaration)])
+    let mut functors : Array Json := #[]
+    for row in state.functors do
+      functors := functors.push (Json.mkObj [("id", toJson row.id.raw),
+        ("signature", ← describe row.declaration)])
+    let mut datatypes : Array Json := #[]
+    let mut names : Array Name := #[]
+    for name in ← declarations.get do
+      let info ← getConstInfo name
+      names := names ++ info.type.getUsedConstants
+    let mut seen : NameSet := {}
+    let mut cursor := 0
+    while cursor < names.size do
+      let name := names[cursor]!
+      cursor := cursor + 1
+      if seen.contains name then continue
+      seen := seen.insert name
+      let .inductInfo info ← getConstInfo name | continue
+      let mut constructors : Array Json := #[]
+      for ctor in info.ctors do
+        let ci ← getConstInfo ctor
+        names := names ++ ci.type.getUsedConstants
+        let fields ← forallTelescope ci.type fun binders _ => do
+          let mut fields : Array Json := #[]
+          for binder in binders[info.numParams:] do
+            let type ← inferType binder
+            fields := fields.push (Json.mkObj [
+              ("name", toJson (← binder.fvarId!.getDecl).userName.toString),
+              ("type", toJson (← ppExpr type).pretty),
+              ("proof", toJson (← isProp type))])
+          return fields
+        constructors := constructors.push (Json.mkObj [
+          ("declaration", toJson ctor.toString),
+          ("type", toJson (← ppExpr ci.type).pretty), ("fields", Json.arr fields)])
+      datatypes := datatypes.push (Json.mkObj [("declaration", toJson name.toString),
+        ("type", toJson (← ppExpr info.type).pretty),
+        ("constructors", Json.arr constructors)])
+    return Json.mkObj [("entries", Json.arr entries), ("categories", Json.arr categories),
+      ("datatypes", Json.arr datatypes), ("lifts", Json.arr lifts), ("objects", Json.arr objects),
+      ("functors", Json.arr functors)]
+  let output := (← IO.getEnv "CAS_DECLARED_PORTS_OUTPUT").getD "declared-ports.json"
+  let required (name : String) : IO String := do
+    let some value ← IO.getEnv name | throw (IO.userError s!"missing provenance: {name}")
+    if value.isEmpty then throw (IO.userError s!"empty provenance: {name}")
+    return value
+  let provenance := Json.mkObj [
+    ("mathematicsRevision", toJson (← required "CAS_DECLARED_PORTS_MATH_REVISION")),
+    ("protocolRevision", toJson (← required "CAS_DECLARED_PORTS_PROTOCOL_REVISION")),
+    ("exporterSha256", toJson (← required "CAS_DECLARED_PORTS_EXPORTER_SHA256"))]
+  let .ok fields := result.getObj? | throwError "expected metadata object"
+  IO.FS.writeFile output (Json.mkObj (("provenance", provenance) :: fields.toList)).pretty

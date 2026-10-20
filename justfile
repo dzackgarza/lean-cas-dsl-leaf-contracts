@@ -22,3 +22,7 @@ test-ci:
 [private]
 _lean-axiom-audit:
     @lake build AxiomAudit
+
+# Export all public declaration types and actual admission addresses from a built kernel checkout.
+export-api kernel:
+    @python3 tools/export_api.py "{{kernel}}"
