@@ -38,11 +38,30 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
 * a record (one constructor, no indices: a pair, a point of `Fin n`, a subtype) is the JSON array
   of its data fields, or that field alone when it has exactly one (a point of `Fin n` is its
   number, a pair is `[x, y]`);
-* a function whose domain has an independently synthesized finite enumeration is a graph,
-  a list of pairs `[x, f x]`, including every domain point exactly once. This also applies
-  to function data fields of a record; all declared field conditions are checked. Thus an
-  equivalence's two function fields retain both forward and inverse graphs, while its proof
-  fields are omitted. Function encoding does not change the selected source or target type;
+* a finite callable may be a graph, a list of pairs `[x, f x]`, including every
+  point of its actual computational domain exactly once. A primitive finite
+  codec may supply this inventory from its declared data parameters. Otherwise
+  `{"ctor":"finiteGraph","args":[<actual domain point inventory>,<graph>]}`
+  supplies the inventory explicitly. Inventory points have the declared public
+  point-data shape, are distinct, and are untrusted computational data; their
+  inclusion does not prove that the carrier is the mathematical one requested.
+  The graph must contain exactly those keys once, with outputs in its declared
+  codomain representation where an actual codomain inventory is supplied.
+  An infinite callable uses its owning opaque-session representation.
+  This encoding recurses through all public constructor data fields, including
+  both function fields of an equivalence. Direct literal decoding establishes
+  its declared constraints; structured computational answers instead frame all
+  data slots without reconstructing mathematical values, laws or proof fields.
+  Function encoding preserves the complete independently selected public types.
+* `{"ctor":"finiteData","args":[<complete object descriptor>,<actual point inventory>]}`
+  retains an object's complete descriptor and supplies its finite computational
+  carrier inventory. It may be used wherever an actual object descriptor is
+  required, including either endpoint of a `typedMap`. For a finite graph at a
+  symbolic apex, a domain inventory is required; the kernel never enumerates the
+  authoritative requested construction's carrier to replace or certify an answer.
+  The inventory's mathematical correctness remains an independent acceptance
+  question. Opaque objects and callables retain their owning live sessions.
+
 * any other constructor application is `{"ctor": <constructor>, "args": [<data fields>]}`, the
   constructor spelled by its short name within its type (`finite`, `aleph0`, `some`, `true`);
 * a proof field is never on the wire;
