@@ -82,6 +82,9 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
   (`Mˣ ↪ M`) or its `constants` `R → R[[t]]`, is
   `{"ctor":"objectField","args":[<object id>,<field>,[<explicit parameters>]]}`; its endpoints are
   the ones the field's declaration gives at those parameters;
+* the mediator `⟨f, g⟩ : X → A × B` of two maps out of a domain other than `1` is
+  `{"ctor":"mediator","args":[<f>,<g>]}`, each map in its morphism encoding; a mediator of two
+  closed points is the pair `[x, y]` of their data;
 * a map of a registered power object (`pow.sets`) named by its field: `member` (`X × 𝒫 X → Ω`),
   `terminal` (`X → 1`), `transpose` (the subset `1 → 𝒫 X` a predicate `X → Ω` classifies, the
   predicate given as its map encoding), `image` (the subset `1 → 𝒫 Y` that is the image of a
