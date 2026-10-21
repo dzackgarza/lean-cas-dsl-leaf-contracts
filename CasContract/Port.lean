@@ -78,9 +78,10 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
   `{"ctor": <morphism id>, "args": [<explicit parameters>]}`. Its declaration fixes the
   parameter types and endpoints; this permits named arrows on infinite carriers without
   enumerating a graph. The kernel checks the instantiated endpoints against the requested arrow;
-* the admission inclusion `D ↪ B` that a registered object row declares (`Mˣ ↪ M`) is
-  `{"ctor":"inclusion","args":[<object id>,[<explicit parameters>]]}`; its endpoints are the
-  object at those parameters and the declared target;
+* a map a registered object row declares as a field, its admission `inclusion` `D ↪ B`
+  (`Mˣ ↪ M`) or its `constants` `R → R[[t]]`, is
+  `{"ctor":"objectField","args":[<object id>,<field>,[<explicit parameters>]]}`; its endpoints are
+  the ones the field's declaration gives at those parameters;
 * a map of a registered power object (`pow.sets`) named by its field: `member` (`X × 𝒫 X → Ω`),
   `terminal` (`X → 1`), `transpose` (the subset `1 → 𝒫 X` a predicate `X → Ω` classifies, the
   predicate given as its map encoding), `image` (the subset `1 → 𝒫 Y` that is the image of a
