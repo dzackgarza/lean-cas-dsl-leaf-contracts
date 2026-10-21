@@ -83,7 +83,8 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
   object at those parameters and the declared target;
 * a map of a registered power object (`pow.sets`) named by its field: `member` (`X × 𝒫 X → Ω`),
   `terminal` (`X → 1`), `transpose` (the subset `1 → 𝒫 X` a predicate `X → Ω` classifies, the
-  predicate given as its map encoding), or `truth` (`1 → Ω`), is
+  predicate given as its map encoding), `image` (the subset `1 → 𝒫 Y` that is the image of a
+  map `X → Y`, the map given as its encoding), or `truth` (`1 → Ω`), is
   `{"ctor":"powerObjectMap","args":[<power object id>,<field>,[<explicit parameters>]]}`;
 * the action of a registered functor on an arrow may be represented as
   `{"ctor":"map","args":[{"ctor":<functor id>,"args":[<explicit parameters>]},<arrow>]}`.
