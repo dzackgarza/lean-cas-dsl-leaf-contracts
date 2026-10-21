@@ -205,6 +205,10 @@ serializes the expression and checks its formal trace and types without reimplem
 the operation or requiring an input-expression roundtrip through law-bearing Lean values.
 The leaf lowers the declared operation to its native engine at those selected parameters.
 Transport retains its actual registered action; nonidentity maps cannot be discarded.
+An operand that is a closed point `1 ⟶ X` formed some other way (a registered named
+morphism such as a constant, a composite of a point with a map, a product mediator, an
+admitted point) is `{"ctor":"point","args":[<that point's morphism encoding>]}`, the encoding
+this section gives morphisms. Its endpoints are the operand's declared ones.
 
 A closed point forwarded through an accepted carrier-preserving structural view uses
 `{"ctor":"pointView","args":[<complete target functorAction object descriptor>,
