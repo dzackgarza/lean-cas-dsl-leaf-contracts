@@ -53,6 +53,14 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
   its declared constraints; structured computational answers instead frame all
   data slots without reconstructing mathematical values, laws or proof fields.
   Function encoding preserves the complete independently selected public types.
+* the set of members of a subset, where a set is expected, is
+  `{"ctor":"extent","args":[<power object id>,<ambient set descriptor>,<subset data>]}`; for a
+  finite-subset literal the subset data is the literal's list of elements, so `{1, 2, 3} ⊆ ℕ`
+  as a set is `{"ctor":"extent","args":["pow.sets",{"ctor":"obj.sets.naturals","args":[]},[1,2,3]]}`;
+* the apex of a limit the kernel has already had computed is
+  `{"ctor":"constructionApex","args":[<limit id>,<diagram>,<the computed cone>]}`, the diagram in
+  the encoding above and the cone as the backend returned it; it may be used wherever an object
+  descriptor is required;
 * `{"ctor":"finiteData","args":[<complete object descriptor>,<actual point inventory>]}`
   retains an object's complete descriptor and supplies its finite computational
   carrier inventory. It may be used wherever an actual object descriptor is
