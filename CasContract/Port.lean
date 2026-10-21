@@ -81,6 +81,9 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
 * the admission inclusion `D ↪ B` that a registered object row declares (`Mˣ ↪ M`) is
   `{"ctor":"inclusion","args":[<object id>,[<explicit parameters>]]}`; its endpoints are the
   object at those parameters and the declared target;
+* a map of a registered power object (`pow.sets`) named by its field, `member` (`X × 𝒫 X → Ω`)
+  or `truth` (`1 → Ω`), is
+  `{"ctor":"powerObjectMap","args":[<power object id>,<field>,[<explicit parameters>]]}`;
 * the action of a registered functor on an arrow may be represented as
   `{"ctor":"map","args":[{"ctor":<functor id>,"args":[<explicit parameters>]},<arrow>]}`.
   Structural classifier-forget edges use
