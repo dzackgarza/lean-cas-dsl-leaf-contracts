@@ -78,6 +78,9 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
   `{"ctor": <morphism id>, "args": [<explicit parameters>]}`. Its declaration fixes the
   parameter types and endpoints; this permits named arrows on infinite carriers without
   enumerating a graph. The kernel checks the instantiated endpoints against the requested arrow;
+* the admission inclusion `D ↪ B` that a registered object row declares (`Mˣ ↪ M`) is
+  `{"ctor":"inclusion","args":[<object id>,[<explicit parameters>]]}`; its endpoints are the
+  object at those parameters and the declared target;
 * the action of a registered functor on an arrow may be represented as
   `{"ctor":"map","args":[{"ctor":<functor id>,"args":[<explicit parameters>]},<arrow>]}`.
   Structural classifier-forget edges use
