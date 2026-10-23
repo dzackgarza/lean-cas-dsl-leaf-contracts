@@ -68,11 +68,11 @@ subobjects and quotients),
 formal types; the protocol fixes their computational encoding. A well-framed wrong
 answer remains possible.
 
-The snapshot records exact mathematical and protocol source revisions and the
-exporter digest for reproducibility. They are not dependency pins or accepted
-releases: every invocation consumes current own-organisation `main` first and
-regenerates the documentation from that resolved input. An older snapshot is not
-silently relabelled as current.
+The snapshot records the actual mathematical, protocol and kernel Git revisions
+and the existing exporter/admission source digests for reproducibility. Exporting
+uses the selected, already built source combination without updating or fetching
+`main`. These provenance fields do not change dependency policy or certify a
+release. An older snapshot is never relabelled as a new export.
 
 The reusable exporter is [tools/export_declared_ports.lean](../tools/export_declared_ports.lean).
 It imports only `LeanCategories.Catalogue`, reads the public registry and public
@@ -88,8 +88,37 @@ all structurally derived application, lift and image addresses. Its output recor
 which addresses exist and their full registered category IDs. It does not run
 implementations, rank capabilities, choose routes or certify answers.
 
-Regenerate the single reference with `just export-api /absolute/path/to/lean-cas-dsl`.
-This uses that checkout's existing latest-main `just probe` surface for both
-exporters, records the resolved revisions and source digests, and writes the
-snapshot only after both exports succeed against the same mathematical revision.
-The supplied kernel checkout must have its corresponding current dependencies built.
+Regenerate the single reference with `just export-api /absolute/path/to/lean-cas-dsl`
+when that checkout's manifest and default package directories identify the built
+sources. For an explicitly selected source combination or toolchain, invoke the
+same exporter directly:
+
+```sh
+python3 tools/export_api.py /absolute/path/to/lean-cas-dsl \
+  --mathematics /absolute/path/to/lean-categories \
+  --packages /absolute/path/to/lake-packages.json \
+  --lake /absolute/path/to/toolchain/bin/lake \
+  --lean /absolute/path/to/toolchain/bin/lean
+```
+
+`--packages` accepts Lake's package override JSON (a `version` and `packages`
+array); use `type: "path"` entries with existing directories for locally selected
+sources. Relative package paths have Lake's usual kernel-directory base.
+`--mathematics` checks that the selected `lean_categories` directory is the stated
+checkout, preventing unrelated source from being used as provenance. The selected
+`cas_leaf_contracts` package must have the same commit as this exporter checkout.
+The executable options are optional; their defaults are `lake` and `lean`.
+
+Before exporting, commit the source combination and build `CasCatalogue.Admission`
+and its dependencies with that same package selection and toolchain. The exporter
+requires clean source checkouts (the generated `api/declared-ports.json` is exempt),
+a kernel manifest, and all selected dependencies already present. A default Git
+package must already match its manifest revision; a different local selection needs
+a path override. The exporter does not build or check freshness of compiled
+artifacts, so rebuilding after any source change is a prerequisite.
+
+Both existing Lean exporters run through `lake env lean`, using temporary path
+entries for the selected directories so Lake cannot fetch or switch Git packages.
+The wrapper checks revisions, clean sources and input digests before publishing,
+and replaces the snapshot only after both fresh exports succeed with unchanged
+sources and configuration. A failed export leaves the previous snapshot intact.
