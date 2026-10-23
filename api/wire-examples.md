@@ -389,6 +389,26 @@ all four outputs of every step. `createdCone` stores its selected lift, exact
 source diagram and complete computed target cone. No reply supplies a proof of
 monicity, inverse equations, commutation or universality.
 
+For a creation packet `createdCone(L,D,C)`, `D` is the complete **source-category**
+diagram selected before applying the registered creation functor `U`. In either
+`constructionApex(limitId,D,createdCone(L,D,C))` or
+`constructionLeg(limitId,D,createdCone(L,D,C),j)`, the outer diagram is this same
+retained source diagram, not the mapped target diagram. The `limitId` still names
+the registered target limit operation that produced `C`.
+
+The target cone `C` is the actual returned cone over the standardized mapped
+diagram: apply the registered `U` to `D`, then use the limit row's published
+`standardization` comparison and `dataConstructor`. Source and target objects or
+arrows must not be identified merely because their wire spellings coincide. The
+index `j` is in the declared shape of `D`. A subsequent leg projection denotes
+the source construction's leg, obtained through that selected creation action
+from the retained target fields. It does not create a canonical replacement leg.
+A consumer uses supplied complete typed-map endpoints where present; for a graph
+leg, it uses its actual domain inventory and the target endpoint prescribed by
+the mapped diagram. Missing endpoint context is not permission to infer an object
+from the graph's outputs. Each nested creation packet retains its own lift and
+source diagram, so the same rule applies at every layer.
+
 ## Compatibility with earlier boundary reports
 
 These rules address the representation questions recorded in the leaf input
