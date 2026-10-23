@@ -8,6 +8,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import tempfile
@@ -100,9 +101,14 @@ def executable(value: str) -> str:
 
 
 def main(kernel: Path, *, mathematics: Path | None = None,
-         packages: Path | None = None, lake: str = "lake", lean: str = "lean") -> None:
+         packages: Path | None = None, lake: str = "lake", lean: str = "lean",
+         additional_imports: tuple[str, ...] = (), output: Path | None = None) -> None:
     contract = Path(__file__).resolve().parent.parent
-    target = contract / "api/declared-ports.json"
+    target = output or contract / "api/declared-ports.json"
+    additional_imports = tuple(dict.fromkeys(additional_imports))
+    for module in additional_imports:
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_']*(?:\.[A-Za-z_][A-Za-z0-9_']*)*", module) is None:
+            raise ValueError(f"invalid additional dotted module name: {module}")
     declarations = contract / "tools/export_declared_ports.lean"
     addresses = contract / "tools/export_admission_addresses.lean"
     selected, configuration, local_entries = package_selection(kernel, packages)
@@ -129,8 +135,16 @@ def main(kernel: Path, *, mathematics: Path | None = None,
         scratch = Path(directory)
         declaration_probe = scratch / declarations.name
         address_probe = scratch / addresses.name
-        declaration_probe.write_bytes(declarations.read_bytes())
-        address_probe.write_bytes(addresses.read_bytes())
+        generated_digests = {}
+        for source, probe in [(declarations, declaration_probe), (addresses, address_probe)]:
+            content = source.read_text(encoding="utf-8")
+            if additional_imports:
+                if not content.startswith("module\n"):
+                    raise RuntimeError(f"exporter has no module header: {source}")
+                imports = "".join(f"import {module}\n" for module in additional_imports)
+                content = "module\n" + imports + content.removeprefix("module\n")
+            probe.write_text(content, encoding="utf-8")
+            generated_digests[probe] = digest(probe)
         local_packages = scratch / "packages.json"
         local_packages.write_text(json.dumps({"version": "1.2.0", "packages": local_entries}))
         command = [lake, f"--packages={local_packages}", "env", lean]
@@ -161,16 +175,22 @@ def main(kernel: Path, *, mathematics: Path | None = None,
             "admissionSourceSha256": source_digests[kernel / "CasCatalogue/Admission.lean"],
             "addressExporterSha256": source_digests[addresses],
         })
+        if additional_imports:
+            result["provenance"].update({
+                "additionalImports": list(additional_imports),
+                "declarationProbeSha256": generated_digests[declaration_probe],
+                "addressProbeSha256": generated_digests[address_probe],
+            })
         for path, expected in (configuration | source_digests).items():
             if digest(path) != expected:
                 raise RuntimeError(f"input changed during export: {path}; rerun export")
-        if (digest(declaration_probe) != source_digests[declarations]
-                or digest(address_probe) != source_digests[addresses]):
-            raise RuntimeError("exporter source changed during export; rerun export")
+        if any(digest(path) != expected for path, expected in generated_digests.items()):
+            raise RuntimeError("generated exporter source changed during export; rerun export")
         for path, expected in sources.items():
             if source_revision(path, target) != expected:
                 raise RuntimeError(f"source revision changed during export: {path}; rerun export")
         # Publish only complete fresh output; failures leave the prior snapshot intact.
+        target.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=target.parent,
                                          prefix=".declared-ports-", delete=False) as output:
             temporary_target = Path(output.name)
@@ -189,6 +209,10 @@ if __name__ == "__main__":
     parser.add_argument("--mathematics", type=Path,
                         help="existing checkout matching the selected lean_categories package")
     parser.add_argument("--packages", type=Path, help="external Lake package override JSON file")
+    parser.add_argument("--import", dest="additional_imports", action="append", default=[],
+                        help="already built additional catalogue module; repeat for several modules")
+    parser.add_argument("--output", type=Path,
+                        help="output snapshot; defaults to this contract's api/declared-ports.json")
     parser.add_argument("--lake", default="lake", help="Lake executable (default: lake)")
     parser.add_argument("--lean", default="lean", help="Lean executable (default: lean in Lake's environment)")
     args = parser.parse_args()
@@ -196,6 +220,8 @@ if __name__ == "__main__":
         main(args.kernel.resolve(strict=True),
              mathematics=args.mathematics.resolve(strict=True) if args.mathematics else None,
              packages=args.packages.resolve(strict=True) if args.packages else None,
-             lake=executable(args.lake), lean=executable(args.lean))
+             lake=executable(args.lake), lean=executable(args.lean),
+             additional_imports=tuple(args.additional_imports),
+             output=args.output.resolve() if args.output else None)
     except (OSError, KeyError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
         parser.exit(1, f"export_api.py: {error}\n")

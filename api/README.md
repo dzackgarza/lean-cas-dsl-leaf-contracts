@@ -117,6 +117,15 @@ checkout, preventing unrelated source from being used as provenance. The selecte
 `cas_leaf_contracts` package must have the same commit as this exporter checkout.
 The executable options are optional; their defaults are `lake` and `lean`.
 
+For an additive mathematical extension, repeat `--import Fully.Qualified.Module`
+for its already built public catalogue modules. Both declaration and admission
+exports import the same modules. Use `--output /absolute/path/to/extension-api.json`
+to write a separate catalogue without changing this contract snapshot or either
+exporter source. The mathematical checkout must contain those committed modules,
+and the selected build must include them. The resulting provenance records the
+module list and both generated probe digests as well as the ordinary source
+revisions. New metadata does not add wire encodings or change the protocol.
+
 Before exporting, commit the source combination and build `CasCatalogue.Admission`
 and its dependencies with that same package selection and toolchain. The exporter
 requires clean source checkouts (the generated `api/declared-ports.json` is exempt),
