@@ -41,7 +41,14 @@ publishes the chosen point of the terminal source of `truth`. Global points use
 that declaration; a leaf copies the request's domain descriptor without assuming
 that the terminal source has a particular numeral or representation.
 `categories`, `objects` and `functors` retain registered IDs and public declaration
-signatures. `datatypes` projects the public inductive constructor signatures reachable
+signatures. `constructions` also records each direct construction's surface name,
+registered target, full dependent declaration, complete-request input, object-action
+operation and map-point operation. `objectActionType` and `mapActionType` are the
+closed types of that exact functor's object and morphism projections, abstracted over
+all declaration parameters. They preserve the complete source domain and chosen
+category/functor dictionaries; no per-category specialization is invented.
+The [direct-construction wire section](wire-examples.md#direct-constructions)
+specifies their object requests, map point requests and selected-parameter descriptors. `datatypes` projects the public inductive constructor signatures reachable
 from those types, recursively through constructor types. Constructor `fields` retain
 Lean's declared order after datatype parameters and indicate proof slots. They are
 type reference metadata, not a generated JSON codec. The existing protocol's
@@ -64,7 +71,8 @@ Wire shapes are fixed by `CasContract/Port.lean`: named objects and ordered
 parameters, constructor data slots, callable graphs or owned opaque callables,
 `finiteData` and `finiteGraph` inventories, complete Arrow records (including
 subobjects and quotients),
-`liftInput` requests and `typedMap` replies. The signature fixes the selected
+`liftInput` requests, direct-construction object and map requests, selected category/functor
+dictionaries, complete core comparison data, and `typedMap` replies. The signature fixes the selected
 formal types; the protocol fixes their computational encoding. A well-framed wrong
 answer remains possible.
 
@@ -84,7 +92,7 @@ run an implementation or acceptance suite.
 The companion [tools/export_admission_addresses.lean](../tools/export_admission_addresses.lean)
 is a read-only adapter run in the kernel environment, not a contract dependency. It
 asks the actual public `form?` and `operation?` lookups for all registered IDs and
-all structurally derived application, lift and image addresses. Its output records
+all structurally derived application, lift, construction and image addresses. Its output records
 which addresses exist and their full registered category IDs. It does not run
 implementations, rank capabilities, choose routes or certify answers.
 

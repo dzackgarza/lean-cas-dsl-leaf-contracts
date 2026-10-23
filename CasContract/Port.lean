@@ -146,6 +146,55 @@ types, source and target, including dependent parameters. The kernel checks thos
 endpoints; a backend cannot choose the functor or its parameters. The result is decoded in
 the declared target form.
 
+A directly applied `ConstructionEntry` exports the object operation `<construction id>`,
+the map point operation `<construction id>#map`, and the complete request input
+`<construction id>#input`. The image form uses `<construction id>` in the construction's
+registered target category. These addresses project the one registered dependent functor;
+they are not per-category mathematical rows. Its full signature fixes the selected
+parameters, complete source category and target. Direct constructions are not inherited
+along a receiver's structural routes.
+
+The object request is the same complete object-action frame:
+`{"ctor":<construction id>,"args":[<ordered explicit parameters>],
+"receiver":<complete source object data>}`. A retained action descriptor omits `receiver`,
+`{"ctor":<construction id>,"args":[<ordered explicit parameters>]}`, and its formal image is
+`{"ctor":"functorAction","args":[<action descriptor>,<complete source object data>]}`.
+Every explicit data parameter remains in declaration order. A selected category parameter is
+`{"ctor":"category","args":[<registered category id>,[<ordered parameters>]]}` and a
+selected functor parameter is
+`{"ctor":"functor","args":[<registered functor id>,[<ordered parameters>]]}`.
+The kernel checks each full declared dictionary, including chosen category structures and
+functor source and target, before dispatch. Equal carriers do not identify those selections.
+
+When that declared source is a core category, its object data is
+`{"ctor":"coreObject","args":[<complete underlying object data>]}`. A selected source
+isomorphism retains both complete underlying endpoints and both directed maps:
+`{"ctor":"coreIso","args":[<source object data>,<target object data>,
+<forward morphism data>,<backward morphism data>]}`. The forward map runs from source to
+target and the backward map in the opposite direction. A registered comparison uses its
+ordinary `presentation(id,parameters,false)` and `presentation(id,parameters,true)` arrow
+descriptors in those slots. The formal caller already fixes and checks the isomorphism;
+these packets provide data and do not ask a backend to supply an inverse law or a proof.
+`Core` is preserved as the actual declared source; it is not replaced by the underlying
+category or by a carrier set.
+
+Applying the construction's actual map to a supplied point uses `PointInvocation` under
+`<construction id>#map`. Its `parameters` are the same complete ordered construction
+parameters; its `arrow` is `{"ctor":"map","args":[<action descriptor>,
+<complete source arrow data>]}`. Its `source` and `target` are the corresponding complete
+constructed images, and its `domain` and `argument` retain the original generalized point.
+The operation in the packet equals the dispatched `<construction id>#map`. Both directions
+of a core comparison remain in the source arrow even when only the forward mapped arrow is
+being applied. Replies use the ordinary declared computational point-data interface at the
+fixed constructed target. No reply determines that target or changes the selected comparison.
+
+The constructed image inherits operations solely from its registered target and selected
+structural maps. Those operations receive the complete constructed descriptor and every
+actual computed dependency, including opaque session ownership. An object action, map point
+action, and later target operation are distinct computations. Providing one does not advertise
+implementations of the others. Ordinary declared morphism families may take constructed images
+as their typed parameters or endpoints, using these same descriptors and full parameter order.
+
 An object whose independently declared type is an Arrow or a full subcategory of
 Arrow uses the complete record
 `{"ctor":"arrow","args":[<source object>,<target object>,<defining map>]}`.
@@ -514,6 +563,104 @@ def TypedMap.decode (json : Json) : Except String TypedMap := do
   let #[source, target, callable] := args
     | throw "a computational map requires its complete source, target and callable"
   return { source, target, callable }
+
+/-- A selected category dictionary, identified by its registered declaration and every
+ordered explicit parameter. The semantic caller checks the complete category structure;
+this descriptor never selects a category from equality of object carriers. -/
+structure CategoryParameter where
+  category : String
+  parameters : Array Json
+
+def CategoryParameter.encode (parameter : CategoryParameter) : Json :=
+  Json.mkObj [("ctor", toJson "category"), ("args", Json.arr #[
+    toJson parameter.category, Json.arr parameter.parameters])]
+
+def CategoryParameter.decode (json : Json) : Except String CategoryParameter := do
+  unless (← json.getObjValAs? String "ctor") == "category" do
+    throw "a selected category requires the category envelope"
+  let #[category, parameters] ← (← json.getObjVal? "args").getArr?
+    | throw "a selected category requires its registered id and ordered parameters"
+  let category ← category.getStr?
+  if category.isEmpty then throw "a selected category has no registered id"
+  return { category, parameters := ← parameters.getArr? }
+
+/-- A selected registered functor with its complete ordered declaration parameters.
+Its full formal source and target, including their category dictionaries, are checked
+by the caller. This framing supplies no functor or category laws. -/
+structure FunctorParameter where
+  functor : String
+  parameters : Array Json
+
+def FunctorParameter.encode (parameter : FunctorParameter) : Json :=
+  Json.mkObj [("ctor", toJson "functor"), ("args", Json.arr #[
+    toJson parameter.functor, Json.arr parameter.parameters])]
+
+def FunctorParameter.decode (json : Json) : Except String FunctorParameter := do
+  unless (← json.getObjValAs? String "ctor") == "functor" do
+    throw "a selected functor requires the functor envelope"
+  let #[functor, parameters] ← (← json.getObjVal? "args").getArr?
+    | throw "a selected functor requires its registered id and ordered parameters"
+  let functor ← functor.getStr?
+  if functor.isEmpty then throw "a selected functor has no registered id"
+  return { functor, parameters := ← parameters.getArr? }
+
+/-- Complete source data of the actual `Core` object selected by a construction.
+The surrounding declared functor fixes the ambient category, independently of data. -/
+structure CoreObject where
+  receiver : Json
+
+def CoreObject.encode (object : CoreObject) : Json :=
+  Json.mkObj [("ctor", toJson "coreObject"), ("args", Json.arr #[object.receiver])]
+
+def CoreObject.decode (json : Json) : Except String CoreObject := do
+  unless (← json.getObjValAs? String "ctor") == "coreObject" do
+    throw "a core object requires the coreObject envelope"
+  let #[receiver] ← (← json.getObjVal? "args").getArr?
+    | throw "a core object requires one complete receiver"
+  return { receiver }
+
+/-- Both directed maps of an independently selected formal isomorphism, with its
+ordered complete endpoints. Parsing retains data only; no inverse equation, map law,
+or formal isomorphism is established by a backend's packet. -/
+structure CoreIso where
+  source : Json
+  target : Json
+  forward : Json
+  backward : Json
+
+def CoreIso.encode (comparison : CoreIso) : Json :=
+  Json.mkObj [("ctor", toJson "coreIso"), ("args", Json.arr #[
+    comparison.source, comparison.target, comparison.forward, comparison.backward])]
+
+def CoreIso.decode (json : Json) : Except String CoreIso := do
+  unless (← json.getObjValAs? String "ctor") == "coreIso" do
+    throw "a core comparison requires the coreIso envelope"
+  let #[source, target, forward, backward] ← (← json.getObjVal? "args").getArr?
+    | throw "a core comparison requires both complete endpoints and both directions"
+  return { source, target, forward, backward }
+
+/-- Object action of one directly applied registered construction. The operation
+address is the construction id; the complete request input is `<id>#input`.
+The full dependent declaration determines parameters, source and target. -/
+structure ConstructionInvocation where
+  construction : String
+  parameters : Array Json
+  receiver : Json
+
+def ConstructionInvocation.encode (request : ConstructionInvocation) : Json :=
+  Json.mkObj [("ctor", toJson request.construction),
+    ("args", Json.arr request.parameters), ("receiver", request.receiver)]
+
+/-- Check object-action framing and the dispatched construction identity only.
+The caller independently checks the registered signature and selected dictionaries. -/
+def ConstructionInvocation.decode (construction : String) (json : Json) :
+    Except String ConstructionInvocation := do
+  if construction.isEmpty then throw "a construction invocation has no registered id"
+  unless (← json.getObjValAs? String "ctor") == construction do
+    throw "the construction invocation differs from the dispatched operation"
+  let parameters ← (← json.getObjVal? "args").getArr?
+  let receiver ← json.getObjVal? "receiver"
+  return { construction, parameters, receiver }
 
 /-- Complete computational context for an independently admitted formal point. The original
 data are retained, not replaced by a formal representative or checked as an admission proof. -/

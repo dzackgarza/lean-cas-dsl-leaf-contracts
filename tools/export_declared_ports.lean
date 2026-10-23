@@ -75,6 +75,30 @@ run_cmd do
     for row in state.functors do
       functors := functors.push (Json.mkObj [("id", toJson row.id.raw),
         ("signature", ← describe row.declaration)])
+    let mut constructions : Array Json := #[]
+    for row in state.constructions do
+      let info ← getConstInfo row.declaration
+      let (objectActionType, mapActionType) ← forallTelescope info.type fun params _ => do
+        let value := mkAppN (mkConst row.declaration (info.levelParams.map Level.param)) params
+        let objectAction ← mkAppM ``Prefunctor.obj #[
+          ← mkAppM ``CategoryTheory.Functor.toPrefunctor #[value]]
+        let mapAction ← mkAppM ``CategoryTheory.Functor.map #[value]
+        let objectType ← mkForallFVars params (← inferType objectAction)
+        let mapType ← mkForallFVars params (← inferType mapAction)
+        if objectType.hasFVar || objectType.hasMVar || objectType.hasLevelMVar ||
+            mapType.hasFVar || mapType.hasMVar || mapType.hasLevelMVar then
+          throwError "construction {row.id.raw} has an open public action signature"
+        declarations.modify (· ++ objectType.getUsedConstants ++ mapType.getUsedConstants)
+        return ((← ppExpr objectType).pretty, (← ppExpr mapType).pretty)
+      constructions := constructions.push (Json.mkObj [("id", toJson row.id.raw),
+        ("name", toJson row.name), ("target", toJson (reprStr row.target)),
+        ("signature", ← describe row.declaration),
+        ("input", toJson s!"{row.id.raw}#input"),
+        ("objectOperation", toJson row.id.raw),
+        ("mapOperation", toJson s!"{row.id.raw}#map"),
+        ("objectActionType", toJson objectActionType),
+        ("mapActionType", toJson mapActionType),
+        ("wire", toJson "api/wire-examples.md#direct-constructions")])
     let mut datatypes : Array Json := #[]
     let mut typeAliases : Array Json := #[]
     let seeds ← declarations.get
@@ -134,7 +158,7 @@ run_cmd do
         ("constructors", Json.arr constructors)])
     return Json.mkObj [("entries", Json.arr entries), ("categories", Json.arr categories),
       ("datatypes", Json.arr datatypes), ("typeAliases", Json.arr typeAliases), ("lifts", Json.arr lifts), ("objects", Json.arr objects),
-      ("functors", Json.arr functors)]
+      ("functors", Json.arr functors), ("constructions", Json.arr constructions)]
   let output := (← IO.getEnv "CAS_DECLARED_PORTS_OUTPUT").getD "declared-ports.json"
   let required (name : String) : IO String := do
     let some value ← IO.getEnv name | throw (IO.userError s!"missing provenance: {name}")

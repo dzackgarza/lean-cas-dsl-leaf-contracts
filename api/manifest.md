@@ -112,6 +112,18 @@ that comparison's `presentationApply` packet. It does not implement an arbitrary
 other comparison. Admitted endpoint-form registrations remain peers of this own
 request form. Always choose both addresses from their respective inventories.
 
+A directly applied construction exports object operation `<construction id>` and
+map point operation `<construction id>#map`; both use the complete request input
+`<construction id>#input`. Its object image has the separate input form
+`<construction id>` at the registered target category, so inherited target
+operations can accept that full image. These are projections of the registered
+construction's full dependent functor signature, not new per-category operation
+rows. A leaf must support the selected categories, functors and all other parameters
+in each request it accepts. A supported object action does not imply a supported
+map point action or a later target operation. Use the exported construction and
+admission inventories for concrete addresses and the
+[direct-construction protocol](wire-examples.md#direct-constructions) for their data.
+
 Exact-form and category-wide registrations have equal standing. If both are
 applicable to one invocation, that invocation is ambiguous; manifest order and
 backend name do not define priority. Avoid overlapping registrations unless an

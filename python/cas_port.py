@@ -46,6 +46,78 @@ def presentation_invocation(args):
     return tuple(fields)
 
 
+def _selected_parameter(args, kind):
+    if not isinstance(args, dict) or args.get("ctor") != kind:
+        raise ValueError("a selected %s requires the %s envelope" % (kind, kind))
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 2:
+        raise ValueError("a selected %s requires its registered id and ordered parameters" % kind)
+    if not isinstance(fields[0], str) or not fields[0]:
+        raise ValueError("a selected %s has no registered id" % kind)
+    if not isinstance(fields[1], list):
+        raise ValueError("selected %s parameters must be ordered data" % kind)
+    return tuple(fields)
+
+
+def category_parameter(args):
+    """Read (registered category id, ordered parameters), retaining the selection.
+
+    The formal caller checks the complete category dictionary. Parsing establishes
+    no category laws and does not identify categories from shared carriers.
+    """
+    return _selected_parameter(args, "category")
+
+
+def functor_parameter(args):
+    """Read (registered functor id, ordered parameters) without choosing an action.
+
+    Full source and target dictionaries belong to the formal declaration and caller.
+    """
+    return _selected_parameter(args, "functor")
+
+
+def core_object(args):
+    """Read the complete underlying object of the caller's selected Core source."""
+    if not isinstance(args, dict) or args.get("ctor") != "coreObject":
+        raise ValueError("a core object requires the coreObject envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 1:
+        raise ValueError("a core object requires one complete receiver")
+    return fields[0]
+
+
+def core_iso(args):
+    """Read (source, target, forward, backward), retaining both map directions.
+
+    This frames the caller's independently selected comparison; it does not prove
+    inverse equations, map laws, equality of endpoints, or mathematical correctness.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "coreIso":
+        raise ValueError("a core comparison requires the coreIso envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 4:
+        raise ValueError("a core comparison requires both complete endpoints and both directions")
+    return tuple(fields)
+
+
+def construction_invocation(args, operation):
+    """Read (construction id, ordered parameters, complete source receiver).
+
+    Use the exact dispatched construction operation id. The formal caller checks
+    the dependent signature; no parameter or source is inferred from backend data.
+    """
+    if not isinstance(operation, str) or not operation:
+        raise ValueError("a construction invocation has no registered id")
+    if not isinstance(args, dict) or args.get("ctor") != operation:
+        raise ValueError("the construction invocation differs from the dispatched operation")
+    parameters = args.get("args")
+    if not isinstance(parameters, list):
+        raise ValueError("construction parameters must be ordered data")
+    if "receiver" not in args:
+        raise ValueError("a construction invocation has no complete source receiver")
+    return operation, parameters, args["receiver"]
+
+
 def value_data(data):
     """Supply inline computational data under the caller's fixed result contract."""
     return {"ctor": "valueData", "args": [data]}

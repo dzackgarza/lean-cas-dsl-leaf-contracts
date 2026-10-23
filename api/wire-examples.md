@@ -35,8 +35,8 @@ endpoint is `malformed`. A well-framed wrong computation remains a correctness
 failure. An unhandled kernel exception is internal; it cannot judge the question invalid.
 
 Python helpers `point_invocation`, `presentation_invocation`, `admitted_point`,
-`operation_expression`,
-`typed_map` and `object_product` parse public envelopes. `value_data`, `opaque_data`
+`operation_expression`, `construction_invocation`, `category_parameter`,
+`functor_parameter`, `core_object`, `core_iso`, `typed_map` and `object_product` parse public envelopes. `value_data`, `opaque_data`
 and `map_data` construct them. They establish framing, not mathematical laws.
 
 ## Notation used below
@@ -102,6 +102,107 @@ available at the same time. Overlap is ambiguous, without priority or fallback;
 an unapplied comparison-arrow descriptor does not by itself add a complete-request
 candidate. The Python helper `presentation_invocation` returns all five ordered
 fields and rejects a missing field, an extra field or a nonboolean direction.
+
+## Direct constructions
+
+A registered `ConstructionEntry` is applied at its full dependent parameters. It
+has one object-action address `<id>`, one map point address `<id>#map`, and one
+complete-request input `<id>#input`. Its constructed-image form `<id>` belongs to
+the registered target category. The source category is the complete source of the
+selected functor; no underlying-set or per-category substitute is implicit.
+
+For example, this object-action request selects the category dictionary and the
+complete core source before asking for a computational group representation:
+
+```python
+groups = node("category", "cat.groups", [])
+X = node("obj.groups.cyclic", 5)
+core_X = node("coreObject", X)
+action = node("con.automorphisms", groups)
+constructed_X = node("functorAction", action, core_X)
+object_request = {
+    "request_id": 29,
+    "op": "con.automorphisms",
+    "args": {"ctor": "con.automorphisms", "args": [groups],
+             "receiver": core_X},
+}
+```
+
+Its manifest addresses are operation `con.automorphisms`, input
+`con.automorphisms#input`. A successful reply uses `valueData(DATA)` with the
+construction target's complete published representation, or an `opaqueData` token
+owned by the replying live connection. This example specifies framing only; it
+prescribes no computed group, cardinality or generators.
+
+Selected parameters always retain order and structure:
+
+| Declared parameter | Descriptor |
+| --- | --- |
+| Registered category dictionary | `node("category", category_id, ordered_parameters)` |
+| Registered functor dictionary | `node("functor", functor_id, ordered_parameters)` |
+| Registered object | `node(object_id, *ordered_parameters)` |
+| Object of the selected core source | `node("coreObject", underlying_object)` |
+| Morphism of that core source | `node("coreIso", source, target, forward, backward)` |
+
+The category or functor id names an exported declaration, and its parameter array
+includes every explicit data parameter in that declaration's order. The kernel
+checks its complete typed dictionary. The same carrier with another category
+structure or another selected functor is different data. Empty parameter arrays
+are explicit; they do not authorize omitted required parameters. Nested selected
+parameters use the same grammar.
+
+For a source isomorphism, `source` and `target` in `coreIso` are the complete
+underlying objects. `forward` has type `source → target`, and `backward` has the
+reverse type. The construction source objects are `coreObject(source)` and
+`coreObject(target)`. If the source arrow is a registered presentation comparison,
+the two slots retain its exact operation id, complete parameters and opposite
+directions. Neither slot is an assertion that two presentations are equal.
+
+The construction's map acts on a supplied point through the common seven-field
+`apply` request. In the following schema, `construction_id`, `parameters`, `X`,
+`Y`, `comparison_id`, `comparison_parameters`, `domain` and `point_data` are the
+values already selected in the formal request, not choices made by the leaf:
+
+```python
+action = node(construction_id, *parameters)
+comparison = node(
+    "coreIso", X, Y,
+    node("presentation", comparison_id, comparison_parameters, False),
+    node("presentation", comparison_id, comparison_parameters, True),
+)
+source = node("functorAction", action, node("coreObject", X))
+target = node("functorAction", action, node("coreObject", Y))
+map_operation = construction_id + "#map"
+map_request = {
+    "request_id": 30,
+    "op": map_operation,
+    "args": apply(map_operation, parameters, node("map", action, comparison),
+                  domain, source, target, point_data),
+}
+```
+
+Register that map point action on `<construction id>#input`. Preserve the complete
+source comparison and both directions when lowering the declared functor map to
+the native engine. Swapping the comparison direction changes the actual source
+and target. Dropping its inverse or replacing it by an identity does not implement
+the request. The point's generalized domain also remains exactly the supplied one.
+The reply has the ordinary computational element representation at `target`; it
+cannot select a different target, comparison or parameter dictionary.
+
+Constructed images support the operations of their target category through the
+ordinary registered structure. A subsequent method or element operation receives
+the full image descriptor, actual result data and all retained dependencies. It
+may register on the construction's image form `<id>` or another admitted target
+form, including the target category address. All opaque data remain owned by the
+session that produced them; a descriptor does not transfer tokens to another
+backend. The kernel chooses formal meaning independently of returned data.
+
+The helpers `construction_invocation`, `category_parameter`, `functor_parameter`,
+`core_object` and `core_iso` check only their published packet shapes.
+`point_invocation` parses the map point request. Missing parameters, missing a
+comparison direction, a wrong dispatched construction id or incompatible complete
+endpoint framing is malformed. A well-framed wrong result remains computational
+data for independent acceptance; a helper never proves inverse laws or a group law.
 
 ## Scalars and registered point expressions
 
@@ -444,6 +545,9 @@ a type signature alone does not choose a modulus or generator image.
 | --- | --- |
 | `typedMap(X,Y)` | Callable missing |
 | Map declares target `Z` instead of selected target `Y` | Complete endpoint changed |
+| Direct-construction request omits a selected category/functor parameter | Full dependent request is incomplete |
+| `coreIso` omits its backward map or reverses only one endpoint | Complete comparison framing changed |
+| Construction map packet names another `<id>#map` | Dispatched operation identity changed |
 | Graph omits or repeats an actual domain key | Incomplete total callable |
 | Matrix row omits a column | Incomplete inner callable |
 | `opaqueData("")` | Empty token |

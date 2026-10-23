@@ -11,6 +11,9 @@ run_cmd do
   let state ← liftTermElabM do registryState
   let mut candidates := state.registryEntries.toArray.map (·.stableId)
   candidates := candidates ++ state.objects.map (·.applicationAddress)
+  for row in state.constructions do
+    candidates := candidates.push row.inputAddress
+    candidates := candidates.push row.mapAddress
   for row in state.lifts do
     candidates := candidates.push row.inputAddress
     candidates := candidates ++ LiftField.all.map row.fieldAddress
