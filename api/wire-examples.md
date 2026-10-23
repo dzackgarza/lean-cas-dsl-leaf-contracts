@@ -34,7 +34,8 @@ request id, unknown status, invalid frame, missing component or incompatible
 endpoint is `malformed`. A well-framed wrong computation remains a correctness
 failure. An unhandled kernel exception is internal; it cannot judge the question invalid.
 
-Python helpers `point_invocation`, `admitted_point`, `operation_expression`,
+Python helpers `point_invocation`, `presentation_invocation`, `admitted_point`,
+`operation_expression`,
 `typed_map` and `object_product` parse public envelopes. `value_data`, `opaque_data`
 and `map_data` construct them. They establish framing, not mathematical laws.
 
@@ -68,6 +69,39 @@ Qcomm = node("obj.commutative_rings.rationals")
 The kernel selects the global-point source from the registry. A leaf copies the
 request's actual generalized domain; it must not manufacture `Fin(1)` for every
 request. A nonconstant generalized point retains its actual domain.
+
+## Registered presentation comparisons
+
+A comparison uses its own original operation id and a five-field application
+packet. Its explicit parameters, direction, complete source and complete target
+come from the selected formal request. For the published F9 comparison, a forward
+request has this framing (the point token already belongs to the live connection):
+
+```python
+first = node("obj.commutative_rings.f9_x")
+second = node("obj.commutative_rings.f9_y")
+comparison_request = {
+    "request_id": 23,
+    "op": "cmp.f9.translation",
+    "args": node("presentationApply", [], False, first, second,
+                 node("opaqueData", "original-point")),
+}
+```
+
+The boolean is a JSON boolean, not an integer or string. `False` selects the
+forward map; `True` selects its inverse, with the actual source and target in
+that inverse order. A structural action may change their complete descriptors;
+consume the ones actually supplied. The point retains its original data, which
+may be portable or owned. The reply uses the ordinary `valueData` or `opaqueData`
+result interface at the selected target. This example prescribes no field
+polynomial, generator image or numerical answer.
+
+The comparison's own exported input address admits this complete request for
+that same comparison. Admitted source/target endpoint registrations remain
+available at the same time. Overlap is ambiguous, without priority or fallback;
+an unapplied comparison-arrow descriptor does not by itself add a complete-request
+candidate. The Python helper `presentation_invocation` returns all five ordered
+fields and rejects a missing field, an extra field or a nonboolean direction.
 
 ## Scalars and registered point expressions
 
@@ -196,6 +230,28 @@ to `obj.sets.kaehler_polynomials` at the same `R`. Compose the actual polynomial
 point with that map, or retain the computed differential as owned data. Its
 registered comparison and inverse use ordinary presentation-arrow envelopes.
 
+## Differential values
+
+A differential may be retained as an owned native value or represented through
+its published coordinate map. For a selected commutative ring `Qcomm` and an
+already supplied polynomial coordinate expression, the complete point syntax is:
+
+```python
+polynomial_object = node("obj.sets.polynomials", Qcomm)
+coordinate_point = element(polynomial_object, coordinate_expression)
+differential_point = node("point", node(
+    "compose", coordinate_point,
+    node("mor.sets.kaehler_from_coordinate", Qcomm)))
+```
+
+The declaration fixes the target module of differentials and all parameters.
+When used as a common-apply reply, wrap this expression in
+`value_data(element(exact_supplied_target, differential_point))`.
+The coordinate is computational data supplied by the implementation; this
+framing does not identify it with the derivative of any other polynomial or
+supply a derivation law. `opaque_data(token)` is the ordinary alternative for a
+native differential without a portable symbolic expression.
+
 ## Infinite subsets, spans and binders
 
 A finite-subset literal is an array. It does not enumerate an infinite span.
@@ -260,11 +316,45 @@ product_reply = value_data(node(
 
 This complete infinite-product representation needs no carrier enumeration or
 new named-object row. A finite symbolic apex supplies `finiteData(apex,keys)`
-when a graph requires its actual inventory. A kernel/equalizer returns
-`cone(apex,inclusion)`; a cokernel/coequalizer returns `cocone(apex,projection)`.
-The complete input diagram retains both parallel arrows, including any actual
-declared zero arrow. Arrow objects return `arrow(source,target,map)`; subobjects
-return `subobject(apex,ambient,inclusion)`.
+when a graph requires its actual inventory.
+
+The operation's declared result type determines which complete record is needed.
+A limit/equalizer cone uses `cone(apex,inclusion)`; a colimit/coequalizer cocone
+uses `cocone(apex,projection)`. Their complete input diagrams retain both parallel
+arrows, including any actual declared zero arrow. An operation returning an Arrow
+or a full subcategory of Arrow instead uses the three fields below:
+
+| Declared record | Complete data, in source-to-target order |
+| --- | --- |
+| Arrow | `arrow(source,target,definingMap)` |
+| Subobject, including a kernel returned as a subobject | `arrow(kernelObject,ambient,inclusion)` |
+| Quotient, including a cokernel returned as a quotient | `arrow(ambient,quotientObject,projection)` |
+
+At an independently declared full subcategory of Arrow, the existing `subobject`
+spelling also accepts the same three ordered fields. This is a compatible record
+spelling, not a claim that every defining map is monic. In particular it does not
+move a quotient object into the source slot. The predicate of the full subcategory
+and every selected parameter remain fixed by the formal request. A plain Arrow
+uses `arrow`; neither tag can turn an unrelated object into an Arrow record.
+
+For an actual request Arrow `X → Y`, these are complete computational replies
+when its respective operation returns a kernel subobject or cokernel quotient.
+`X` and `Y` retain the request's complete descriptors:
+
+```python
+K = opaque_data("computed-kernel-object")
+Q = opaque_data("computed-cokernel-object")
+kernel_reply = value_data(node(
+    "arrow", K, X, map_data(K, X, opaque_data("kernel-inclusion"))))
+cokernel_reply = value_data(node(
+    "arrow", Y, Q, map_data(Y, Q, opaque_data("cokernel-projection"))))
+```
+
+Every record supplies both endpoints and its defining map. Native object and map
+tokens retain their original session. No reply supplies a proof of monicity,
+epicity, factorization or universality. The optional `presentation` field described
+in `Port.lean` compares the source endpoint; it does not change the endpoint order
+or serve as a comparison of a quotient's target.
 
 `mediator(f,g)` is the two-map mediator at a shared nontrivial domain; two closed
 points carry `[leftPoint,rightPoint]`. `arrowHom` selects a complete Arrow's
@@ -299,6 +389,35 @@ all four outputs of every step. `createdCone` stores its selected lift, exact
 source diagram and complete computed target cone. No reply supplies a proof of
 monicity, inverse equations, commutation or universality.
 
+## Compatibility with earlier boundary reports
+
+These rules address the representation questions recorded in the leaf input
+reviews of 2026-10-20 and 2026-10-21. They describe the public interface; availability
+and correctness of a particular engine implementation are separate questions.
+
+| Earlier boundary | Public form and retained information | Implementation boundary |
+| --- | --- | --- |
+| Nonintegral rational values | Reduced `[numerator,denominator]`; denominator positive; zero `[0,1]` | A native scalar still needs encoding in that declared type. |
+| Irrational real or complex values | Owned `opaqueData`, or `element(selected,point(...))` using published maps such as square root, real/complex constants and the registered real-to-complex inclusion | No new scalar tag or guessed constant is created. `mor.sets.divide` uses its morphism interface on `M × Mˣ`, not an `operationExpression` address. |
+| Bottom polynomial degree | `none()` or `some(n)` at the declared `WithBot Nat` result type | An implementation must preserve bottom instead of substituting an integer sentinel. |
+| Kähler differential values | Owned native data or the complete coordinate-map point above, at the supplied target descriptor | The engine supplies the actual coordinate or differential value. |
+| Matrices | Nested total finite callable graphs at the selected dimensions and coefficient type; owned native matrix data is also available | Each finite row includes its full domain; an omitted column is malformed. |
+| Infinite span or subset | Owned native subset, or `powerObjectMap` `image` with `[X,Y,f]`, or `transpose` with `[X,p]`; the set wrapper is `extent(powerId,ambient,subsetData)` | The map or predicate may itself be owned and infinite. A finite generating list alone does not enumerate its span. |
+| Binders | Common `apply` with ordered binder parameters, actual generalized domain and supplied callable; `admittedPoint` retains the original map and selected admission context | Bounds and all explicit parameters remain present. Infinite or foreign-session engine support is an implementation constraint. |
+| Symbolic product and complete results | `objectProduct(X,Y)`, complete `cone`/`cocone`, `typedMap` legs and owned callables; Arrow records retain both endpoints and their defining map | A retained leg is consumed inside later declared operations and compositions; the creating limit id is not an arbitrary-map application address. |
+| Closed points in map positions | `element` as a complete point arrow inside `compose`, `mediator` or `point`; generalized domains stay explicit in common invocations | A scalar cannot replace a function on a non-singleton domain. |
+| Composed unlabelled maps | `compose(typedMap(X,Y,f),typedMap(Y,Z,g))` retains the chosen intermediate object `Y` | Bare graphs alone do not specify a structured intermediate endpoint. |
+| Presentation and quotient-carrier maps | Named declared maps with all parameters, `presentation(id,parameters,inverse)`, complete `presentationApply`, and typed constituents | A comparison or generator image comes from the published mathematical declaration, not its spelling or endpoint similarity. |
+| Polynomial coefficient callables | The declared record retains its support data and full coefficient callable; a native coefficient function may use owned data | A graph only on a finite support is not a total callable on the natural numbers, and this protocol introduces no implicit zero-extension rule. |
+| Prescribed restrictions and creation lifts | Complete ordered `liftInput` requests and four retained outputs per restriction step; complete source diagram and target cone for creation | Unsupported engine actions or carriers remain implementation gaps; no law or fresh lift is supplied by a reply. |
+
+The earlier reports already distinguish missing engine routines for some monoids,
+unsupported actions and unavailable native dependencies from representation gaps.
+The public grammar does not supply a native implementation or grant access to
+another process's opaque objects. Named mathematical presentations also require
+their published defining data or independently supplied explicit parameters;
+a type signature alone does not choose a modulus or generator image.
+
 ## Malformed cases and ownership
 
 | Data | Framing failure |
@@ -310,6 +429,9 @@ monicity, inverse equations, commutation or universality.
 | `opaqueData("")` | Empty token |
 | `operationExpression("mor.sets.divide",...)` | Morphism id used as an operation id |
 | Cone missing a defining leg | Incomplete result |
+| `arrow(source,target)` or `subobject(source,target)` | Defining map missing |
+| Three-field Arrow record at an unrelated scalar/object type | Independently fixed record interface absent |
+| `subobject` at a plain Arrow type | Declared full-subcategory interface absent |
 | Three-field completed `liftedSubobject` | Component outputs absent |
 | Private tag, engine source, or proof in place of a declared field | No public representation |
 

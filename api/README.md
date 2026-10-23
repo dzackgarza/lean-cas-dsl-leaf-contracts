@@ -62,7 +62,8 @@ constructor body or proof is exported, reconstructed or certified.
 
 Wire shapes are fixed by `CasContract/Port.lean`: named objects and ordered
 parameters, constructor data slots, callable graphs or owned opaque callables,
-`finiteData` and `finiteGraph` inventories, complete Arrow/subobject values,
+`finiteData` and `finiteGraph` inventories, complete Arrow records (including
+subobjects and quotients),
 `liftInput` requests and `typedMap` replies. The signature fixes the selected
 formal types; the protocol fixes their computational encoding. A well-framed wrong
 answer remains possible.

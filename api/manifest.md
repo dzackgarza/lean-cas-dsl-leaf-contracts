@@ -98,14 +98,19 @@ for the framing, `apply` packet, structured data and failure replies.
 Use an exact named input form for a specialized implementation or the registered
 category address for an implementation of all admitted values of that category.
 Category-wide inputs retain each value's complete descriptor; they are not an
-instruction to replace that value with a familiar object. A callable or lift may
-also have its own exported complete-request input address.
+instruction to replace that value with a familiar object. A callable, registered
+presentation comparison or lift may also have its own exported complete-request
+input address.
 
 An operation's presence in `operations` does not put that same string in
 `inputForms`. For example, `op.rings.pow` can use an admitted named ring form or
 `cat.rings`; its operation id is not itself a declared input form. Binder and
 object-application fields have the complete-request forms explicitly listed in
-`inputForms`. Always choose both addresses from their respective inventories.
+`inputForms`. Registered comparisons likewise expose their own complete-request
+form: a registration for `cmp.f9.translation` on input `cmp.f9.translation` receives
+that comparison's `presentationApply` packet. It does not implement an arbitrary
+other comparison. Admitted endpoint-form registrations remain peers of this own
+request form. Always choose both addresses from their respective inventories.
 
 Exact-form and category-wide registrations have equal standing. If both are
 applicable to one invocation, that invocation is ambiguous; manifest order and

@@ -28,6 +28,24 @@ def point_invocation(args, operation=None):
     return tuple(fields)
 
 
+def presentation_invocation(args):
+    """Read parameters, inverse flag, source, target and point data, in that order.
+
+    The enclosing request's op identifies the published comparison. This helper
+    checks framing only and does not identify endpoints or prove inverse laws.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "presentationApply":
+        raise ValueError("a comparison invocation requires the presentationApply envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 5:
+        raise ValueError("a comparison invocation requires all five ordered fields")
+    if not isinstance(fields[0], list):
+        raise ValueError("comparison parameters must be ordered data")
+    if not isinstance(fields[1], bool):
+        raise ValueError("the comparison direction must be a boolean")
+    return tuple(fields)
+
+
 def value_data(data):
     """Supply inline computational data under the caller's fixed result contract."""
     return {"ctor": "valueData", "args": [data]}

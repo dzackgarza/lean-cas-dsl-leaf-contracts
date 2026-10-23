@@ -49,7 +49,7 @@ run_cmd do
         ("kind", toJson (reprStr row.kind)),
         ("sourceCategories", toJson (sources.map (·.id.raw))),
         ("input", toJson s!"{row.id.raw}#input"),
-        ("wire", toJson "CasContract/Port.lean:146"),
+        ("wire", toJson "api/wire-examples.md#complete-results-projections-and-lifts"),
         ("computation", computation),
         ("ports", Json.arr ports)])
     let mut entries : Array Json := #[]

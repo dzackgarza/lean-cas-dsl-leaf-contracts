@@ -146,42 +146,52 @@ types, source and target, including dependent parameters. The kernel checks thos
 endpoints; a backend cannot choose the functor or its parameters. The result is decoded in
 the declared target form.
 
-An object of a registered arrow category uses
-`{"ctor":"arrow","args":[<source object>,<target object>,<defining map>]}`,
-registered on that arrow category's id. Both endpoints retain their selected object data;
-the map is decoded at those exact endpoints. This is an arrow-category object, so its
-applicable methods are those declared for that category; a bare named map is not retyped
-as an object of its source or target category.
+An object whose independently declared type is an Arrow or a full subcategory of
+Arrow uses the complete record
+`{"ctor":"arrow","args":[<source object>,<target object>,<defining map>]}`.
+The selected result type, including its full parameters, fixes the record interface.
+All three computational fields are retained; the map runs from the first endpoint
+to the second and is checked at those exact computational endpoint descriptors.
+The record does not change which category's operations apply to the value.
 
-The stored map of a complete arrow object may be described by
-`{"ctor":"arrowHom","args":[<complete arrow object data>]}`. The receiver must decode in
-an independently fixed category with the registered arrow-constructor semantics. The result
-is that object's actual stored defining map, at its exact full source and target. This does
-not permit an arbitrary field projection, a new operation, or a different choice of endpoints.
-For an `arrow` envelope above, the stored map is its third argument.
+For a subobject or a kernel presented as a subobject, the fields are the kernel
+object `K`, its ambient object `X`, and the inclusion `K → X`. For a quotient or a
+cokernel presented as a quotient, they are the ambient object `Y`, the quotient
+object `Q`, and the projection `Y → Q`. The computed object is therefore the first
+slot for a kernel and the second slot for a cokernel; endpoint order always follows
+the defining map. A reply never supplies monicity, epicity or a universal-property
+proof. Those properties belong to the independently fixed formal construction.
 
-A value of a registered subobject category uses
-`{"ctor":"subobject","args":[<apex object>,<ambient object>,<inclusion>]}`,
-registered on that category's id. The inclusion is decoded at these exact endpoints;
-its monomorphism is part of the independent formal construction, not a proof reconstructed
-from this reply. The reply supplies all three computational data fields and no proof.
-Prescribed lifts retain the complete representation and defining inclusion while formal
-structure remains independently fixed.
+The existing `{"ctor":"subobject","args":[<source>,<target>,<defining map>]}`
+spelling remains supported for a declared full subcategory of Arrow, with exactly
+the same three data slots. Its historical name supplies no assertion of monicity
+and does not reverse quotient endpoints. It is not a representation of an
+incompatible ordinary object or a plain Arrow without that declared refinement.
+Neither spelling can choose the predicate defining the formal full subcategory.
 
-A returned subobject may additionally supply
+The stored map of a complete Arrow record may be described by
+`{"ctor":"arrowHom","args":[<complete arrow object data>]}`. The receiver must
+have the independently fixed Arrow record interface. The result is that object's
+actual stored defining map, at its exact full source and target. This does not
+permit an arbitrary field projection, a new operation, or a different choice of
+endpoints. The stored defining map is the third argument of the complete record.
+
+A returned refined Arrow record may additionally supply a source-side presentation
 `"presentation":{"hom":<morphism data>,"inv":<morphism data>}`. As for cones below,
-`hom` runs from the independently fixed requested apex to the returned apex, and `inv`
-runs in reverse. The full ambient object must be exactly the requested ambient object.
-Inverse equations and inclusion squares are correctness obligations for acceptance;
-the computational boundary does not prove them to identify the returned data with mathematics. These
-fields contain only ordinary morphism data at the independently fixed full endpoints;
-they contain no proof, assertion of equality, or choice of a different ambient object.
-Required missing fields or maps with incompatible declared endpoints are malformed.
-A complete well-formed wrong answer remains computational data and reaches acceptance.
+`hom` runs from the independently fixed requested source to the returned source,
+and `inv` runs in reverse. For a subobject, the source is its apex and the target
+is its ambient object. This existing field does not instead compare a quotient's
+second endpoint. The full other endpoint must remain the independently requested
+one. Inverse equations and commutation squares are correctness obligations for
+acceptance; the computational boundary does not prove them to identify returned
+data with mathematics. These fields contain ordinary morphism data, no proof or
+assertion of equality. Required missing fields or maps with incompatible declared
+endpoints are malformed. A complete well-formed wrong answer remains computational
+data and reaches acceptance.
 
 For subsequent computations the complete context may be encoded as
 `{"ctor":"objectPresentation","args":[<complete requested functorAction descriptor>,
-<complete returned subobject envelope>]}`. The first argument is independently reconstructed
+<complete returned Arrow record>]}`. The first argument is independently reconstructed
 from the exact registered functor, ordered parameters and original receiver. The second retains
 all returned data and any presentation maps above. The first argument fixes formal meaning;
 the second remains opaque computational data. This envelope establishes no isomorphism or
@@ -422,6 +432,18 @@ An arrow of a registered presentation comparison is
 The registered comparison fixes both endpoints and the actual isomorphism. A structural
 functor's action on this arrow uses the same `map` envelope as any other arrow.
 
+Computational application of that comparison uses its original registered id as the
+outer request's `op`, with
+`{"ctor":"presentationApply","args":[[<ordered explicit parameters>],
+<inverse boolean>,<actual source descriptor>,<actual target descriptor>,<point data>]}`.
+All five fields are required. False applies the forward comparison; true applies
+its inverse, and the ordered endpoint descriptors follow that selected direction.
+The point data and any nested opaque ownership are retained. This is an invocation
+of the registered comparison, not a new operation or a claim that it is the identity.
+A registration may use that comparison's own exported input address for the complete
+request, or an admitted endpoint form. Both are peers when applicable; overlap is
+ambiguous. The complete-request address does not authorize a different comparison.
+
 A callable component may always include its complete actual endpoints as
 `{"ctor":"typedMap","args":[<source descriptor>,<target descriptor>,<callable data>]}`.
 Consumers compare both complete descriptors with the already selected computational endpoints,
@@ -549,6 +571,33 @@ def PointInvocation.decode (json : Json) : Except String PointInvocation := do
   if operation.isEmpty then throw "a point invocation has no released operation id"
   let parameters ← parameters.getArr?
   return { operation, parameters, arrow, domain, source, target, argument }
+
+/-- Apply a registered presentation comparison in its independently selected direction.
+The enclosing port request's operation id names the comparison; this packet retains
+its full parameters, actual ordered endpoints and original point data. -/
+structure PresentationInvocation where
+  parameters : Array Json
+  inverse : Bool
+  source : Json
+  target : Json
+  argument : Json
+
+def PresentationInvocation.encode (request : PresentationInvocation) : Json :=
+  Json.mkObj [("ctor", toJson "presentationApply"), ("args", Json.arr #[
+    Json.arr request.parameters, toJson request.inverse, request.source,
+    request.target, request.argument])]
+
+/-- Parse the existing comparison-application framing only. The caller separately
+checks the enclosing operation, selected parameters and fixed endpoint types. -/
+def PresentationInvocation.decode (json : Json) : Except String PresentationInvocation := do
+  unless (← json.getObjValAs? String "ctor") == "presentationApply" do
+    throw "a comparison invocation requires the presentationApply envelope"
+  let args ← (← json.getObjVal? "args").getArr?
+  let #[parameters, inverse, source, target, argument] := args
+    | throw "a comparison invocation requires all five ordered fields"
+  let parameters ← parameters.getArr?
+  let inverse ← inverse.getBool?
+  return { parameters, inverse, source, target, argument }
 
 /-- Computational data associated with the request's independently fixed result. An opaque
 token is meaningful only to the existing connection that returned it. Its owner and session
