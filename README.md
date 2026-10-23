@@ -44,6 +44,8 @@ of the kernel.
 
 The [declared API reference](api/README.md) publishes the complete registered declaration
 signatures, computational port addresses and generic wire-shape references.
+The [manifest reference](api/manifest.md) specifies every backend command and registration
+field, defaults, process paths and matching behavior.
 
 Module roots: `CasContract.*` (namespaces `CasCatalogue`, shared with the kernel). The Python
 reference implementation of the port protocol is `python/cas_port.py`; the kernel puts it on every

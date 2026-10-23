@@ -33,6 +33,25 @@ def value_data(data):
     return {"ctor": "valueData", "args": [data]}
 
 
+def typed_map(args):
+    """Read complete actual source, target and callable data, in that order.
+
+    The caller checks these against its selected endpoint descriptions. This helper
+    supplies framing only; it does not establish equations or transfer token owners.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "typedMap":
+        raise ValueError("a computational map requires the typedMap envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 3:
+        raise ValueError("a computational map requires its complete source, target and callable")
+    return tuple(fields)
+
+
+def map_data(source, target, callable_data):
+    """Supply a map's actual complete endpoints and callable representation."""
+    return {"ctor": "typedMap", "args": [source, target, callable_data]}
+
+
 def object_product(args):
     """Read ordered endpoint descriptors for a caller-fixed public binary product.
 
@@ -116,6 +135,8 @@ def read_frame():
         if ch == b"\n":
             break
         line += ch
+    if not line or any(ch < ord("0") or ch > ord("9") for ch in line):
+        raise ValueError("bad frame length %r" % line)
     return json.loads(_read_exact(int(line)).decode("utf-8"))
 
 
@@ -139,7 +160,9 @@ def serve(backend, backend_version, adapter_version, ops, protocol=1):
             write_frame({"request_id": rid, "status": "unsupported", "op": op})
             continue
         try:
-            write_frame({"request_id": rid, "status": "ok", "value": ops[op](frame.get("args") or {})})
+            if "args" not in frame:
+                raise ValueError("the request omitted its args field")
+            write_frame({"request_id": rid, "status": "ok", "value": ops[op](frame["args"])})
         except Exception as exc:  # the caller decodes, and rejects, whatever comes back
             write_frame({"request_id": rid, "status": "error", "kind": type(exc).__name__,
                          "message": str(exc)})

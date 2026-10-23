@@ -25,6 +25,13 @@ believed or consulted), then answers requests `{request_id, op, args}` with
 `{request_id, status, value}`, where `op` is a registration's operation id and `args` the encoded
 input. Which operations are called on it is the admitted registrations' (`CasCatalogue.Admission`).
 
+`status: "ok"` carries `value`. `status: "error"` carries string `kind` and `message`
+and reports an unavailable computation. `status: "unsupported"` carries the exact dispatched
+`op` and reports `noImplementation`. Unknown statuses and mismatched request identities are
+malformed. The frame length contains only nonempty ASCII decimal digits. Request data such as
+zero, false and an empty array are preserved verbatim. Complete worked request/reply forms and
+malformed examples are published in `api/wire-examples.md`.
+
 ## The wire encoding of inputs and answers
 
 The kernel's codec (`CasCatalogue.Codec`) fixes one structural encoding, derived from each form's
@@ -38,6 +45,13 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
 * a record (one constructor, no indices: a pair, a point of `Fin n`, a subtype) is the JSON array
   of its data fields, or that field alone when it has exactly one (a point of `Fin n` is its
   number, a pair is `[x, y]`);
+  a wholly inline scalar literal must also satisfy its declared representation constraints.
+  In particular a rational is `[<integer numerator>,<natural denominator>]`, with a strictly
+  positive denominator and relatively prime numerator and denominator; zero uses `[0,1]`.
+  A zero denominator or a nonreduced pair is malformed representation. These literal checks
+  discard the checked value and do not certify the answer to the requested computation.
+  Records containing callable, type-valued or opaque fields retain their data-only interface;
+  no law-bearing structured output is reconstructed through this scalar rule;
 * a finite callable may be a graph, a list of pairs `[x, f x]`, including every
   point of its actual computational domain exactly once. A primitive finite
   codec may supply this inventory from its declared data parameters. Otherwise
@@ -78,13 +92,24 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
   `{"ctor": <morphism id>, "args": [<explicit parameters>]}`. Its declaration fixes the
   parameter types and endpoints; this permits named arrows on infinite carriers without
   enumerating a graph. The kernel checks the instantiated endpoints against the requested arrow;
+* a registered inclusion uses `{"ctor": <inclusion id>, "args": [<explicit parameters>]}`.
+  Its public declaration fixes its complete source, target and dependent parameter order.
+  The id does not assert a carrier identification or omit the actual inclusion map;
+* a released callable operation uses the same declaration-application form
+  `{"ctor": <callable address>, "args": [<all explicit declaration parameters>]}`.
+  This includes an element-operation id, a binder id, and `<object id>#application`.
+  It denotes the arrow before application: operands belong in the common `apply` request's
+  argument field, never in this arrow descriptor. For example, `op.rings.pow` has the selected
+  ring and natural exponent as its ordered parameters. `operationExpression` additionally
+  supplies operands and therefore describes an element expression instead of this arrow;
 * a map a registered object row declares as a field, its admission `inclusion` `D ↪ B`
   (`Mˣ ↪ M`) or its `constants` `R → R[[t]]`, is
   `{"ctor":"objectField","args":[<object id>,<field>,[<explicit parameters>]]}`; its endpoints are
   the ones the field's declaration gives at those parameters;
 * the mediator `⟨f, g⟩ : X → A × B` of two maps out of a domain other than `1` is
   `{"ctor":"mediator","args":[<f>,<g>]}`, each map in its morphism encoding; a mediator of two
-  closed points is the pair `[x, y]` of their data;
+  closed points may retain those two complete point arrows in the same mediator descriptor.
+  When only its point value is required by an application, the ordered point data are `[x, y]`;
 * a map of a registered power object (`pow.sets`) named by its field: `member` (`X × 𝒫 X → Ω`),
   `terminal` (`X → 1`), `transpose` (the subset `1 → 𝒫 X` a predicate `X → Ω` classifies, the
   predicate given as its map encoding), `image` (the subset `1 → 𝒫 Y` that is the image of a
@@ -233,9 +258,10 @@ this section gives morphisms. Its endpoints are the operand's declared ones.
 A closed point forwarded through an accepted carrier-preserving structural view uses
 `{"ctor":"pointView","args":[<complete target functorAction object descriptor>,
 <complete source element envelope>,<exact generalized-point domain descriptor>]}`.
-The kernel checks the complete registered source-object action and its selected target,
-reconstructs the source arithmetic point at that same full chosen structure, and checks
-the declared carrier identification. The domain must equal the independently fixed source
+The kernel checks the complete registered source-object action, its selected target and the
+independently retained formal point's carrier identification. It forwards the actual original
+computational data and every nested opaque owner without reconstructing the backend answer
+as a formal point. The domain must equal the independently fixed source
 of the original and requested generalized point. This describes only an admitted forward
 carrier identification; it cannot recover a structure from its carrier or choose a new
 domain. Nonidentity point maps retain their actual morphism action and composition instead.
@@ -254,7 +280,10 @@ no structure from a carrier, and cannot replace the operation's source with anot
 A registered comparison's point application is requested under that comparison id, with
 `{"ctor":"presentationApply","args":[<ordered parameters>,<inverse boolean>,
 <exact source descriptor>,<exact target descriptor>,<input point data>]}`. The reply is an
-`element` envelope at the exact target, independently decoded and compared by the kernel.
+`element` envelope at the exact target. The kernel checks its public framing against the
+independently selected target and retains its actual computational data for subsequent
+operations. This structural check does not establish the mathematical correctness of the
+returned value; independent acceptance compares the observed computation with its meaning.
 
 Every released morphism or callable operation may instead use the common point-invocation
 envelope under its original registered operation id:
@@ -273,8 +302,12 @@ addresses of existing callable metadata, not new semantic rows. An application a
 admitted only when that exact object exports the field. Its complete ordered declaration
 parameters, source and target are fixed from that field's actual signature. Binder inputs
 retain the actual admitted map and the selected bound/range parameters; the caller does not
-substitute another formally equivalent sum or product. A registration may use the complete
-callable address itself as its request form, or a supported declared source-object form.
+substitute another formally equivalent sum or product. For these binder and object-application
+fields, a registration may use the exported complete-request address itself as its input form,
+or a supported declared source-object form. An operation address is not automatically an input
+form: for example, `op.rings.pow` registers on a compatible published ring-object form or
+`cat.rings`, not on an invented input form `op.rings.pow`. The generated `inputForms` inventory
+is authoritative for which concrete registration addresses exist.
 
 An independently admitted point retains its original computational data as
 `{"ctor":"admittedPoint","args":[<published object id>,[<full ordered parameters>],
@@ -360,6 +393,16 @@ defining-map data is retained, without requiring a proof that the backend's cone
 A different apex's leg cannot be replaced by the canonical leg or identified by cardinality. This is the existing registered
 universal construction's defining-map projection, not a new mathematical operation.
 
+`constructionLeg` is arrow data, not an operation address. In subsequent computations it
+may occur inside `compose`, `point`, `map`, a mediator, or a complete argument supplied to
+an already declared operation (including equality). That invocation keeps the consuming
+operation's original registered id and full input form; the creating limit id does not
+become an arbitrary-map `apply` operation. If a declared callable supplies an `apply`
+request, its original address also remains the outer `op` and the first `apply` field.
+No standalone generic Hom-set application address is declared by this protocol. A leaf
+may evaluate the retained leg as part of consuming these ordinary public data without
+creating or registering an additional operation.
+
 For a returned construction carried through an accepted creation lift, the complete cone
 envelope inside `constructionLeg` is
 `{"ctor":"createdCone","args":[<registered lift id>,<complete source diagram>,
@@ -379,6 +422,20 @@ An arrow of a registered presentation comparison is
 The registered comparison fixes both endpoints and the actual isomorphism. A structural
 functor's action on this arrow uses the same `map` envelope as any other arrow.
 
+A callable component may always include its complete actual endpoints as
+`{"ctor":"typedMap","args":[<source descriptor>,<target descriptor>,<callable data>]}`.
+Consumers compare both complete descriptors with the already selected computational endpoints,
+then validate the callable at those endpoints. This form applies to defining maps in ordinary
+Arrow objects and (co)limits as well as the four prescribed-lift ports. Opaque callable fields
+may be nested inside public records; the owning live connection is retained recursively.
+
+A category-wide registration uses its registered category id as `input` and accepts the same
+complete public representation of values in that exact category. For a limit this is its
+diagram; for a method, functor or other applicable operation it is its complete actual input
+value. Structural transport is fixed before dispatch. Exact-form and category-wide
+registrations have equal standing: overlapping applicable registrations are ambiguous, with
+no implicit specialization order.
+
 An answer is a value of the operation's declared result form in this encoding. The answer of a
 limit is its cone, `{"ctor": "cone", "args": [<apex>, <leg>, ...]}`, and of a colimit its cocone,
 `{"ctor": "cocone", "args": [<apex>, <leg>, ...]}`: the apex a value of a registered form of the
@@ -387,6 +444,13 @@ against its declared computational data form, retaining every required field and
 endpoint, or rejects it as malformed. It does not build a formal cone from the returned data:
 formal commutation and universal-property proofs remain with the independent construction.
 Correctness of the returned legs is judged by acceptance.
+
+The registered limit's `dataConstructor` publishes the complete dependent constructor whose
+ordered non-propositional fields are these result ports. Its `standardization`, when supplied,
+publishes the comparison from a general diagram to that declared presentation. The kernel
+consumes those typed declarations, including for creation-lift transport. A shape name alone
+neither chooses a result constructor nor supplies a comparison. Both signatures are included
+in `api/declared-ports.json` alongside the operation's full original signature.
 
 A structured reply may additionally carry map data relating the independently declared
 presentation of the requested diagram to the returned presentation:
@@ -408,6 +472,26 @@ does not change the formal construction, requested diagram or mathematical quest
 open Lean
 
 namespace CasCatalogue.Backend
+
+/-- A computational callable together with its complete actual endpoint descriptions.
+These endpoints are compared with the independently selected request by its consumer;
+parsing this record establishes no map law or mathematical equality. -/
+structure TypedMap where
+  source : Json
+  target : Json
+  callable : Json
+
+def TypedMap.encode (map : TypedMap) : Json :=
+  Json.mkObj [("ctor", toJson "typedMap"),
+    ("args", Json.arr #[map.source, map.target, map.callable])]
+
+def TypedMap.decode (json : Json) : Except String TypedMap := do
+  unless (← json.getObjValAs? String "ctor") == "typedMap" do
+    throw "a computational map requires the typedMap envelope"
+  let args ← (← json.getObjVal? "args").getArr?
+  let #[source, target, callable] := args
+    | throw "a computational map requires its complete source, target and callable"
+  return { source, target, callable }
 
 /-- Complete computational context for an independently admitted formal point. The original
 data are retained, not replaced by a formal representative or checked as an admission proof. -/
@@ -501,6 +585,8 @@ inductive PortError
   | protocol (message : String)
   /-- The backend reported an error for a request. -/
   | backend (kind message : String)
+  /-- The selected backend has no computation for the dispatched public operation. -/
+  | unsupported (operation : String)
   deriving Repr, Inhabited
 
 /-- The stratum of a port failure. A backend that cannot start or that reports an error is
@@ -508,11 +594,13 @@ unavailable. An answer outside the protocol is malformed. -/
 def PortError.stratum : PortError → Stratum
   | .unavailable .. | .backend .. => .unavailable
   | .protocol _ => .malformed
+  | .unsupported _ => .noImplementation
 
 def PortError.render : PortError → String
   | .unavailable b r => s!"{b} is unavailable: {r}"
   | .protocol m => s!"protocol error: {m}"
   | .backend k m => s!"backend error ({k}): {m}"
+  | .unsupported operation => s!"the backend has no implementation of {operation}"
 
 /-- What a program announces. Nothing here is consulted. -/
 structure Ready where
@@ -544,7 +632,10 @@ partial def readExact (h : IO.FS.Handle) (n : Nat) (acc : ByteArray) :
 def readFrame (h : IO.FS.Handle) : IO (Except PortError Json) := do
   try
     let line ← h.getLine
-    let some n := line.trimAscii.toNat?
+    let header := line.dropEnd 1 |>.toString
+    unless line.endsWith "\n" && !header.isEmpty && header.toList.all Char.isDigit do
+      return .error (.protocol s!"bad frame length {repr line}")
+    let some n := header.toNat?
       | return .error (.protocol s!"bad frame length {repr line}")
     let some bytes ← readExact h n .empty
       | return .error (.protocol s!"EOF mid-frame (wanted {n} bytes)")
@@ -599,6 +690,10 @@ def call (c : Conn) (op : String) (args : Json) : IO (Except PortError Json) := 
     match ← str reply "status" with
     | "ok" => field reply "value"
     | "error" => throw (.backend (← str reply "kind") (← str reply "message"))
+    | "unsupported" =>
+        unless (← str reply "op") == op do
+          throw (.protocol "the unsupported reply names a different operation")
+        throw (.unsupported op)
     | status => throw (.protocol s!"{c.ready.backend} answered {op} with status {status}")
 
 end CasCatalogue.Backend

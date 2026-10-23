@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dzackgarza/lean-cas-dsl-leaf-contracts/api/manifest.schema.json",
+  "title": "Computational leaf manifest",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "backends": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/backend"
+      }
+    },
+    "registrations": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/registration"
+      }
+    }
+  },
+  "$defs": {
+    "backend": {
+      "type": "object",
+      "required": [
+        "name",
+        "command"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "command": {
+          "type": "string"
+        },
+        "args": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "registration": {
+      "type": "object",
+      "required": [
+        "operation",
+        "input",
+        "backend"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "operation": {
+          "type": "string"
+        },
+        "input": {
+          "type": "string"
+        },
+        "backend": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

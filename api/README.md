@@ -7,6 +7,14 @@ parameterized signatures alongside the generic wire protocol in
 mathematical definition body, expected answer, or correctness evidence. The kernel
 reads the upstream registry directly; it must not read this document to decide meaning.
 
+[Computational wire examples](wire-examples.md) supplies complete request/reply
+framing and parameter order, scalar and matrix forms, infinite subsets and
+callables, structured projections, lift fields, malformed cases and ownership.
+It contains representation examples, not acceptance assertions or expected answers.
+
+[Backend and registration manifests](manifest.md) specifies the complete `leaves.json`
+schema, backend command arguments, process environment and input matching rules.
+
 All registered lift rows are retained. A null `computation` and empty `ports` mean
 that the row publishes no computational field declaration; they do not remove its
 formal lift. The row's `input` spells its derived address; availability is given by
@@ -22,6 +30,16 @@ categories by carrier equality. Registration uses the exported `operation` and
 signatures/docstrings of all declarations it names. This includes methods and
 properties (which reference registered functors/classifiers), named morphisms,
 binders, literals, graph/subset forms, element operations and limits/colimits.
+For a limit row, `standardization` names the checked comparison from a supplied
+diagram to its declared presentation and `dataConstructor` names the complete
+dependent constructor whose non-propositional fields are the ordered result
+ports. Both signatures are exported when present. No shape name selects a
+different hidden constructor or comparison. An object's `components` publishes
+its finite arity and indexed projection signatures; these retain the exact
+object parameters when a map argument is destructured. A power object's `point`
+publishes the chosen point of the terminal source of `truth`. Global points use
+that declaration; a leaf copies the request's domain descriptor without assuming
+that the terminal source has a particular numeral or representation.
 `categories`, `objects` and `functors` retain registered IDs and public declaration
 signatures. `datatypes` projects the public inductive constructor signatures reachable
 from those types, recursively through constructor types. Constructor `fields` retain
