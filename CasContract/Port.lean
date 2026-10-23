@@ -667,14 +667,34 @@ def stop (c : Conn) : IO Unit := do
   let (_stdin, child) ← c.child.takeStdin
   try discard child.wait catch _ => pure ()
 
-/-- The directory of the Lake package `package` in the workspace being run: `.lake/packages/package`
-when it is a dependency, the working directory when it is the root. -/
-def packageDir (package : String) : IO System.FilePath := do
-  let dependency : System.FilePath := ".lake" / "packages" / package
-  return if ← dependency.pathExists then dependency else "."
-
 /-- The name of this package, whose `python/` holds the port's reference implementation. -/
 def contractPackage : String := "cas_leaf_contracts"
+
+/-- Resolve the actual Lake package directory, including a configured packages directory,
+path dependencies and subdirectories. An explicit public-contract checkout can be supplied
+for an externally overridden dependency through `CAS_LEAF_CONTRACT_PATH`. -/
+def packageDir (package : String) : IO System.FilePath := do
+  if package == contractPackage then
+    if let some path ← IO.getEnv "CAS_LEAF_CONTRACT_PATH" then
+      return path
+  let manifestPath : System.FilePath := "lake-manifest.json"
+  if ← manifestPath.pathExists then
+    let .ok manifest := Json.parse (← IO.FS.readFile manifestPath)
+      | throw <| IO.userError "cannot read the Lake package manifest"
+    if (manifest.getObjValAs? String "name").toOption == some package then return "."
+    if let .ok entries := (manifest.getObjVal? "packages").bind (·.getArr?) then
+      if let some entry := entries.find? fun entry =>
+          (entry.getObjValAs? String "name").toOption == some package then
+        if let .ok path := entry.getObjValAs? String "dir" then return path
+        let directory : System.FilePath :=
+          (manifest.getObjValAs? String "packagesDir").toOption.getD ".lake/packages"
+        let path := directory / package
+        return match (entry.getObjValAs? String "subDir").toOption with
+          | some subdirectory => path / subdirectory
+          | none => path
+  let dependency : System.FilePath := ".lake" / "packages" / package
+  if ← dependency.pathExists then return dependency
+  throw <| IO.userError s!"Lake package {package} is absent from the current workspace"
 
 /-- Send one request and read its answer's value: untrusted JSON, which the kernel decodes in the
 operation's result form or rejects. -/

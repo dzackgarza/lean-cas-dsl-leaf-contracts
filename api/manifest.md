@@ -63,7 +63,18 @@ script may itself select an installed engine from its inherited environment. A
 manifest does not specify an alternate working directory or per-backend environment.
 
 The kernel adds this package's `python` directory to `PYTHONPATH`, so Python leaves
-can `import cas_port`. Ordinary process environment variables remain available.
+can `import cas_port`. It locates the package through the host's Lake manifest:
+path dependencies use their declared `dir`; Git dependencies use the configured
+`packagesDir` (default `.lake/packages`) and any package `subDir`. When running in
+this package's own checkout, the manifest's root `name` identifies that checkout.
+An externally overridden contract dependency can be selected by setting
+`CAS_LEAF_CONTRACT_PATH` to the absolute checkout directory containing
+`python/cas_port.py`. This host environment setting takes precedence over the
+manifest for the contract package only; it is not a field in `leaves.json`.
+A missing contract package fails startup instead of using an unrelated working
+directory as the contract checkout.
+
+Ordinary process environment variables remain available.
 The optional `CAS_SAGE_PYTHON` and `CAS_GAP_PYTHON` selectors identify engine Python
 interpreters where configured by the host; the backend must explicitly use them
 if it launches an engine subprocess. They do not expand inside manifest strings.
