@@ -122,3 +122,9 @@ entries for the selected directories so Lake cannot fetch or switch Git packages
 The wrapper checks revisions, clean sources and input digests before publishing,
 and replaces the snapshot only after both fresh exports succeed with unchanged
 sources and configuration. A failed export leaves the previous snapshot intact.
+
+The declaration export loads Lean's server-data section (`-DElab.inServer=true`)
+so imported public declaration docstrings are included. Ordinary batch module
+imports omit that metadata; a null field must not silently stand in for the
+published description of a selected presentation. This does not change module
+visibility or the mathematical declarations selected for export.

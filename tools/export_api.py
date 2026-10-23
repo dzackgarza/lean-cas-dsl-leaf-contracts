@@ -142,7 +142,10 @@ def main(kernel: Path, *, mathematics: Path | None = None,
             "protocolRevision": sources[protocol],
             "exporterSha256": source_digests[declarations],
         }
-        subprocess.run([*command, str(declaration_probe)], cwd=kernel,
+        # Docstrings are stored in Lean's server-data section. Load that public
+        # metadata while keeping ordinary module visibility; default batch imports
+        # otherwise silently replace every imported docstring with null.
+        subprocess.run([*command, "-DElab.inServer=true", str(declaration_probe)], cwd=kernel,
                        env={**os.environ,
                             "CAS_DECLARED_PORTS_MATH_REVISION": provenance["mathematicsRevision"],
                             "CAS_DECLARED_PORTS_PROTOCOL_REVISION": provenance["protocolRevision"],
