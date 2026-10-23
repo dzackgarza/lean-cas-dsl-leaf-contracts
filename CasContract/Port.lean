@@ -247,13 +247,33 @@ the second remains opaque computational data. This envelope establishes no isomo
 universal property. Further functor actions and defining-map projections carry complete context
 without using the answer to determine formal structure or operations.
 
+Every lift request additionally has a top-level `"parameters":[...]` field containing
+all explicit non-proof data arguments of the selected `LiftEntry.evidence` declaration,
+in its declaration order. This list is independent of the action descriptor's parameters:
+a selected family `L p : MonoLift U` can depend on `p` even when `U` does not. The public
+`lifts[].selection` metadata publishes that declaration and complete signature. Computed
+parameters retain their actual data and session owner. The four returned fields and the
+ordered `args` below are unchanged; the parameter list contains no proof or certificate.
+Historical `liftInput` packets without this member decode as an empty parameter list;
+new requests always include it, and explicit `monoLiftInput` and `liftFactorInput`
+packets require it even when empty. A leaf checks the list against its declared selection.
+
 A registered subobject lift's public `MonoLiftComputation` has four callable fields:
 `obj`, `hom`, `forward`, and `backward`. Their concrete port addresses are
 `<lift id>#obj`, `<lift id>#hom`, `<lift id>#forward`, and `<lift id>#backward`, each
 registered on `<lift id>#input`. These addresses expose only the published fields of
 `LiftEntry.computation`; they create no mathematical operations or laws. A request is
-`{"ctor":"liftInput","args":[<exact lift id>,<selected inner action descriptor>,
+`{"ctor":"liftInput","parameters":[<ordered selected evidence arguments>],
+"args":[<exact lift id>,<selected inner action descriptor>,
 <complete source Arrow>,<current complete base subobject>,[<earlier actual outputs>]]}`.
+An explicitly selected lift at `X` and `i : K → U(X)` uses the same addresses
+and the variant
+`{"ctor":"monoLiftInput","parameters":[<ordered selected evidence arguments>],
+"args":[<exact lift id>,<selected inner action descriptor>,
+<actual source object X>,<current complete base subobject>,[<earlier actual outputs>]]}`.
+This request retains exactly the declared inputs; it does not invent an Arrow out
+of `X`. Both variants have the same four result types and ordered data dependency.
+
 The field order is fixed. `obj` sees an empty output prefix; `hom`, `forward`, and
 `backward` see respectively one, two, and three actual preceding outputs. The full
 selected action parameters, original Arrow endpoints and map, actual base apex and
@@ -269,6 +289,29 @@ morphism. Finite graphs use their actual domain and codomain descriptors. Missin
 or incompatible declared endpoints are malformed. Well-framed mathematically wrong
 objects or maps remain wrong data, to be tested by the independent permanent assertions;
 no inverse, monicity, factorization or universal-property proof is requested from a leaf.
+
+The separate canonical `MonoLiftFactorComputation` supplies the universal factor
+at `<lift id>#factor`, also registered on `<lift id>#input`. It has the request
+`{"ctor":"liftFactorInput","parameters":[<ordered selected evidence arguments>],
+"args":[<exact lift id>,<selected inner action descriptor>,
+<actual source object X>,<complete base subobject K → U(X)>,
+[<object output>,<typed inclusion output>,<typed forward output>,<typed backward output>],
+<typed base map g : U(Y) → K>,<typed cone f : Y → X>]}`.
+The result is a `typedMap` from the cone's actual domain `Y` to the actual object
+output `O`. The formal caller supplies and checks `Mono i` and
+`U.map f = g ≫ i` before dispatch; neither proof is wire data. The factor must
+satisfy both `U.map factor ≫ forward = g` and `factor ≫ hom = f`, as tested by
+independent acceptance. A framed wrong factor remains computational data.
+This is a separate computation, with no fifth field added to the four lift
+outputs and no permission to substitute a comparison isomorphism for the factor.
+
+For a composed lift, the kernel factors through the inner action and then the
+outer action. The actual returned first factor is the next request's base map;
+its formal source equation supplies that request's compatibility proof. The
+canonical public `MonoLift.factor_comp` identifies this staged computation with
+the composite factor. All selected parameters, complete four-field outputs and
+opaque ownership remain attached to the subsequent request. No kernel extension
+or extra composite registration is needed for another prescribed stage.
 
 The kernel encodes a completed prescribed lift for subsequent computations as
 `{"ctor":"liftedSubobject","args":[<original complete base subobject reply>,
@@ -475,6 +518,18 @@ It cannot select a different formal lift, diagram or source structure.
 actual zero-morphism structure. `identity` has the same endpoints syntax and requires equal
 endpoints. Every constructed value is checked at its exact expected type.
 
+A registered natural transformation component is
+`{"ctor":"cellComponent","args":[<cell id>,[<ordered declaration parameters>],
+<complete selected receiver>,<inverse boolean>]}`. The component is exactly `NatTrans.app`
+at that receiver. False selects the forward component; true requires an invertible cell and
+selects its inverse. All source and target parameters come from that full declaration.
+A point application uses the common seven-field `apply` request, with operation
+`<cell id>#component`, parameters `[<ordered declaration parameters>,<receiver>,<inverse>]`,
+and the complete `cellComponent` arrow. Its own operation address is also its complete input
+address. The public API exports the exact component type and both oriented routes. A cell's
+id, an equal carrier, or its role in resolution is not permission to replace its action by
+an identity. Wrong but well-framed point data remains a possible answer.
+
 An arrow of a registered presentation comparison is
 `{"ctor":"presentation","args":[<comparison id>,[<ordered explicit parameters>],
 <inverse boolean>]}`. False selects its forward arrow; true selects its inverse.
@@ -499,6 +554,17 @@ Consumers compare both complete descriptors with the already selected computatio
 then validate the callable at those endpoints. This form applies to defining maps in ordinary
 Arrow objects and (co)limits as well as the four prescribed-lift ports. Opaque callable fields
 may be nested inside public records; the owning live connection is retained recursively.
+
+An endpoint whose full object is fixed by a declared arrow need not have a separate named
+object registration. Its public data is
+`{"ctor":"morphismEndpoint","args":[<actual callable data>,"source"]}` or the same
+two-field record with `"target"`. The complete independently selected arrow signature fixes
+the endpoint and its category parameters. The callable retains all its ordered parameters and
+any opaque owner. An already framed `typedMap` retains its actual endpoint fields instead of
+replacing them with this wrapper. The wrapper is object data, supplies no point inventory,
+and is not itself callable. Reuse is checked against the retained complete descriptor and
+formal context; parsing it does not reconstruct an arrow or choose a mathematical object.
+`finiteData` may supply an actual inventory for this exact descriptor under the usual rules.
 
 A category-wide registration uses its registered category id as `input` and accepts the same
 complete public representation of values in that exact category. For a limit this is its
@@ -544,6 +610,26 @@ open Lean
 
 namespace CasCatalogue.Backend
 
+/-- One endpoint of an independently retained complete arrow. This is object data;
+the descriptor supplies neither a formal arrow nor an enumeration of its endpoint. -/
+structure MorphismEndpoint where
+  callable : Json
+  source : Bool
+
+def MorphismEndpoint.encode (endpoint : MorphismEndpoint) : Json :=
+  Json.mkObj [("ctor", toJson "morphismEndpoint"),
+    ("args", Json.arr #[endpoint.callable, toJson (if endpoint.source then "source" else "target")])]
+
+def MorphismEndpoint.decode (json : Json) : Except String MorphismEndpoint := do
+  unless (← json.getObjValAs? String "ctor") == "morphismEndpoint" do
+    throw "a declared endpoint requires the morphismEndpoint envelope"
+  let #[callable, selector] ← (← json.getObjVal? "args").getArr?
+    | throw "a declared endpoint requires its complete callable and endpoint selector"
+  let selector ← selector.getStr?
+  unless selector == "source" || selector == "target" do
+    throw "a declared endpoint selector must be source or target"
+  return { callable, source := selector == "source" }
+
 /-- A computational callable together with its complete actual endpoint descriptions.
 These endpoints are compared with the independently selected request by its consumer;
 parsing this record establishes no map law or mathematical equality. -/
@@ -563,6 +649,101 @@ def TypedMap.decode (json : Json) : Except String TypedMap := do
   let #[source, target, callable] := args
     | throw "a computational map requires its complete source, target and callable"
   return { source, target, callable }
+
+/-- Either complete source context for the four existing lift fields. The source
+is an actual object when `originalArrow` is false, and a complete Arrow otherwise. -/
+structure LiftInput where
+  originalArrow : Bool
+  lift : String
+  action : Json
+  source : Json
+  base : Json
+  outputs : Array Json
+  /-- All explicit non-proof arguments of the selected evidence declaration. -/
+  parameters : Array Json := #[]
+
+def LiftInput.encode (input : LiftInput) : Json :=
+  Json.mkObj [("ctor", toJson (if input.originalArrow then "liftInput" else "monoLiftInput")),
+    ("parameters", Json.arr input.parameters),
+    ("args", Json.arr #[toJson input.lift, input.action, input.source, input.base,
+      Json.arr input.outputs])]
+
+/-- Check only public framing and field order. Mathematical endpoint types and
+laws remain the independent caller's responsibility. -/
+def LiftInput.decode (json : Json) (operation : String) : Except String LiftInput := do
+  let tag ← json.getObjValAs? String "ctor"
+  unless tag == "liftInput" || tag == "monoLiftInput" do
+    throw "a lift request requires its declared complete source context"
+  let #[identity, action, source, base, earlier] ← (← json.getObjVal? "args").getArr?
+    | throw "a lift request requires id, action, source, base and preceding outputs"
+  let lift ← identity.getStr?
+  if lift.isEmpty then throw "a lift request requires its exact registered id"
+  let outputs ← earlier.getArr?
+  let order := #["obj", "hom", "forward", "backward"]
+  let some index := order.findIdx? (fun field => operation == lift ++ "#" ++ field)
+    | throw "the dispatched operation differs from the selected lift field"
+  unless outputs.size == index do
+    throw "the lift request omits or changes the actual preceding output prefix"
+  let baseTag ← base.getObjValAs? String "ctor"
+  unless (baseTag == "arrow" || baseTag == "subobject") &&
+      (← base.getObjVal? "args" >>= Json.getArr?).size == 3 do
+    throw "the lift request requires its complete base subobject"
+  if tag == "liftInput" then
+    unless (← source.getObjValAs? String "ctor") == "arrow" &&
+        (← source.getObjVal? "args" >>= Json.getArr?).size == 3 do
+      throw "the prescribed lift requires its complete original source Arrow"
+  let parameters ← match json.getObjVal? "parameters" with
+    | .ok data => data.getArr?
+    | .error _ =>
+        if tag == "liftInput" then pure #[]
+        else throw "an explicit lift request requires its ordered selection parameters"
+  return { originalArrow := tag == "liftInput", lift, action, source, base, outputs, parameters }
+
+/-- The separate universal-factor request retains all four actual lift outputs
+and both input maps. The public record contains no proof or certificate field. -/
+structure LiftFactorInput where
+  lift : String
+  action : Json
+  source : Json
+  base : Json
+  outputs : Array Json
+  baseMap : TypedMap
+  cone : TypedMap
+  /-- Same selected evidence-family data arguments used for the four lift fields. -/
+  parameters : Array Json := #[]
+
+def LiftFactorInput.encode (input : LiftFactorInput) : Json :=
+  Json.mkObj [("ctor", toJson "liftFactorInput"), ("parameters", Json.arr input.parameters),
+    ("args", Json.arr #[
+    toJson input.lift, input.action, input.source, input.base, Json.arr input.outputs,
+    input.baseMap.encode, input.cone.encode])]
+
+def LiftFactorInput.decode (json : Json) (operation : String) : Except String LiftFactorInput := do
+  unless (← json.getObjValAs? String "ctor") == "liftFactorInput" do
+    throw "a factor request requires its complete selected lift context"
+  let #[identity, action, source, base, earlier, baseMap, cone] ←
+      (← json.getObjVal? "args").getArr?
+    | throw "a factor request requires seven ordered fields"
+  let lift ← identity.getStr?
+  unless !lift.isEmpty && operation == lift ++ "#factor" do
+    throw "the dispatched factor differs from the selected lift"
+  let outputs ← earlier.getArr?
+  unless outputs.size == 4 do
+    throw "a factor request requires exactly the four existing lift outputs"
+  for output in outputs.extract 1 4 do discard <| TypedMap.decode output
+  let baseTag ← base.getObjValAs? String "ctor"
+  unless (baseTag == "arrow" || baseTag == "subobject") &&
+      (← base.getObjVal? "args" >>= Json.getArr?).size == 3 do
+    throw "a factor request requires its complete base subobject"
+  return {
+    lift
+    action
+    source
+    base
+    outputs
+    parameters := (← (← json.getObjVal? "parameters").getArr?)
+    baseMap := (← TypedMap.decode baseMap)
+    cone := (← TypedMap.decode cone) }
 
 /-- A selected category dictionary, identified by its registered declaration and every
 ordered explicit parameter. The semantic caller checks the complete category structure;
@@ -603,6 +784,29 @@ def FunctorParameter.decode (json : Json) : Except String FunctorParameter := do
   let functor ← functor.getStr?
   if functor.isEmpty then throw "a selected functor has no registered id"
   return { functor, parameters := ← parameters.getArr? }
+
+/-- The actual component of a registered natural transformation, at its complete
+selected receiver. Inverse selection requires the registered invertibility property;
+no computational field supplies that property or changes the component's endpoints. -/
+structure CellComponent where
+  cell : String
+  parameters : Array Json
+  receiver : Json
+  inverse : Bool
+
+def CellComponent.encode (component : CellComponent) : Json :=
+  Json.mkObj [("ctor", toJson "cellComponent"), ("args", Json.arr #[
+    toJson component.cell, Json.arr component.parameters, component.receiver,
+    toJson component.inverse])]
+
+def CellComponent.decode (json : Json) : Except String CellComponent := do
+  unless (← json.getObjValAs? String "ctor") == "cellComponent" do
+    throw "a natural component requires the cellComponent envelope"
+  let #[cell, parameters, receiver, inverse] ← (← json.getObjVal? "args").getArr?
+    | throw "a natural component requires its id, parameters, receiver and direction"
+  let cell ← cell.getStr?
+  if cell.isEmpty then throw "a natural component has no registered cell id"
+  return { cell, parameters := ← parameters.getArr?, receiver, inverse := ← inverse.getBool? }
 
 /-- Complete source data of the actual `Core` object selected by a construction.
 The surrounding declared functor fixes the ambient category, independently of data. -/

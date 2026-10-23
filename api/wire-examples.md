@@ -103,6 +103,36 @@ an unapplied comparison-arrow descriptor does not by itself add a complete-reque
 candidate. The Python helper `presentation_invocation` returns all five ordered
 fields and rejects a missing field, an extra field or a nonboolean direction.
 
+## Natural cell components
+
+Every `cells` API record publishes its complete declaration, component type, source and target
+routes, invertibility, and derived `<cell id>#component` operation/input address. The component
+at a selected receiver uses the same point-application contract as other callable maps:
+
+```python
+component = node("cellComponent", cell_id, declaration_parameters, receiver, False)
+request = {
+    "op": cell_id + "#component",
+    "args": apply(cell_id + "#component",
+                  [declaration_parameters, receiver, False], component,
+                  domain, source, target, point_data),
+}
+reply = value_data(result_point_data)
+```
+
+`source` is the complete object obtained by the published left route at `receiver`; `target`
+is the object obtained by the right route. An inverse request has `True` and swaps those two
+endpoints, and is valid only for an invertible cell. The kernel retains the actual component
+and validates its complete type before dispatch. Equal underlying carriers do not erase
+its map. Parameters and receiver can contain previously computed data; the ordinary ownership
+rule retains every opaque value's owning session. A component descriptor can also appear
+inside `typedMap`, functor `map`, and categorical `compose` data.
+
+Omitting the receiver, supplying a non-Boolean orientation, naming an unregistered cell,
+selecting an inverse of a noninvertible cell, or changing either full selected endpoint is
+malformed. A well-framed result at those endpoints can still be mathematically wrong.
+The `cell_component` Python helper and `Backend.CellComponent` Lean helper check framing only.
+
 ## Direct constructions
 
 A registered `ConstructionEntry` is applied at its full dependent parameters. It
@@ -419,6 +449,33 @@ This complete infinite-product representation needs no carrier enumeration or
 new named-object row. A finite symbolic apex supplies `finiteData(apex,keys)`
 when a graph requires its actual inventory.
 
+An accepted declared arrow can also fix a complete endpoint that has no named
+object row. The endpoint keeps the actual callable and an explicit selector:
+
+```python
+from cas_port import endpoint_data, morphism_endpoint
+
+source = endpoint_data(actual_callable, "source")
+target = endpoint_data(actual_callable, "target")
+callable_data, selector = morphism_endpoint(source)
+```
+
+The resulting envelope is `morphismEndpoint(actual_callable,"source")` or
+`morphismEndpoint(actual_callable,"target")`. The original callable retains all
+ordered parameters and any owning opaque session. Its independently fixed full
+arrow signature supplies the endpoint's category and parameters. A consumer
+reuses the exact supplied descriptor; it does not infer a new formal object from
+the JSON or select another map with a matching carrier. A `typedMap` that already
+has actual endpoint fields keeps those fields unchanged.
+
+This endpoint descriptor supplies no point inventory, even when its formal
+endpoint is finite. A finite graph needs actual `finiteData(source,keys)` whose
+inner descriptor is exactly `source`. An already supplied inventory cannot be
+replaced. The endpoint wrapper itself is object data and cannot be used as a
+callable. `morphism_endpoint` rejects an omitted field, extra field, or selector
+other than the two strings above; contextual validation also checks exact reuse
+of the independently selected descriptor.
+
 The operation's declared result type determines which complete record is needed.
 A limit/equalizer cone uses `cone(apex,inclusion)`; a colimit/coequalizer cocone
 uses `cocone(apex,projection)`. Their complete input diagrams retain both parallel
@@ -482,8 +539,21 @@ Prescribed subobject lifts have four ordered outputs:
 | `<lift>#forward` | `[O,inclusion]` | `typedMap(U(O),K,forward)` |
 | `<lift>#backward` | `[O,inclusion,forward]` | `typedMap(K,U(O),backward)` |
 
+Each request has `"parameters":[...]` at the top level, retaining every explicit
+non-proof argument of the selected evidence declaration in `lifts[].selection`.
+This list remains separate from the inner action's arguments: distinct choices
+`L p : MonoLift U` must remain distinguishable even when `U` is independent of `p`.
+Use `cas_port.lift_parameters(request)` to read that list, and `lift_input` for the
+unchanged ordered request fields. New packets always include the list; only the
+historical `liftInput` spelling accepts its omission as an empty list.
+
 `liftInput` also retains the selected lift id, complete action, source Arrow and
-base subobject. `X` is the source Arrow's source; `K` is the base subobject's apex.
+base subobject. The explicit-object variant is
+`monoLiftInput(liftId, action, X, subobject(K,U(X),i), earlierOutputs)` at the same
+`<lift>#input` address. It uses the actual selected `X` without supplying an
+unrelated source Arrow. The public `lift_input` Python helper distinguishes the
+variants and returns their exact retained fields; it supplies no mathematical
+identification or proof. `X` is the source Arrow's source; `K` is the base subobject's apex.
 `U(O)` retains the actual `O` and full selected action. Each step receives the
 previous step's actual object and inclusion. Completed `liftedSubobject` stores
 all four outputs of every step. `createdCone` stores its selected lift, exact
@@ -571,3 +641,27 @@ data grammar. They cover new objects and returned objects in that exact category
 after the kernel's selected structural transport. Exact-form and category-wide
 registrations are peers: if both apply, dispatch is ambiguous. There is no hidden
 specialization priority or fallback order.
+
+### Separate universal factor
+
+A lift's separate `<lift id>#factor` operation uses the same `<lift id>#input`
+registration and the following complete packet:
+
+```json
+{"ctor":"liftFactorInput","parameters":["<ordered selected evidence arguments>"],
+ "args":["<lift id>","<selected action>","<actual X>",
+  "<complete base subobject>",["<O>","<typed hom>","<typed forward>","<typed backward>"],
+  "<typed g: U(Y) → K>","<typed f: Y → X>"]}
+```
+
+The result is `typedMap(Y, O, callable)`, using the actual cone domain and actual
+object output. `Mono i` and `U.map f = g ≫ i` are checked formal inputs, supplied
+before dispatch; neither is wire data. Both factor equations remain independent
+acceptance obligations. This operation does not add a fifth lift field. Its
+full dependent type is exported as the lift's separate `factor` metadata.
+
+`LiftFactorInput.decode` and Python `lift_factor_input` validate the seven-field
+packet, exact operation, complete base and four typed prior outputs. Composed
+lifts execute the inner factor first, then feed that actual arrow into the
+outer factor's base-map slot under the canonical `MonoLift.factor_comp` law.
+The original four-field outputs and session ownership survive both requests.

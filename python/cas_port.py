@@ -76,6 +76,26 @@ def functor_parameter(args):
     return _selected_parameter(args, "functor")
 
 
+def cell_component(args):
+    """Read (cell id, ordered parameters, complete receiver, inverse flag).
+
+    Registered source and target functors determine the component and endpoints.
+    Parsing does not prove invertibility or identify its action with an identity.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "cellComponent":
+        raise ValueError("a natural component requires the cellComponent envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 4:
+        raise ValueError("a natural component requires its id, parameters, receiver and direction")
+    if not isinstance(fields[0], str) or not fields[0]:
+        raise ValueError("a natural component has no registered cell id")
+    if not isinstance(fields[1], list):
+        raise ValueError("natural component parameters must be ordered data")
+    if not isinstance(fields[3], bool):
+        raise ValueError("natural component orientation must be Boolean")
+    return tuple(fields)
+
+
 def core_object(args):
     """Read the complete underlying object of the caller's selected Core source."""
     if not isinstance(args, dict) or args.get("ctor") != "coreObject":
@@ -121,6 +141,114 @@ def construction_invocation(args, operation):
 def value_data(data):
     """Supply inline computational data under the caller's fixed result contract."""
     return {"ctor": "valueData", "args": [data]}
+
+
+def lift_parameters(args):
+    """Read all explicit data arguments of the selected evidence declaration.
+
+    The declaration and order are published in lifts[].selection. These are
+    independent of the action descriptor's own arguments. Proofs are omitted.
+    Historical liftInput packets may omit the member for an empty selection.
+    """
+    if not isinstance(args, dict) or args.get("ctor") not in {
+            "liftInput", "monoLiftInput", "liftFactorInput"}:
+        raise ValueError("selection parameters require a declared lift request")
+    if "parameters" not in args and args["ctor"] == "liftInput":
+        return []
+    parameters = args.get("parameters")
+    if not isinstance(parameters, list):
+        raise ValueError("a lift request requires its ordered selection parameters")
+    return parameters
+
+
+def lift_input(args, operation):
+    """Read a four-field lift request without inventing an original Arrow.
+
+    Return (kind, lift_id, selected_action, source, base, earlier_outputs).
+    For liftInput the source is the complete original Arrow; for monoLiftInput
+    it is the actual selected source object. Both use the same <lift>#input
+    registration and exactly four field operations. Framing is not monicity,
+    inverse, factorization, universal or mathematical-correctness evidence.
+    Use lift_parameters(args) for the separate ordered evidence-family data.
+    """
+    if not isinstance(args, dict) or args.get("ctor") not in {"liftInput", "monoLiftInput"}:
+        raise ValueError("a lift request requires its declared source context")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 5:
+        raise ValueError("a lift request requires id, action, source, base and preceding outputs")
+    lift_id, action, source, base, outputs = fields
+    if not isinstance(lift_id, str) or not lift_id:
+        raise ValueError("a lift request requires its exact registered id")
+    field = operation.removeprefix(lift_id + "#") if isinstance(operation, str) else ""
+    order = ("obj", "hom", "forward", "backward")
+    if not isinstance(operation, str) or not operation.startswith(lift_id + "#") or field not in order:
+        raise ValueError("the dispatched operation differs from the selected lift field")
+    if not isinstance(outputs, list) or len(outputs) != order.index(field):
+        raise ValueError("the lift request omits or changes the actual preceding output prefix")
+    if not isinstance(base, dict) or base.get("ctor") not in {"arrow", "subobject"}:
+        raise ValueError("the lift request requires its complete base subobject")
+    if not isinstance(base.get("args"), list) or len(base["args"]) != 3:
+        raise ValueError("the lift base requires actual apex, ambient and inclusion data")
+    if args["ctor"] == "liftInput":
+        if not isinstance(source, dict) or source.get("ctor") != "arrow" or \
+                not isinstance(source.get("args"), list) or len(source["args"]) != 3:
+            raise ValueError("the prescribed lift requires its complete original source Arrow")
+    lift_parameters(args)
+    return args["ctor"], lift_id, action, source, base, outputs
+
+
+def lift_factor_input(args, operation):
+    """Read the separate universal-factor request; no proofs are wire fields.
+
+    Return (lift_id, action, source, base, four_outputs, typed_g, typed_f).
+    Endpoint laws belong to the independently selected formal factor and are
+    tested by acceptance, never inferred from this framing validator.
+    Use lift_parameters(args) for the same selection used by the four fields.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "liftFactorInput":
+        raise ValueError("a factor request requires its complete selected lift context")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 7:
+        raise ValueError("a factor request requires seven ordered fields")
+    lift_id, action, source, base, outputs, g, f = fields
+    if not isinstance(lift_id, str) or not lift_id or operation != lift_id + "#factor":
+        raise ValueError("the dispatched factor differs from the selected lift")
+    if not isinstance(outputs, list) or len(outputs) != 4:
+        raise ValueError("a factor request requires exactly the four existing lift outputs")
+    for output in outputs[1:]:
+        typed_map(output)
+    if not isinstance(base, dict) or base.get("ctor") not in {"arrow", "subobject"}:
+        raise ValueError("a factor request requires its complete base subobject")
+    if not isinstance(base.get("args"), list) or len(base["args"]) != 3:
+        raise ValueError("the lift base requires actual apex, ambient and inclusion data")
+    typed_map(g)
+    typed_map(f)
+    lift_parameters(args)
+    return lift_id, action, source, base, outputs, g, f
+
+
+def morphism_endpoint(args):
+    """Read an actual callable and its source/target selector as endpoint data.
+
+    The independent full arrow signature fixes the endpoint. This framing helper
+    does not reconstruct mathematics, enumerate points, or transfer token owners.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "morphismEndpoint":
+        raise ValueError("a declared endpoint requires the morphismEndpoint envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 2:
+        raise ValueError("a declared endpoint requires its complete callable and endpoint selector")
+    callable_data, selector = fields
+    if selector not in ("source", "target"):
+        raise ValueError("a declared endpoint selector must be source or target")
+    return callable_data, selector
+
+
+def endpoint_data(callable_data, selector):
+    """Retain one endpoint of the independently selected complete callable."""
+    result = {"ctor": "morphismEndpoint", "args": [callable_data, selector]}
+    morphism_endpoint(result)
+    return result
 
 
 def typed_map(args):

@@ -8,6 +8,15 @@ set_option pp.fullNames true
 run_cmd do
   let result : Json ← liftTermElabM do
     let state ← semanticState
+    -- Explicit lift choices may use a non-structural functor. Reading its
+    -- declared source does not add it to automatic semantic resolution.
+    let rec sourceOf? : EdgeRef → Option CategoryExpr
+      | .functor id => (state.functor? id).map (·.source)
+      | .classifierForget id => (state.structuralEdge? (.classifierForget id)).map (·.source)
+      | .constructMap id inner => do
+          let constructor ← state.constructor? id
+          guard constructor.functorialAction.isSome
+          return .construct id #[.category (← sourceOf? inner)]
     let declarations ← IO.mkRef (#[] : Array Name)
     let describe (name : Name) : TermElabM Json := do
       declarations.modify (·.push name)
@@ -42,16 +51,35 @@ run_cmd do
       let computation ← match row.computation with
         | some name => describe name
         | none => pure Json.null
+      let factor ← if row.kind == .subobjects && row.computation.isSome then do
+          let info ← getConstInfo row.evidence
+          forallTelescope info.type fun params _ => do
+            let evidence := mkAppN (mkConst row.evidence (info.levelParams.map Level.param)) params
+            let canonical ← mkAppM ``MonoLift.factorComputation #[evidence]
+            let callable := mkProj ``MonoLiftFactorComputation 0 canonical
+            let type ← mkForallFVars params (← inferType callable)
+            if type.hasFVar || type.hasMVar || type.hasLevelMVar then
+              throwError "lift {row.id.raw} factor has an open public signature"
+            declarations.modify (· ++ type.getUsedConstants ++ canonical.getUsedConstants)
+            return Json.mkObj [("operation", toJson s!"{row.id.raw}#factor"),
+              ("input", toJson s!"{row.id.raw}#input"),
+              ("declaration", toJson "CasCatalogue.MonoLiftFactorComputation.factor"),
+              ("type", toJson (← ppExpr type).pretty),
+              ("documentation", toJson (← findDocString? (← getEnv)
+                ``MonoLiftFactorComputation)),
+              ("computation", ← describe ``MonoLift.factorComputation)]
+        else pure Json.null
       let sources := state.categories.filter fun category =>
-        (state.edgesFrom category.expression).any (·.ref == row.edge)
+        (sourceOf? row.edge).any (category.expression.syntacticEq ·)
       lifts := lifts.push (Json.mkObj [("id", toJson row.id.raw),
         ("edge", toJson row.edge.label),
         ("kind", toJson (reprStr row.kind)),
         ("sourceCategories", toJson (sources.map (·.id.raw))),
         ("input", toJson s!"{row.id.raw}#input"),
         ("wire", toJson "api/wire-examples.md#complete-results-projections-and-lifts"),
+        ("selection", ← describe row.evidence),
         ("computation", computation),
-        ("ports", Json.arr ports)])
+        ("ports", Json.arr ports), ("factor", factor)])
     let mut entries : Array Json := #[]
     for row in state.entries do
       let names := row.declarations ++ match row with
@@ -75,6 +103,27 @@ run_cmd do
     for row in state.functors do
       functors := functors.push (Json.mkObj [("id", toJson row.id.raw),
         ("signature", ← describe row.declaration)])
+    let mut cells : Array Json := #[]
+    for row in state.cells do
+      let info ← getConstInfo row.declaration
+      let componentType ← forallTelescope info.type fun parameters _ => do
+        let value := mkAppN (mkConst row.declaration (info.levelParams.map Level.param)) parameters
+        let natural ← if row.invertible then mkAppM ``CategoryTheory.Iso.hom #[value]
+          else pure value
+        let component ← mkAppM ``CategoryTheory.NatTrans.app #[natural]
+        let type ← mkForallFVars parameters (← inferType component)
+        if type.hasFVar || type.hasMVar || type.hasLevelMVar then
+          throwError "cell {row.id.raw} has an open public component signature"
+        declarations.modify (· ++ type.getUsedConstants)
+        return (← ppExpr type).pretty
+      cells := cells.push (Json.mkObj [("id", toJson row.id.raw),
+        ("source", toJson (reprStr row.source)), ("target", toJson (reprStr row.target)),
+        ("left", toJson (reprStr row.left)), ("right", toJson (reprStr row.right)),
+        ("invertible", toJson row.invertible), ("signature", ← describe row.declaration),
+        ("operation", toJson s!"{row.id.raw}#component"),
+        ("input", toJson s!"{row.id.raw}#component"),
+        ("componentType", toJson componentType),
+        ("wire", toJson "api/wire-examples.md#natural-cell-components")])
     let mut constructions : Array Json := #[]
     for row in state.constructions do
       let info ← getConstInfo row.declaration
@@ -158,7 +207,8 @@ run_cmd do
         ("constructors", Json.arr constructors)])
     return Json.mkObj [("entries", Json.arr entries), ("categories", Json.arr categories),
       ("datatypes", Json.arr datatypes), ("typeAliases", Json.arr typeAliases), ("lifts", Json.arr lifts), ("objects", Json.arr objects),
-      ("functors", Json.arr functors), ("constructions", Json.arr constructions)]
+      ("functors", Json.arr functors), ("constructions", Json.arr constructions),
+      ("cells", Json.arr cells)]
   let output := (← IO.getEnv "CAS_DECLARED_PORTS_OUTPUT").getD "declared-ports.json"
   let required (name : String) : IO String := do
     let some value ← IO.getEnv name | throw (IO.userError s!"missing provenance: {name}")

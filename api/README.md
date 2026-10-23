@@ -21,9 +21,13 @@ formal lift. The row's `input` spells its derived address; availability is given
 the actual `inputForms` inventory, not by that spelling alone. A published computation contributes its four public projections in
 order: `obj`, `hom`, `forward`, `backward`. Each type closes over every parameter
 of the original declaration, including the exact source object, base inclusion and
-formal instance parameters. `sourceCategories` lists the registered categories
-whose structural edges contain the exact selected edge; it does not identify
-categories by carrier equality. Registration uses the exported `operation` and
+formal instance parameters. The `selection` signature publishes the evidence
+family: a request's top-level `parameters` contains all of that declaration's
+explicit non-proof data arguments in order, including choices absent from the
+underlying action. `sourceCategories` lists the registered categories
+whose complete schema is the exact selected edge's declared source, including
+explicit nonstructural actions. This metadata does not add resolution edges or
+identify categories by carrier equality. Registration uses the exported `operation` and
 `input` addresses, not the Lean declaration name.
 
 `entries` includes every registered row, its public registration metadata and the
@@ -56,6 +60,11 @@ primitive encodings remain authoritative: for example, `Fin` and modular scalar
 points do not become constructor-field arrays. Proof slots are absent from wire data.
 The `resultType` is the same public signature with only its result type head
 normalized to expose aliases.
+
+`cells` publishes each registered natural transformation and its component type,
+with exact source/target routes, invertibility, and the derived complete component
+operation/input address. Its selected receiver is an actual argument, not an
+inferred carrier; inverse orientation is available only when formally registered.
 
 `typeAliases` additionally covers public Type-valued declarations occurring in the
 reference. The exporter applies each declaration to its complete generic parameters

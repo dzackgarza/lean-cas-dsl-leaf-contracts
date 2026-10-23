@@ -124,6 +124,14 @@ map point action or a later target operation. Use the exported construction and
 admission inventories for concrete addresses and the
 [direct-construction protocol](wire-examples.md#direct-constructions) for their data.
 
+A registered natural cell exports the point operation `<cell id>#component` and
+complete input of the same address. The common `apply` request retains the
+component's declaration parameters, complete selected receiver, direction, and
+both actual endpoints. An inverse direction is available only for a cell declared
+invertible. This registration does not cover another cell or turn a comparison
+into an identity based on shared carriers. See the exported `cells` inventory and
+[natural cell component protocol](wire-examples.md#natural-cell-components).
+
 Exact-form and category-wide registrations have equal standing. If both are
 applicable to one invocation, that invocation is ambiguous; manifest order and
 backend name do not define priority. Avoid overlapping registrations unless an
