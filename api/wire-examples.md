@@ -75,6 +75,60 @@ The kernel selects the global-point source from the registry. A leaf copies the
 request's actual generalized domain; it must not manufacture `Fin(1)` for every
 request. A nonconstant generalized point retains its actual domain.
 
+## Whole-domain callable requests
+
+The common `apply` envelope also requests the complete map `f : X → Y`. Its
+generalized domain is the original `X`, and its argument is `id_X`:
+
+```python
+whole_request = apply(
+    operation, declaration_parameters, actual_arrow,
+    X, X, Y, node("identity", X, X))
+```
+
+`X`, `Y` and `actual_arrow` are the complete supplied descriptors, including
+selected structures and actual computational dependencies. The request asks for
+the entire composite `id_X ≫ f`. It supplies no representative point, finite
+sample, substituted source or new invocation mode. A finite reply supplies the
+whole callable at its actual inventory; an infinite reply can be owned native
+callable data. For example, complete replies can use:
+
+```python
+from cas_port import map_data, opaque_data, value_data
+
+value_data(map_data(X, Y, actual_callable_data))
+opaque_data("callable-created-on-this-connection")
+```
+
+These are framing alternatives, not pre-existing values. The token must refer to
+the callable actually retained by that connection. A later operation consumes
+the same returned callable; it cannot replace it with the named formal arrow or
+restart its owner. The result retains domain `X`; on a non-singleton domain a
+single point of `Y` cannot stand for that callable. The existing scalar convention
+for the registered global-point domain remains unchanged.
+`point_invocation(request, operation)` reads the same seven fields as for pointwise use.
+
+The exact common parameters and complete-request addresses for derived maps are:
+
+| Declared callable | Operation and complete-request input | Ordered `apply` parameters |
+| --- | --- | --- |
+| Named morphism | Its published morphism ID | All explicit declaration parameters |
+| Registered object application | `<object id>#application` | All explicit application-declaration parameters |
+| Natural cell component | `<cell id>#component` | `[declarationParameters,receiver,inverse]` |
+| Component through a nonempty constructor path | `component:` followed by compact JSON `[cellId,constructorIds]` | `[declarationParameters,constructedReceiver,inverse]` |
+| Family-reindex cartesian map | `<reindex functor id>#cartesian` | `[functorParameters,receiver]` |
+
+Component and cartesian-map parameters preserve a nested ordered array as their
+first field; they are not flattened. Complete-request addresses must exist in the
+exported `inputForms` inventory, except for the unbounded constructed-component
+family governed by its published path grammar. A named mathematical category
+uses its registered ID, such as `cat.sets`; a surface name such as `Sets` is not
+a registration address. A constructed category with no named row retains its
+full `constructedCategory` descriptor and exported category expression; no
+category ID is invented for it. Element-operation IDs have their ordinary
+compatible object/category input forms, as specified below, and do not acquire
+an own-address input form merely by using whole-domain invocation.
+
 ## Family reindexing and cartesian arrows
 
 The `categoryFamilies` metadata publishes each accepted family's actual realization,
@@ -107,6 +161,12 @@ the exact source, target and generalized domain supplied by the caller. Replies 
 `valueData`, `opaqueData` or declared map/result interface; this adds no proof or backend-defined
 category. Missing or extra descriptor fields, a mismatched reindex action, omitted declaration
 parameters or changed selected endpoints are malformed.
+
+The common invocation's parameters are exactly
+`[declaration_parameters, original_receiver]`. Its first field is the entire
+ordered functor-parameter array. To request the whole cartesian arrow, use its
+complete source as both domain and source, and `identity(source,source)` as the
+argument; the target remains the original total object.
 
 `Backend.CartesianMap` and Python `cartesian_map` check the three-field framing. The kernel
 validates it against the retained formal application, rather than treating the descriptor as
@@ -438,6 +498,61 @@ The admission wrapper is supplied by the independently interpreted question.
 A leaf consumes its original data and selected interface. It does not supply
 membership evidence or turn a raw denominator into an admitted unit.
 
+### Selected operation bindings
+
+An operation row binds its surface name at its complete selected owner category.
+The name is the binding key; arity and numerical parameters belong to that one
+binding's signature. An explicit binding stops inherited lookup along that
+structural path. An incompatible arity does not authorize a different farther
+binding. Incomparable inherited bindings require the accepted complete
+comparison data; a leaf does not choose among them by carrier equality or engine
+class. These are mathematical selection rules applied before dispatch.
+
+The resulting request still names the selected operation ID and its full
+parameters. The published `op.monoids.mul` and `op.monoids.one` take the selected
+monoid as their parameter; their source interfaces are respectively the product
+of its carrier with itself and the registered global-point source. A group
+inherits these through its selected forgetful structure. An explicitly selected
+ring multiplication remains its ring operation binding. The unit operation
+does not declare arbitrary numeral literals for a monoid.
+
+```python
+monoid_multiplication = node("op.monoids.mul", selected_monoid)
+monoid_unit = node("op.monoids.one", selected_monoid)
+```
+
+These arrow descriptors have no operand fields. Invoke them using common
+`apply` with the exact supplied source and target descriptors. Registration uses
+a supported selected monoid-object form or `cat.monoids`; neither operation ID
+is itself an invented input form. The generated inventories settle which
+concrete addresses exist in the selected release.
+
+### Admitted group and module morphisms
+
+The published hom-set objects retain all selected structures:
+
+| Object | Ordered parameters | Application address |
+| --- | --- | --- |
+| `obj.sets.group_morphisms` (`GroupMorphisms`) | `[G,H]`, the two selected groups | `obj.sets.group_morphisms#application` |
+| `obj.sets.module_morphisms` (`ModuleMorphisms`) | `[R,M,N]`, the selected ring and both modules over it | `obj.sets.module_morphisms#application` |
+
+Their `inclusion` fields retain the entire underlying function. Their admission
+declarations bundle that same function only after the formal caller establishes
+its complete homomorphism or linearity law. This uses the existing
+`admittedPoint(objectId,parameters,domain,originalFunctionObject,selectedHomObject,
+actualOriginalFunction)` envelope. The domain and original function-object
+descriptor come from the supplied request; a leaf does not replace them with a
+chosen singleton or a graph sample. No law, predicate claim or proof is wire data.
+
+An application request takes the actual admitted morphism and actual argument
+as the two ordered product components, and preserves the carrier endpoints of
+the selected groups or modules. Its arrow descriptor contains the same ordered
+parameters as the application declaration. Infinite function data may be owned
+callables. Neither admission nor application changes which connection owns
+the original function. Implementations may use the published application input
+address or another compatible admitted form such as `cat.sets`; no additional
+group- or module-specific wire constructor is introduced.
+
 ## Constrained points
 
 An independently checked point built with a constrained structure retains five ordered
@@ -564,6 +679,29 @@ units_inclusion = node("objectField", "obj.sets.units", "inclusion", [M])
 An infinite map can be a registered map, composite, mediator, or owned callable.
 A finite sample is not a total graph. The source, target, parameter objects and
 actual action remain in every selected descriptor.
+
+The optional `PowerObjectEntry.directImage` is a different complete interface:
+for `f : X → Y` it gives the whole map `𝒫(X) → 𝒫(Y)`. The published set instance
+has the ordinary morphism address `mor.sets.direct_image`, with ordered
+parameters `[X,Y,f]`:
+
+```python
+PX = node("obj.sets.power_set", X)
+PY = node("obj.sets.power_set", Y)
+direct_image_arrow = node("mor.sets.direct_image", X, Y, f)
+direct_image_request = apply(
+    "mor.sets.direct_image", [X, Y, f], direct_image_arrow,
+    original_domain, PX, PY, actual_subset_family)
+```
+
+The supplied subset family has the original domain and target `𝒫(X)`; the reply
+retains that domain and target `𝒫(Y)`. Whole-map invocation instead uses `PX` as
+the domain and `identity(PX,PX)` as the argument. This is an ordinary named
+morphism and ordinary `apply` request. It does not add a `powerObjectMap` field
+spelling. The earlier `powerObjectMap(...,"image",[X,Y,f])` is the global subset
+containing the image of all of `X`; replacing a supplied subset family with that
+global subset would change the request. No finiteness or injectivity of `f` is
+required by the public direct-image declaration.
 
 Every binder uses the same seven-field `apply` envelope:
 

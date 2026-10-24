@@ -418,6 +418,18 @@ assumed singleton. The arrow may include registered actions, compositions or sel
 comparison maps; none is replaced by an endpoint rename. This invokes the declared map
 on the supplied computational point, without first obtaining its graph on an infinite carrier.
 
+The same envelope requests an entire callable `f : X → Y` by taking the original
+generalized domain to be `X` and the argument to be
+`{"ctor":"identity","args":[<complete X>,<complete X>]}`. The source is the same
+complete `X`, the target is the complete `Y`, and the actual arrow field remains `f`.
+This is the ordinary composition `id_X ≫ f`, with all of `X` retained; it is not a
+request to evaluate at a representative point. The reply supplies complete `X → Y`
+callable data: a total finite graph at its actual domain, a complete supported
+symbolic callable, or an owned opaque callable. A scalar cannot replace a
+callable on a non-singleton domain.
+The operation ID and full parameters remain those of the declared callable;
+identity is the argument descriptor, not a new operation or registration address.
+
 A published `BinderEntry.operation` is addressed by its existing binder id. A published
 `ObjectEntry.application` is addressed by `<object id>#application`. These are concrete
 addresses of existing callable metadata, not new semantic rows. An application address is
