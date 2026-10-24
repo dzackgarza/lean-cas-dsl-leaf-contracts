@@ -37,7 +37,7 @@ malformed examples are published in `api/wire-examples.md`.
 The kernel's codec (`CasCatalogue.Codec`) fixes one structural encoding, derived from each form's
 inductive type; a leaf reads and writes exactly this, and nothing else:
 
-* an input object is a named object of the catalogue at its parameters,
+* a named input object of the catalogue is sent at its parameters,
   `{"ctor": <object id>, "args": [<parameters>]}`; a parameter that is itself a named object is
   encoded the same way;
 * a natural number or an integer is a JSON number; a list is a JSON array; a `Multiset` or a
@@ -103,9 +103,14 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
   ring and natural exponent as its ordered parameters. `operationExpression` additionally
   supplies operands and therefore describes an element expression instead of this arrow;
 * a map a registered object row declares as a field, its admission `inclusion` `D ↪ B`
-  (`Mˣ ↪ M`) or its `constants` `R → R[[t]]`, is
+  (`Mˣ ↪ M`), its `constants` `R → R[[t]]`, or either direction of its accepted
+  `functorPresentation`, is
   `{"ctor":"objectField","args":[<object id>,<field>,[<explicit parameters>]]}`; its endpoints are
-  the ones the field's declaration gives at those parameters;
+  the ones the field's declaration gives at those parameters. The field `presentation`
+  selects `functorPresentation.identification.hom`; `inversePresentation` selects its `inv`.
+  The identification is instantiated at the object's complete ordered declaration parameters,
+  retaining the registered functor, selected argument and structural route. The two directions
+  expose that actual comparison, not an identity inferred from equal carriers or endpoints;
 * the mediator `⟨f, g⟩ : X → A × B` of two maps out of a domain other than `1` is
   `{"ctor":"mediator","args":[<f>,<g>]}`, each map in its morphism encoding; a mediator of two
   closed points may retain those two complete point arrows in the same mediator descriptor.
@@ -129,9 +134,11 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
   (first, then second); both arrows are checked at their shared endpoint. Accepted presentation
   changes retain their actual comparison arrows in this composition, never an endpoint rename;
 * a diagram, the input of a registered limit or colimit, is registered on the form of its
-  category (`"input": "cat.sets"`) and sent as Mathlib's standard constructor of its shape with
-  its explicit arguments, `{"ctor": "pair", "args": [X, Y]}` or
-  `{"ctor": "cospan", "args": [f, g]}`, objects and arrows in their own encodings.
+  category (`"input": "cat.sets"`) and sent using its registered diagram constructor with
+  the complete ordered explicit arguments. For the corresponding declared constructors these
+  are `{"ctor": "pair", "args": [X, Y]}` or `{"ctor": "cospan", "args": [f, g]}`,
+  objects and arrows in their own encodings. The registered declaration supplies the
+  constructor; a shape label does not select a hardcoded Mathlib construction.
   A retained parallel-arrow diagram is `{"ctor":"parallelPair","args":[f,g]}`.
   Its cone or cocone has one defining arrow, so the reply is respectively
   `{"ctor":"cone","args":[<apex>,<inclusion>]}` or
@@ -381,11 +388,13 @@ no structure from a carrier, and cannot replace the operation's source with anot
 
 A registered comparison's point application is requested under that comparison id, with
 `{"ctor":"presentationApply","args":[<ordered parameters>,<inverse boolean>,
-<exact source descriptor>,<exact target descriptor>,<input point data>]}`. The reply is an
-`element` envelope at the exact target. The kernel checks its public framing against the
-independently selected target and retains its actual computational data for subsequent
-operations. This structural check does not establish the mathematical correctness of the
-returned value; independent acceptance compares the observed computation with its meaning.
+<exact source descriptor>,<exact target descriptor>,<input point data>]}`. The reply uses the
+ordinary `valueData` or `opaqueData` alternatives at the exact target. Inline data have the
+declared computational result interface; opaque data retain their owning live connection.
+The kernel checks the public framing against the independently selected target and retains
+the actual computational data for subsequent operations. This structural check does not
+establish the mathematical correctness of the returned value; independent acceptance compares
+the observed computation with its meaning.
 
 Every released morphism or callable operation may instead use the common point-invocation
 envelope under its original registered operation id:
@@ -421,6 +430,20 @@ Computations consume the original point data under the selected target's interfa
 they do not substitute the canonical admitted formal value or certify backend membership.
 Opaque data keep their original owning connection through the wrapper.
 
+A point of an independently fixed constrained structure may retain its original data as
+`{"ctor":"constrainedPoint","args":[<actual constructor name>,
+<original generalized domain>,<original data-field type descriptor>,
+<complete selected target object>,<actual original point data>]}`.
+The kernel requires a fixed closed nonrecursive structure with one constructor and no
+indices, exactly one data field, and only proposition-valued remaining fields. It checks
+the actual constructor, the original data-field type, the complete selected target and
+the original generalized domain against the retained checked semantic term. The actual
+formal proof stays in that term; no proof, predicate claim or certificate is sent on the wire.
+The request passes through the original point data with every nested opaque value's actual
+owner. It does not substitute a canonical formal representative, reconstruct the backend
+data as a proof-bearing value, or establish that a computational answer satisfies a predicate.
+This is input framing for an existing checked construction, not a new admission or operation.
+
 The reply is `{"ctor":"valueData","args":[<declared computational result data>]}` or
 `{"ctor":"opaqueData","args":[<nonempty connection-local token>]}`. Its mathematical
 result and interface remain the independently fixed target at the same generalized domain.
@@ -449,7 +472,9 @@ JSON array. An observation such as the published equality characteristic map has
 `X = Y`, but this framing does not identify or replace either component's data.
 The existing complete callable form may admit that request without a separately
 registered named product object. Product or equality laws are not certified by
-the descriptor or the returned data.
+the descriptor or the returned data. A complete symbolic product descriptor may also be
+used as a returned cone or cocone apex under its declared object-data interface; that
+apex needs no separate named-object registration.
 
 A computational observation of a truth value (the published target `obj.sets.truth_values`)
 uses `valueData` containing a JSON boolean. This is an implementation's answer, not a term
@@ -575,10 +600,12 @@ no implicit specialization order.
 
 An answer is a value of the operation's declared result form in this encoding. The answer of a
 limit is its cone, `{"ctor": "cone", "args": [<apex>, <leg>, ...]}`, and of a colimit its cocone,
-`{"ctor": "cocone", "args": [<apex>, <leg>, ...]}`: the apex a value of a registered form of the
-category (a named object at its parameters), each leg a morphism. The kernel decodes every answer
-against its declared computational data form, retaining every required field and exact map
-endpoint, or rejects it as malformed. It does not build a formal cone from the returned data:
+`{"ctor": "cocone", "args": [<apex>, <leg>, ...]}`: the apex is complete object data in the
+declared category, and each leg is a morphism. The apex may be unnamed, including a complete
+symbolic product when its declared interface supports that form; it need not be a named
+object row. The kernel decodes every answer against its declared computational data form,
+retaining every required field and exact map endpoint, or rejects it as malformed.
+It does not build a formal cone from the returned data:
 formal commutation and universal-property proofs remain with the independent construction.
 Correctness of the returned legs is judged by acceptance.
 
@@ -609,6 +636,30 @@ does not change the formal construction, requested diagram or mathematical quest
 open Lean
 
 namespace CasCatalogue.Backend
+
+/-- A declared map field of a registered object, with its complete ordered parameters.
+Presentation fields select the accepted `ObjectEntry.functorPresentation` identification
+in the indicated direction. Framing does not establish the field or its endpoint types. -/
+structure ObjectField where
+  object : String
+  field : String
+  parameters : Array Json
+
+def ObjectField.encode (map : ObjectField) : Json :=
+  Json.mkObj [("ctor", toJson "objectField"), ("args", Json.arr #[
+    toJson map.object, toJson map.field, Json.arr map.parameters])]
+
+def ObjectField.decode (json : Json) : Except String ObjectField := do
+  unless (← json.getObjValAs? String "ctor") == "objectField" do
+    throw "an object field requires the objectField envelope"
+  let #[object, field, parameters] ← (← json.getObjVal? "args").getArr?
+    | throw "an object field requires its object id, field and ordered parameters"
+  let object ← object.getStr?
+  if object.isEmpty then throw "an object field has no registered object id"
+  let field ← field.getStr?
+  unless #["inclusion", "constants", "presentation", "inversePresentation"].contains field do
+    throw "an object field requires a published map field selector"
+  return { object, field, parameters := ← parameters.getArr? }
 
 /-- One endpoint of an independently retained complete arrow. This is object data;
 the descriptor supplies neither a formal arrow nor an enumeration of its endpoint. -/
@@ -891,6 +942,32 @@ def AdmittedPoint.decode (json : Json) : Except String AdmittedPoint := do
   if object.isEmpty then throw "an admitted point has no published object id"
   let parameters ← parameters.getArr?
   return { object, parameters, domain, source, target, argument }
+
+/-- Original data retained under an independently checked single-data-field constrained
+structure. The formal caller checks the closed nonrecursive one-constructor, no-index
+schema, its data-field type and all proof fields; no proof is a field of this record. -/
+structure ConstrainedPoint where
+  constructor : String
+  domain : Json
+  /-- Complete public descriptor of the original data-field type. -/
+  source : Json
+  target : Json
+  argument : Json
+
+def ConstrainedPoint.encode (point : ConstrainedPoint) : Json :=
+  Json.mkObj [("ctor", toJson "constrainedPoint"), ("args", Json.arr #[
+    toJson point.constructor, point.domain, point.source, point.target, point.argument])]
+
+/-- Check public framing only. The kernel retains the original computational data and
+their owners, while the actual formal proof remains in the checked semantic term. -/
+def ConstrainedPoint.decode (json : Json) : Except String ConstrainedPoint := do
+  unless (← json.getObjValAs? String "ctor") == "constrainedPoint" do
+    throw "a constrained point requires the constrainedPoint envelope"
+  let #[constructor, domain, source, target, argument] ← (← json.getObjVal? "args").getArr?
+    | throw "a constrained point requires all five ordered fields"
+  let constructor ← constructor.getStr?
+  if constructor.isEmpty then throw "a constrained point has no actual constructor name"
+  return { constructor, domain, source, target, argument }
 
 /-- A released arrow applied to an already selected generalized point. All descriptors come
 from the formal request; none is inferred from the reply or from a backend class. -/

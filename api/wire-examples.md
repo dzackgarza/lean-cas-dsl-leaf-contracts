@@ -34,8 +34,8 @@ request id, unknown status, invalid frame, missing component or incompatible
 endpoint is `malformed`. A well-framed wrong computation remains a correctness
 failure. An unhandled kernel exception is internal; it cannot judge the question invalid.
 
-Python helpers `point_invocation`, `presentation_invocation`, `admitted_point`,
-`operation_expression`, `construction_invocation`, `category_parameter`,
+Python helpers `object_field`, `point_invocation`, `presentation_invocation`, `admitted_point`,
+`constrained_point`, `operation_expression`, `construction_invocation`, `category_parameter`,
 `functor_parameter`, `core_object`, `core_iso`, `typed_map` and `object_product` parse public envelopes. `value_data`, `opaque_data`
 and `map_data` construct them. They establish framing, not mathematical laws.
 
@@ -102,6 +102,29 @@ available at the same time. Overlap is ambiguous, without priority or fallback;
 an unapplied comparison-arrow descriptor does not by itself add a complete-request
 candidate. The Python helper `presentation_invocation` returns all five ordered
 fields and rejects a missing field, an extra field or a nonboolean direction.
+
+## Registered object fields
+
+A map published by an object row uses `objectField(object_id, field, parameters)`.
+The selectors `inclusion` and `constants` retain their declared maps. An accepted
+`ObjectEntry.functorPresentation` also exposes both directions of its identification:
+
+```python
+forward = node("objectField", object_id, "presentation", declaration_parameters)
+backward = node("objectField", object_id, "inversePresentation", declaration_parameters)
+```
+
+`presentation` selects the registered identification's `hom`, from the selected
+functor image along its declared route to the named object. `inversePresentation`
+selects its `inv` in the reverse direction. Every explicit object declaration
+parameter is retained in order. The kernel instantiates the actual registered
+functor, argument, route and identification; a shared carrier or matching endpoint
+does not supply a comparison. The selected object must publish the requested field.
+
+These are arrow descriptors and may occur in `map`, `compose`, `point`, or a
+declared callable's complete `apply` request. They introduce no new operation or
+registration address. `object_field` and `Backend.ObjectField` check the three-field
+framing only; the formal caller checks the registered field and exact endpoint types.
 
 ## Natural cell components
 
@@ -316,6 +339,38 @@ division_request = apply(
 The admission wrapper is supplied by the independently interpreted question.
 A leaf consumes its original data and selected interface. It does not supply
 membership evidence or turn a raw denominator into an admitted unit.
+
+## Constrained points
+
+An independently checked point built with a constrained structure retains five ordered
+data fields:
+
+```python
+wrapped_point = node(
+    "constrainedPoint", actual_constructor_name, original_domain,
+    original_data_field_type, complete_selected_target, original_point_data)
+```
+
+The first field is the actual constructor's declaration name, not an object id or a
+private backend tag. The second is the original generalized domain, which is not
+assumed to be a singleton. The third is the complete public descriptor of the original
+data-field type; the fourth is the complete selected target object. The fifth is the
+original point's actual computational data, including any nested opaque tokens on
+their original owning connections. Every field comes from the retained formal input
+and its computational data; a leaf does not select a new constructor or target.
+
+The kernel requires a fixed closed nonrecursive structure with exactly one constructor,
+no indices, exactly one data field and only `Prop` fields otherwise. It checks that
+schema and the actual constructor, domain and full endpoint types. The actual proof
+remains in the checked semantic term. There is no proof field on the wire, and a reply
+cannot establish the constraint or replace that proof.
+
+`constrained_point` and `Backend.ConstrainedPoint` check the five-field framing and
+nonempty constructor name only. They preserve the original data without reconstructing
+a proof-bearing value or substituting a formal representative. A later declared
+operation consumes these original data at the independently selected interface, with
+the same ownership. The wrapper introduces no new admission or operation; ordinary
+`valueData` and `opaqueData` reply alternatives are unchanged.
 
 ## Vectors, matrices, polynomials and differentials
 

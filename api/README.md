@@ -44,6 +44,13 @@ object parameters when a map argument is destructured. A power object's `point`
 publishes the chosen point of the terminal source of `truth`. Global points use
 that declaration; a leaf copies the request's domain descriptor without assuming
 that the terminal source has a particular numeral or representation.
+An object's accepted `functorPresentation` retains its selected functor, argument,
+route and identification. The `objectField` selectors `presentation` and
+`inversePresentation` expose that identification's `hom` and `inv`, respectively,
+at the complete ordered object declaration parameters. These arrow descriptors
+add no operation or registration address; the declared identification owns their
+endpoints. [Object-field wire forms](wire-examples.md#registered-object-fields)
+give the framing and its Python/Lean helpers.
 `categories`, `objects` and `functors` retain registered IDs and public declaration
 signatures. `constructions` also records each direct construction's surface name,
 registered target, full dependent declaration, complete-request input, object-action
@@ -84,6 +91,14 @@ subobjects and quotients),
 dictionaries, complete core comparison data, and `typedMap` replies. The signature fixes the selected
 formal types; the protocol fixes their computational encoding. A well-framed wrong
 answer remains possible.
+
+The [constrained-point envelope](wire-examples.md#constrained-points) retains the actual
+constructor name, original generalized domain, original data-field type, complete selected
+target and original point data, in that order. It is limited to an independently checked
+fixed closed nonrecursive one-constructor structure with no indices, exactly one data field
+and only proposition-valued remaining fields. The actual formal proof remains in the
+checked semantic term; it is never a wire field. Original computational data and opaque
+ownership pass through unchanged.
 
 The snapshot records the actual mathematical, protocol and kernel Git revisions
 and the existing exporter/admission source digests for reproducibility. Exporting

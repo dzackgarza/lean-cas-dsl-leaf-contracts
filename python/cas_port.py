@@ -8,6 +8,27 @@ import json
 import sys
 
 
+def object_field(args):
+    """Read (object id, map field, ordered declaration parameters).
+
+    presentation and inversePresentation select the accepted functorPresentation
+    identification's hom and inv. The formal caller fixes the field and complete
+    endpoints; this helper establishes framing only, not an identity or map law.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "objectField":
+        raise ValueError("an object field requires the objectField envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 3:
+        raise ValueError("an object field requires its object id, field and ordered parameters")
+    if not isinstance(fields[0], str) or not fields[0]:
+        raise ValueError("an object field has no registered object id")
+    if fields[1] not in ("inclusion", "constants", "presentation", "inversePresentation"):
+        raise ValueError("an object field requires a published map field selector")
+    if not isinstance(fields[2], list):
+        raise ValueError("object field parameters must be ordered data")
+    return tuple(fields)
+
+
 def point_invocation(args, operation=None):
     """Read common invocation framing; endpoint meaning belongs to the formal caller.
 
@@ -271,10 +292,11 @@ def map_data(source, target, callable_data):
 
 
 def object_product(args):
-    """Read ordered endpoint descriptors for a caller-fixed public binary product.
+    """Read both complete object descriptors of a public binary product, in order.
 
-    This is concrete framing for the declared Prod source, not a semantic registry
-    entry or a claim that its computational data satisfy product laws.
+    The product may be a callable's declared Prod source or a complete symbolic
+    object such as a cone apex. It needs no separate named-object row. This helper
+    checks framing only; it does not establish product laws or formal meaning.
     """
     if not isinstance(args, dict) or args.get("ctor") != "objectProduct":
         raise ValueError("a product endpoint requires its declared envelope")
@@ -299,6 +321,24 @@ def admitted_point(args):
         raise ValueError("an admitted point has no published object id")
     if not isinstance(fields[1], list):
         raise ValueError("admission parameters must be ordered data")
+    return tuple(fields)
+
+
+def constrained_point(args):
+    """Read (constructor, original domain, data-field type, selected target, data).
+
+    The formal caller checks the fixed closed nonrecursive one-constructor,
+    no-index structure: exactly one data field and only Prop fields otherwise.
+    Its actual proof stays in the checked semantic term. Parsing preserves the
+    original data; it supplies no proof and does not change any opaque owner.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "constrainedPoint":
+        raise ValueError("a constrained point requires the constrainedPoint envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 5:
+        raise ValueError("a constrained point requires all five ordered fields")
+    if not isinstance(fields[0], str) or not fields[0]:
+        raise ValueError("a constrained point has no actual constructor name")
     return tuple(fields)
 
 
