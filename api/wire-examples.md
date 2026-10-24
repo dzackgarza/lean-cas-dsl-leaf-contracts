@@ -129,6 +129,79 @@ category ID is invented for it. Element-operation IDs have their ordinary
 compatible object/category input forms, as specified below, and do not acquire
 an own-address input form merely by using whole-domain invocation.
 
+## Terminal-point operation requests
+
+A nullary algebraic operation still has a categorical source: its declared
+terminal object. Its common invocation retains the actual map from the original
+global-point domain to that source. Zero algebraic operands do not remove the
+seventh field of `apply` or replace that map with an empty list:
+
+```python
+terminal_request = apply(
+    operation, declaration_parameters, node(operation, *declaration_parameters),
+    original_domain, operation_source, target, accepted_source_comparison)
+```
+
+`operation_source`, `target` and `accepted_source_comparison` are supplied by the
+caller from the selected declaration and its checked source comparison. The
+comparison runs from `original_domain` to `operation_source`. When the caller
+supplies an identity, its framing is
+`identity(original_domain,original_domain)` with exactly those descriptors.
+A leaf must not substitute a chosen singleton, the number zero, another terminal
+representation or a new comparison. The dispatched operation remains its ordinary
+ID, such as `op.monoids.one`, with all of its selected declaration parameters.
+
+The result uses the existing `valueData` or owned `opaqueData` interface for the
+point at `target`. The ordinary scalar convention applies when this is the
+registered global-point domain. A request at a different generalized domain
+still retains that domain's full callable interface. It is not collapsed to
+one scalar by the nullary nature of the algebraic operation.
+
+A retained symbolic nullary point may also occur inside a complete expression
+using the existing five-field descriptor:
+
+```python
+terminal_point = node(
+    "operationPoint", operation, declaration_parameters, accepted_source_comparison,
+    original_domain, selected_object)
+```
+
+Here `selected_object` is the complete selected structure that fixes the point's
+carrier. The original source comparison, domain and ordered parameters remain
+attached. This is point data, not a new operation address. Its operation row must
+be nullary. The alternative
+`operationExpression(operation,declaration_parameters,[])` is an algebraic
+expression with no operands, and is meaningful only within its complete selected
+element interface; it is not an empty common-invocation argument.
+
+## Complete expression inputs and returned-data reuse
+
+The argument of an invocation can be the entire released expression, including
+its `element`, `operationExpression`, `point`, `operationPoint`, `pointView`,
+`admittedPoint`, composition or mediator envelopes. A request need not have
+evaluated every nested expression in a separate earlier port call. The handler
+consumes the actual supplied expression at its declared selected parameters and
+endpoints. An arrow descriptor contains parameters only; an
+`operationExpression` additionally contains its actual operands. Neither is
+retyped as the other to fit an engine API.
+
+After a computation, subsequent inputs instead retain its **actual returned
+data**, including every required structured field and every nested opaque token.
+A descriptor of the mathematical operation is not permission to recompute its
+formal representative and substitute that for the returned data. Complete
+expressions may mix ordinary symbolic inputs with retained computational
+operands; each opaque dependency keeps its original live owner. A callable or
+point wrapped in a larger expression, endpoint, admission or result does not
+become portable merely because the outer envelope is ordinary JSON.
+
+The same rules govern successive point applications, whole-map applications,
+terminal operations and operations on structured results. Only admitted
+registrations on the existing owning connection can consume its tokens; a
+missing registration reports `noImplementation`, and a lost connection reports
+`unavailable` rather than reviving them on a new process. Portable inline data remain
+reusable by compatible admitted implementations. No returned data or packet
+changes the independently fixed mathematical question.
+
 ## Family reindexing and cartesian arrows
 
 The `categoryFamilies` metadata publishes each accepted family's actual realization,

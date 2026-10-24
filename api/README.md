@@ -18,6 +18,12 @@ argument. The same public envelopes cover admitted `GroupMorphisms` and
 `ModuleMorphisms`, selected monoid operations, and a power object's optional
 whole direct-image map. These additions introduce declaration rows and metadata;
 they do not introduce a private map-evaluation operation or a new wire constructor.
+The [terminal-point invocation section](wire-examples.md#terminal-point-operation-requests)
+keeps the nullary operation's actual categorical source argument, and the
+[complete-input section](wire-examples.md#complete-expression-inputs-and-returned-data-reuse)
+specifies symbolic expression inputs and reuse of actual computational answers.
+All nested opaque dependencies retain their live session; a formal description
+does not replace returned data or turn it into a portable value.
 
 [Backend and registration manifests](manifest.md) specifies the complete `leaves.json`
 schema, backend command arguments, process environment and input matching rules.
