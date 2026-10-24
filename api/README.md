@@ -123,9 +123,20 @@ run an implementation or acceptance suite.
 The companion [tools/export_admission_addresses.lean](../tools/export_admission_addresses.lean)
 is a read-only adapter run in the kernel environment, not a contract dependency. It
 asks the actual public `form?` and `operation?` lookups for all registered IDs and
-all structurally derived application, lift, construction and image addresses. Its output records
-which addresses exist and their full registered category IDs. It does not run
+all directly derived application, lift, construction, cartesian-map and image addresses.
+Its output records which addresses exist, each form's complete `categoryExpression`, and
+its registered `category` ID when one exists. A derived category without its own named row
+has `category: null`; it retains the full expression rather than inventing a named category.
+Constructor-induced component addresses form an unbounded family over finite constructor
+paths, so they are specified by the public
+[component-address grammar](wire-examples.md#constructor-induced-components) and the exported
+`cells` and `cellConstructors`, rather than enumerated in the finite address arrays.
+The adapter does not run
 implementations, rank capabilities, choose routes or certify answers.
+Before publishing the snapshot, the Python exporter checks every concrete port
+published for lifts, constructions, cells and cartesian maps against those actual
+admission inventories. A missing operation, missing input form or lost category
+context rejects the export and preserves the previous snapshot.
 
 Regenerate the single reference with `just export-api /absolute/path/to/lean-cas-dsl`
 when that checkout's manifest and default package directories identify the built

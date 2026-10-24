@@ -33,6 +33,10 @@ must name the dispatched operation. An engine failure is `unavailable`. A wrong
 request id, unknown status, invalid frame, missing component or incompatible
 endpoint is `malformed`. A well-framed wrong computation remains a correctness
 failure. An unhandled kernel exception is internal; it cannot judge the question invalid.
+A closed connection before a complete reply, an interrupted length or payload, and
+a broken request pipe are `unavailable`. Complete invalid headers, invalid UTF-8/JSON,
+wrong request identities and invalid reply fields are `malformed` even if the program
+then exits. Neither outcome changes the mathematical question or restarts an opaque owner.
 
 Python helpers `object_field`, `point_invocation`, `presentation_invocation`, `admitted_point`,
 `constrained_point`, `operation_expression`, `construction_invocation`, `category_parameter`,
@@ -231,7 +235,9 @@ uses the original four-field component and original address.
 
 Every constructor must publish the required comparison action. Changing a constructor,
 its order, a full declaration parameter, receiver, or orientation changes the declared
-request. An inverse still requires the accepted invertible comparison. No graph or
+request. The current constructor comparison actions consume an accepted invertible
+comparison in both orientations; a noninvertible cell is available only at its ordinary
+unconstructed component address. No graph or
 identity representation is presumed. Nested opaque data retain their owning connection.
 `constructed_cell_component`, `component_address` and `Backend.ConstructedCellComponent`
 provide framing and canonical addresses; they supply no mathematical evidence.
@@ -730,7 +736,9 @@ variants and returns their exact retained fields; it supplies no mathematical
 identification or proof. `X` is the source Arrow's source; `K` is the base subobject's apex.
 `U(O)` retains the actual `O` and full selected action. Each step receives the
 previous step's actual object and inclusion. Completed `liftedSubobject` stores
-all four outputs of every step. `createdCone` stores its selected lift, exact
+all four outputs of every step. Each retained `liftStep` also has the same top-level
+`parameters` list as its four field requests, so evidence-family choices absent from
+the action parameters survive later result consumption. `createdCone` stores its selected lift, exact
 source diagram and complete computed target cone. No reply supplies a proof of
 monicity, inverse equations, commutation or universality.
 

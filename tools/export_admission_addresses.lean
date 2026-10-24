@@ -12,6 +12,7 @@ run_cmd do
   let mut candidates := state.registryEntries.toArray.map (·.stableId)
   candidates := candidates ++ state.objects.map (·.applicationAddress)
   candidates := candidates ++ state.cells.map (·.componentAddress)
+  candidates := candidates ++ state.functors.map (·.cartesianAddress)
   for row in state.constructions do
     candidates := candidates.push row.inputAddress
     candidates := candidates.push row.mapAddress
@@ -34,7 +35,8 @@ run_cmd do
     seen := seen.insert address
     if let some form := state.form? address then
       forms := forms.push (Json.mkObj [("input", toJson address),
-        ("category", toJson form.category.raw)])
+        ("category", toJson (form.namedCategory?.map (·.raw))),
+        ("categoryExpression", toJson ((state.formExpression? form).map reprStr))])
     if let some operation := state.operation? address then
       operations := operations.push (Json.mkObj [("operation", toJson operation.id)])
   let some output ← IO.getEnv "CAS_ADMISSION_ADDRESSES_OUTPUT"

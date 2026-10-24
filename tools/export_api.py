@@ -100,6 +100,39 @@ def executable(value: str) -> str:
     return str(Path(value).resolve(strict=True)) if os.sep in value else value
 
 
+def validate_addresses(document: dict) -> None:
+    """Every published concrete computation must have its actual admitted addresses.
+
+    Declaration metadata and the read-only admission export are independent inputs.
+    Formal lifts with no computation have no ports to check. Constructor-path
+    component families are described by their grammar, not a finite enumeration.
+    """
+    operations = {row["operation"] for row in document["operations"]}
+    forms = {row["input"] for row in document["inputForms"]}
+    ports = []
+    for row in document.get("lifts", []):
+        ports.extend(row["ports"])
+        if row.get("factor") is not None:
+            ports.append(row["factor"])
+    for row in document.get("constructions", []):
+        ports.extend({"operation": row[key], "input": row["input"]}
+                     for key in ("objectOperation", "mapOperation"))
+    ports.extend(document.get("cells", []))
+    ports.extend(row["cartesian"] for row in document.get("functors", [])
+                 if row.get("cartesian") is not None)
+    for port in ports:
+        for key, inventory in (("operation", operations), ("input", forms)):
+            if port[key] not in inventory:
+                raise RuntimeError(
+                    f"published {key} address is absent from admission export: {port[key]}"
+                )
+    for form in document["inputForms"]:
+        if not form.get("categoryExpression") or form.get("category") == "":
+            raise RuntimeError(
+                f"input form lost its complete category context: {form['input']}"
+            )
+
+
 def main(kernel: Path, *, mathematics: Path | None = None,
          packages: Path | None = None, lake: str = "lake", lean: str = "lean",
          additional_imports: tuple[str, ...] = (), output: Path | None = None) -> None:
@@ -170,6 +203,7 @@ def main(kernel: Path, *, mathematics: Path | None = None,
         if result["provenance"] != provenance:
             raise RuntimeError("declaration export did not preserve the selected provenance")
         result.update(json.loads((scratch / "addresses.json").read_text()))
+        validate_addresses(result)
         result["provenance"].update({
             "kernelRevision": sources[kernel],
             "admissionSourceSha256": source_digests[kernel / "CasCatalogue/Admission.lean"],

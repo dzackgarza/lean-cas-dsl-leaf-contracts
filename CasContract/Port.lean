@@ -31,6 +31,8 @@ and reports an unavailable computation. `status: "unsupported"` carries the exac
 malformed. The frame length contains only nonempty ASCII decimal digits. Request data such as
 zero, false and an empty array are preserved verbatim. Complete worked request/reply forms and
 malformed examples are published in `api/wire-examples.md`.
+Loss of the connection before a complete reply, including an interrupted frame or a broken
+request pipe, is unavailable. A complete invalid frame or reply remains malformed.
 
 ## The wire encoding of inputs and answers
 
@@ -330,9 +332,12 @@ The kernel encodes a completed prescribed lift for subsequent computations as
 `{"ctor":"liftedSubobject","args":[<original complete base subobject reply>,
 <complete original source Arrow>,[<prescribed lift ids in route order>],
 [<completed steps in route order>]]}`. Each step is
-`{"ctor":"liftStep","args":[<exact lift id>,<selected inner action descriptor>,
+`{"ctor":"liftStep","parameters":[<ordered selected evidence arguments>],
+"args":[<exact lift id>,<selected inner action descriptor>,
 <complete source Arrow for this step>,<actual base subobject for this step>,
 [<object output>,<typed inclusion output>,<typed forward output>,<typed backward output>]]}`.
+Each step retains the same evidence-family parameters as its four field requests;
+they are not inferred from the inner action or reconstructed from the returned object.
 Execution runs in reverse route order. Its next base is the subobject formed from the
 preceding step's actual object and inclusion outputs, with its actual source ambient;
 it never repeats the initial base packet for later steps. All four actual fields are
@@ -424,7 +429,8 @@ fields, a registration may use the exported complete-request address itself as i
 or a supported declared source-object form. An operation address is not automatically an input
 form: for example, `op.rings.pow` registers on a compatible published ring-object form or
 `cat.rings`, not on an invented input form `op.rings.pow`. The generated `inputForms` inventory
-is authoritative for which concrete registration addresses exist.
+lists these concrete registration addresses. Constructor-induced component addresses additionally
+follow the declared finite-path grammar below.
 
 An independently admitted point retains its original computational data as
 `{"ctor":"admittedPoint","args":[<published object id>,[<full ordered parameters>],
@@ -581,6 +587,7 @@ argument of the base cell's unconstructed port. The operation and input address 
 `component:` followed by compact JSON `[<cell id>,[<constructor ids>]]`. An empty path uses
 the existing `<cell id>#component` address and four-field `cellComponent` form. Parameters,
 orientation, seven-field point application and ordinary result/ownership rules are unchanged.
+The constructor comparison actions require an invertible registered cell in either orientation.
 Only registered comparison actions determine the derived source, target and actual map.
 
 An arrow of a registered presentation comparison is
@@ -1198,6 +1205,8 @@ def ComputationalValue.decode (json : Json) : Except String ComputationalValue :
 inductive PortError
   /-- The backend is not installed or cannot start. -/
   | unavailable (backend reason : String)
+  /-- The established connection ended before completing the requested exchange. -/
+  | disconnected (message : String)
   /-- The program broke the protocol. -/
   | protocol (message : String)
   /-- The backend reported an error for a request. -/
@@ -1209,12 +1218,13 @@ inductive PortError
 /-- The stratum of a port failure. A backend that cannot start or that reports an error is
 unavailable. An answer outside the protocol is malformed. -/
 def PortError.stratum : PortError → Stratum
-  | .unavailable .. | .backend .. => .unavailable
+  | .unavailable .. | .disconnected .. | .backend .. => .unavailable
   | .protocol _ => .malformed
   | .unsupported _ => .noImplementation
 
 def PortError.render : PortError → String
   | .unavailable b r => s!"{b} is unavailable: {r}"
+  | .disconnected message => s!"backend connection lost: {message}"
   | .protocol m => s!"protocol error: {m}"
   | .backend k m => s!"backend error ({k}): {m}"
   | .unsupported operation => s!"the backend has no implementation of {operation}"
@@ -1249,16 +1259,19 @@ partial def readExact (h : IO.FS.Handle) (n : Nat) (acc : ByteArray) :
 def readFrame (h : IO.FS.Handle) : IO (Except PortError Json) := do
   try
     let line ← h.getLine
+    if line.isEmpty then return .error (.disconnected "EOF before a reply frame")
+    unless line.endsWith "\n" do
+      return .error (.disconnected "EOF inside the reply frame length")
     let header := line.dropEnd 1 |>.toString
-    unless line.endsWith "\n" && !header.isEmpty && header.toList.all Char.isDigit do
+    unless !header.isEmpty && header.toList.all Char.isDigit do
       return .error (.protocol s!"bad frame length {repr line}")
     let some n := header.toNat?
       | return .error (.protocol s!"bad frame length {repr line}")
     let some bytes ← readExact h n .empty
-      | return .error (.protocol s!"EOF mid-frame (wanted {n} bytes)")
+      | return .error (.disconnected s!"EOF mid-frame (wanted {n} bytes)")
     let some payload := String.fromUTF8? bytes | return .error (.protocol "frame is not UTF-8")
     return (Json.parse payload).mapError fun e => .protocol s!"bad JSON frame: {e}"
-  catch e => return .error (.protocol s!"cannot read from the program: {e}")
+  catch e => return .error (.disconnected s!"cannot read from the program: {e}")
 
 def field (j : Json) (k : String) : Except PortError Json :=
   (j.getObjVal? k).mapError fun _ => .protocol s!"field '{k}' missing in {j.compress}"
@@ -1318,7 +1331,7 @@ operation's result form or rejects. -/
 def call (c : Conn) (op : String) (args : Json) : IO (Except PortError Json) := do
   let id ← c.nextId.modifyGet fun n => (n, n + 1)
   try writeFrame c.child.stdin (Json.mkObj [("request_id", toJson id), ("op", op), ("args", args)])
-  catch e => return .error (.protocol s!"cannot send {op}: {e}")
+  catch e => return .error (.disconnected s!"cannot send {op}: {e}")
   let reply? ← readFrame c.child.stdout
   return do
     let reply ← reply?

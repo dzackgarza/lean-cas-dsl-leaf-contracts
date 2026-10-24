@@ -110,7 +110,11 @@ object-application fields have the complete-request forms explicitly listed in
 form: a registration for `cmp.f9.translation` on input `cmp.f9.translation` receives
 that comparison's `presentationApply` packet. It does not implement an arbitrary
 other comparison. Admitted endpoint-form registrations remain peers of this own
-request form. Always choose both addresses from their respective inventories.
+request form. Choose both addresses from their respective inventories or the public
+constructor-induced component address family. The latter uses the canonical
+`component_address(cell_id, constructors)` encoding of an invertible exported cell
+and a finite path of exported constructors with comparison actions. It cannot be
+exhaustively listed in the finite JSON arrays.
 
 A directly applied construction exports object operation `<construction id>` and
 map point operation `<construction id>#map`; both use the complete request input
