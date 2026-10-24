@@ -113,6 +113,20 @@ uses the selected, already built source combination without updating or fetching
 `main`. These provenance fields do not change dependency policy or certify a
 release. An older snapshot is never relabelled as a new export.
 
+The provenance revisions identify the **producer source**: the clean committed
+checkouts actually used when the exporters ran. The later commit containing the
+generated snapshot is its **publication revision**. In particular,
+`protocolRevision` cannot name that later commit, because committing the snapshot
+changes the commit identity. Do not rewrite it to claim a self-referential export.
+
+To publish a reproducible reference, commit and build the selected source tuple,
+run the exporter, then commit its unchanged output. Consumers may lock the
+snapshot's publication revision. A subsequent dependency-lock or generated-file
+commit does not retrospectively change the producer tuple; use the recorded
+revisions and source digests to reproduce the export, and the published release
+revisions to reproduce the final integration build. Additive mathematical
+extension snapshots use the same procedure and a separate output path.
+
 The reusable exporter is [tools/export_declared_ports.lean](../tools/export_declared_ports.lean).
 It imports only `LeanCategories.Catalogue`, reads the public registry and public
 declaration types/docstrings, and writes the path in `CAS_DECLARED_PORTS_OUTPUT`

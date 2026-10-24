@@ -602,6 +602,30 @@ This complete infinite-product representation needs no carrier enumeration or
 new named-object row. A finite symbolic apex supplies `finiteData(apex,keys)`
 when a graph requires its actual inventory.
 
+Here `objectProduct` is the **returned apex field**, not merely a source-type
+annotation on a callable. Its two factors must each have the complete public
+object interface of the selected category. A factor can reuse an actual object
+already supplied in the request, including its retained action and native data.
+Each `typedMap` above uses the exact returned `apex` as its source and the actual
+corresponding request factor as its target. The reply includes both projections;
+returning just `objectProduct(X,Y)` does not implement the product operation.
+
+The complete result remains available as
+`constructionApex(limitId,diagram,completeCone)` and each actual projection as
+`constructionLeg(limitId,diagram,completeCone,index)`. The diagram and complete
+cone remain attached when an apex or projection is reused. An operation on the
+apex consumes its actual returned object representation; a composition with a
+projection consumes that stored map. An implementation registers the subsequent
+declared operation on an admitted input form or the selected category. It does
+not invent `apply` under the creating limit id. The projection example below
+shows how a later operation receives the retained map in its argument.
+
+A portable apex may have projections that are owned by a live connection.
+Projecting that apex does not make its portable object data session-specific;
+the complete result still retains the connection required by those projections.
+If an apex factor or its object data itself contains an opaque token, its later
+uses retain that same owner. No projection discards the complete parent result.
+
 An accepted declared arrow can also fix a complete endpoint that has no named
 object row. The endpoint keeps the actual callable and an explicit selector:
 
