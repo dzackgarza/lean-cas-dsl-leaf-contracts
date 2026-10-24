@@ -96,7 +96,19 @@ run_cmd do
     let mut categories : Array Json := #[]
     for row in state.categories do
       categories := categories.push (Json.mkObj [("id", toJson row.id.raw),
-        ("signature", ← describe row.declaration)])
+        ("expression", toJson (reprStr row.expression)),
+        ("signature", ← describe row.declaration), ("realization", ← describe row.realization)])
+    let mut categoryFamilies : Array Json := #[]
+    for row in state.categoryFamilies do
+      let parameters := row.schema.parameterMetadata.map fun parameter =>
+        Json.mkObj [("name", toJson parameter.name), ("kind", toJson parameter.kind.raw),
+          ("identifiers", toJson (parameter.ids.map (·.raw))),
+          ("dependency", toJson parameter.dependency)]
+      categoryFamilies := categoryFamilies.push (Json.mkObj [("id", toJson row.id.raw),
+        ("schema", toJson (reprStr row.schema)), ("parameters", Json.arr parameters),
+        ("realization", ← describe row.realization), ("transport", ← describe row.transport),
+        ("transportSemantics", toJson (reprStr row.transportSemantics)),
+        ("wire", toJson "api/wire-examples.md#family-reindexing-and-cartesian-arrows")])
     let mut objects : Array Json := #[]
     for row in state.objects do
       let presentation ← match row.functorPresentation with
@@ -128,8 +140,18 @@ run_cmd do
         ("functorPresentation", presentation)])
     let mut functors : Array Json := #[]
     for row in state.functors do
+      let cartesian ← match row.expression.registrationKind with
+        | .familyReindex family =>
+          pure (Json.mkObj [("family", toJson family.raw),
+            ("operation", toJson s!"{row.id.raw}#cartesian"),
+            ("input", toJson s!"{row.id.raw}#cartesian"),
+            ("action", ← describe ``CategoryTheory.Pseudofunctor.CoGrothendieck.cartesianLift),
+            ("wire", toJson "api/wire-examples.md#family-reindexing-and-cartesian-arrows")])
+        | _ => pure Json.null
       functors := functors.push (Json.mkObj [("id", toJson row.id.raw),
-        ("signature", ← describe row.declaration)])
+        ("source", toJson (reprStr row.source)), ("target", toJson (reprStr row.target)),
+        ("expression", toJson (reprStr row.expression)),
+        ("signature", ← describe row.declaration), ("cartesian", cartesian)])
     let mut cells : Array Json := #[]
     for row in state.cells do
       let info ← getConstInfo row.declaration
@@ -256,7 +278,8 @@ run_cmd do
       ("datatypes", Json.arr datatypes), ("typeAliases", Json.arr typeAliases), ("lifts", Json.arr lifts), ("objects", Json.arr objects),
       ("functors", Json.arr functors), ("constructions", Json.arr constructions),
       ("cells", Json.arr cells), ("cellConstructors", Json.arr cellConstructors),
-      ("categoryConstructors", Json.arr categoryConstructors)]
+      ("categoryConstructors", Json.arr categoryConstructors),
+      ("categoryFamilies", Json.arr categoryFamilies)]
   let output := (← IO.getEnv "CAS_DECLARED_PORTS_OUTPUT").getD "declared-ports.json"
   let required (name : String) : IO String := do
     let some value ← IO.getEnv name | throw (IO.userError s!"missing provenance: {name}")

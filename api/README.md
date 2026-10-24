@@ -52,7 +52,14 @@ add no operation or registration address; the declared identification owns their
 endpoints. [Object-field wire forms](wire-examples.md#registered-object-fields)
 give the framing and its Python/Lean helpers.
 `categories`, `objects` and `functors` retain registered IDs and public declaration
-signatures. `constructions` also records each direct construction's surface name,
+signatures. Categories also retain their complete category expressions and realizations.
+`categoryFamilies` publishes each ordered dependent parameter schema, actual realization,
+transport declaration and transport semantics. A registered reindexing functor's `cartesian`
+metadata names its derived complete callable address and the canonical cartesian-lift action;
+the signature retains the actual base morphism. The
+[family-action wire section](wire-examples.md#family-reindexing-and-cartesian-arrows) gives
+the three-field cartesian-map descriptor and its ordinary application/result framing.
+`constructions` also records each direct construction's surface name,
 registered target, full dependent declaration, complete-request input, object-action
 operation and map-point operation. `objectActionType` and `mapActionType` are the
 closed types of that exact functor's object and morphism projections, abstracted over

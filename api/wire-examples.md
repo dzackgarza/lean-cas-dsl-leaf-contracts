@@ -36,7 +36,7 @@ failure. An unhandled kernel exception is internal; it cannot judge the question
 
 Python helpers `object_field`, `point_invocation`, `presentation_invocation`, `admitted_point`,
 `constrained_point`, `operation_expression`, `construction_invocation`, `category_parameter`,
-`constructed_category`,
+`constructed_category`, `cartesian_map`, `construction_field`, `structured_projection_action`,
 `functor_parameter`, `core_object`, `core_iso`, `typed_map` and `object_product` parse public envelopes. `value_data`, `opaque_data`
 and `map_data` construct them. They establish framing, not mathematical laws.
 
@@ -70,6 +70,44 @@ Qcomm = node("obj.commutative_rings.rationals")
 The kernel selects the global-point source from the registry. A leaf copies the
 request's actual generalized domain; it must not manufacture `Fin(1)` for every
 request. A nonconstant generalized point retains its actual domain.
+
+## Family reindexing and cartesian arrows
+
+The `categoryFamilies` metadata publishes each accepted family's actual realization,
+transport, transport semantics and ordered dependent parameter schema. A reindexing functor
+publishes its full declaration signature and source and target fibre expressions. Its object
+action uses the existing functor-action descriptor; its whole-morphism action uses the existing
+`map` descriptor with that complete selected functor action. Neither action drops the base
+morphism or reconstructs it from two parameter names.
+
+For a registered reindexing action `F` along `φ : p → q` and an original receiver `X` in
+the fibre at `q`, the cartesian arrow in the total category is described by:
+
+```python
+arrow = node("cartesianMap", reindex_functor_id, declaration_parameters, original_receiver)
+```
+
+`declaration_parameters` contains every explicit argument of that registered functor
+declaration in order, including the actual base map and all of its selected parameters.
+`original_receiver` is the complete original object, with any computational ownership retained.
+The mathematical caller fixes the arrow by the accepted family transport and Mathlib's
+`CoGrothendieck.cartesianLift`: its source is the total object over `p` with fibre value
+`φ*X`, and its target is the original total object over `q` with value `X`. No equality of
+underlying carriers supplies those selections.
+
+Only accepted `familyReindex` functor entries derive the callable operation and input address
+`<reindex_functor_id>#cartesian`. The exported functor's `cartesian` record gives that address,
+the family identifier and the canonical action signature. Applying this arrow uses the ordinary
+seven-field `apply` request at that address, with the same descriptor as its arrow field and
+the exact source, target and generalized domain supplied by the caller. Replies use the ordinary
+`valueData`, `opaqueData` or declared map/result interface; this adds no proof or backend-defined
+category. Missing or extra descriptor fields, a mismatched reindex action, omitted declaration
+parameters or changed selected endpoints are malformed.
+
+`Backend.CartesianMap` and Python `cartesian_map` check the three-field framing. The kernel
+validates it against the retained formal application, rather than treating the descriptor as
+an authority to choose a family, transport or cartesian lift. The receiver's owner and all owners
+carried by the declaration parameters remain available to subsequent computations.
 
 ## Registered presentation comparisons
 
@@ -625,15 +663,42 @@ or serve as a comparison of a quotient's target.
 
 `mediator(f,g)` is the two-map mediator at a shared nontrivial domain; two closed
 points carry `[leftPoint,rightPoint]`. `arrowHom` selects a complete Arrow's
-stored map. `subobjectApex`, `subobjectInclusion` and `constructionLeg` retain
+stored map. `subobjectApex`, `subobjectInclusion`, `constructionField` and `constructionLeg` retain
 their complete returned receivers. `limitLeg` is only a formal reference; it
 cannot replace a returned leg or establish that a computation ran.
+
+To transport a complete comparison through a foundational projection, use
+`structuredProjectionAction(constructedCategory, field)` as the action of an existing
+`map(action, comparison)` descriptor. `constructedCategory` retains the accepted constructor
+and all ordered typed arguments. `field` is exactly `source`, `target` or `inclusion`;
+surface `obj()` is encoded as `source`. The actual accepted Arrow or full-subcategory
+semantics fixes the projection functor and its type; a constructor identifier alone cannot
+authorize it. Source and target act on the corresponding components of an arrow comparison;
+inclusion retains the underlying arrow comparison. Both directions of a presented result
+remain available, with all their owners. The descriptor is not an operation address and
+supplies no naturality or inverse proof. `Backend.StructuredProjectionAction` and Python
+`structured_projection_action` check its two-field framing and declared field spellings;
+the kernel independently checks the complete selected action.
 
 For example, `compose(pointArrow, constructionLeg(...))` retains a point followed
 by an actual computed projection. A subsequent declared operation or equality
 observation receives that full expression as its argument, with the original
 declared operation's address as `op`. The leaf can evaluate the projection while
 interpreting that argument, using the stored callable and its owning session.
+An arbitrary ordered data-port projection has the framing
+`constructionField(limitId, sourceDiagram, completePacket, k)`. Here `k` is a
+natural-number index into the accepted `dataConstructor`'s non-Prop ports in
+declaration order, including its object ports. A data-port index differs from a
+diagram-object index: one independent defining map can determine several cone
+legs. `constructionField` retains the complete returned cone, cocone or
+`createdCone` packet and the original source diagram, so projection preserves
+creation and presentation context. Its fixed formal field and expected type
+come from the accepted constructor; a missing port or incompatible field is
+malformed. `Backend.ConstructionField` and `construction_field` parse these four
+fields without proving a comparison or universal law. This descriptor adds no
+operation or registration address and can be consumed through the existing
+object, map and complete-result interfaces at its declared field type.
+
 `constructionLeg` itself is not an operation address; the limit id that produced
 the cone does not authorize a standalone arbitrary-map `apply` request. This
 protocol publishes no generic Hom-set application address. A separately declared

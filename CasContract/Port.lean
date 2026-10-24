@@ -526,6 +526,17 @@ defining-map data is retained, without requiring a proof that the backend's cone
 A different apex's leg cannot be replaced by the canonical leg or identified by cardinality. This is the existing registered
 universal construction's defining-map projection, not a new mathematical operation.
 
+A projection of an ordered data port uses
+`{"ctor":"constructionField","args":[<registered limit id>,<complete source diagram>,
+<complete returned cone, cocone or createdCone packet>,<natural-number data-port index>]}`.
+The index counts the registered `dataConstructor`'s non-Prop ports in declaration order,
+including object ports. It is not a diagram-object index and is not interchangeable with
+`constructionLeg`'s typed leg index. The full fixed source diagram and returned packet remain
+present through creation lifts and subsequent computations. The formal caller determines the
+exact field and its complete expected type; the packet cannot choose another field or prove a law.
+This is a data projection, with no new operation or registration address. The helpers
+`Backend.ConstructionField` and `construction_field` validate its four-field framing only.
+
 `constructionLeg` is arrow data, not an operation address. In subsequent computations it
 may occur inside `compose`, `point`, `map`, a mediator, or a complete argument supplied to
 an already declared operation (including equality). That invocation keeps the consuming
@@ -813,6 +824,51 @@ def LiftFactorInput.decode (json : Json) (operation : String) : Except String Li
     baseMap := (← TypedMap.decode baseMap)
     cone := (← TypedMap.decode cone) }
 
+/-- A cartesian arrow fixed by an accepted registered family-reindex action.
+All selected declaration parameters, including the actual base map, remain ordered.
+The descriptor supplies no cartesianness proof or choice of transport. -/
+structure CartesianMap where
+  reindex : String
+  parameters : Array Json
+  receiver : Json
+
+def CartesianMap.encode (map : CartesianMap) : Json :=
+  Json.mkObj [("ctor", toJson "cartesianMap"), ("args", Json.arr #[
+    toJson map.reindex, Json.arr map.parameters, map.receiver])]
+
+def CartesianMap.decode (json : Json) : Except String CartesianMap := do
+  unless (← json.getObjValAs? String "ctor") == "cartesianMap" do
+    throw "a cartesian arrow requires the cartesianMap envelope"
+  let #[reindex, parameters, receiver] ← (← json.getObjVal? "args").getArr?
+    | throw "a cartesian arrow requires its reindex action, ordered parameters and receiver"
+  let reindex ← reindex.getStr?
+  if reindex.isEmpty then throw "a cartesian arrow has no registered reindex action"
+  return { reindex, parameters := ← parameters.getArr?, receiver }
+
+def CartesianMap.address (map : CartesianMap) : String := map.reindex ++ "#cartesian"
+
+/-- A data-port projection of a complete registered universal construction.
+The index counts the accepted data constructor's non-Prop fields in declaration order;
+it is not a diagram-object or cone-leg index. The full packet retains creation provenance. -/
+structure ConstructionField where
+  limit : String
+  diagram : Json
+  construction : Json
+  index : Nat
+
+def ConstructionField.encode (field : ConstructionField) : Json :=
+  Json.mkObj [("ctor", toJson "constructionField"), ("args", Json.arr #[
+    toJson field.limit, field.diagram, field.construction, toJson field.index])]
+
+def ConstructionField.decode (json : Json) : Except String ConstructionField := do
+  unless (← json.getObjValAs? String "ctor") == "constructionField" do
+    throw "a construction data field requires the constructionField envelope"
+  let #[limit, diagram, construction, index] ← (← json.getObjVal? "args").getArr?
+    | throw "a construction data field requires its limit, diagram, complete packet and port index"
+  let limit ← limit.getStr?
+  if limit.isEmpty then throw "a construction data field has no registered limit id"
+  return { limit, diagram, construction, index := ← index.getNat? }
+
 /-- A selected category dictionary, identified by its registered declaration and every
 ordered explicit parameter. The semantic caller checks the complete category structure;
 this descriptor never selects a category from equality of object carriers. -/
@@ -852,6 +908,28 @@ def ConstructedCategory.decode (json : Json) : Except String ConstructedCategory
   let constructor ← constructor.getStr?
   if constructor.isEmpty then throw "a constructed category has no registered constructor id"
   return { constructor, arguments := ← arguments.getArr? }
+
+/-- A foundational projection action at a complete accepted constructed category.
+The caller checks the actual constructor semantics and projection type. This is
+action data for `map`, not a new registered operation or a projection theorem. -/
+structure StructuredProjectionAction where
+  category : Json
+  field : String
+
+def StructuredProjectionAction.encode (action : StructuredProjectionAction) : Json :=
+  Json.mkObj [("ctor", toJson "structuredProjectionAction"), ("args", Json.arr #[
+    action.category, toJson action.field])]
+
+def StructuredProjectionAction.decode (json : Json) : Except String StructuredProjectionAction := do
+  unless (← json.getObjValAs? String "ctor") == "structuredProjectionAction" do
+    throw "a structured projection action requires the structuredProjectionAction envelope"
+  let #[category, field] ← (← json.getObjVal? "args").getArr?
+    | throw "a structured projection action requires its complete category and field"
+  discard <| ConstructedCategory.decode category
+  let field ← field.getStr?
+  unless #["source", "target", "inclusion"].contains field do
+    throw "a structured projection action requires source, target or inclusion"
+  return { category, field }
 
 /-- A selected registered functor with its complete ordered declaration parameters.
 Its full formal source and target, including their category dictionaries, are checked

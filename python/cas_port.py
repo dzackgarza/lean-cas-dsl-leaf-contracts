@@ -89,6 +89,24 @@ def category_parameter(args):
     return _selected_parameter(args, "category")
 
 
+def cartesian_map(args):
+    """Read the accepted reindex action, ordered parameters and original receiver.
+
+    The actual base map is retained among the complete declaration parameters.
+    This checks framing only, not cartesianness or the selected endpoint types.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "cartesianMap":
+        raise ValueError("a cartesian arrow requires the cartesianMap envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 3:
+        raise ValueError("a cartesian arrow requires its reindex action, parameters and receiver")
+    if not isinstance(fields[0], str) or not fields[0]:
+        raise ValueError("a cartesian arrow has no registered reindex action")
+    if not isinstance(fields[1], list):
+        raise ValueError("cartesian arrow parameters must be ordered data")
+    return tuple(fields)
+
+
 def constructed_category(args):
     """Read (registered constructor id, ordered complete argument descriptors).
 
@@ -98,6 +116,41 @@ def constructed_category(args):
     Parsing does not supply a category law or select a different formal category.
     """
     return _selected_parameter(args, "constructedCategory")
+
+
+def construction_field(args):
+    """Read a complete retained construction and its ordered non-proof data-port index.
+
+    This index is determined by the published dataConstructor, not by the diagram.
+    The formal caller validates the selected field and complete expected type.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "constructionField":
+        raise ValueError("a construction data field requires the constructionField envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 4:
+        raise ValueError("a construction data field requires its limit, diagram, packet and port index")
+    if not isinstance(fields[0], str) or not fields[0]:
+        raise ValueError("a construction data field has no registered limit id")
+    if type(fields[3]) is not int or fields[3] < 0:
+        raise ValueError("a construction data-port index must be a natural number")
+    return tuple(fields)
+
+
+def structured_projection_action(args):
+    """Read a complete constructed category and its foundational projection action.
+
+    Actual accepted constructor semantics and functor types are caller-validated.
+    This descriptor is action data inside map, not a registration address.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "structuredProjectionAction":
+        raise ValueError("a structured projection action requires the structuredProjectionAction envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 2:
+        raise ValueError("a structured projection action requires its complete category and field")
+    constructed_category(fields[0])
+    if fields[1] not in ("source", "target", "inclusion"):
+        raise ValueError("a structured projection action requires source, target or inclusion")
+    return tuple(fields)
 
 
 def functor_parameter(args):
