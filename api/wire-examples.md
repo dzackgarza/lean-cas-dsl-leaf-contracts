@@ -504,9 +504,10 @@ An operation row binds its surface name at its complete selected owner category.
 The name is the binding key; arity and numerical parameters belong to that one
 binding's signature. An explicit binding stops inherited lookup along that
 structural path. An incompatible arity does not authorize a different farther
-binding. Incomparable inherited bindings require the accepted complete
-comparison data; a leaf does not choose among them by carrier equality or engine
-class. These are mathematical selection rules applied before dispatch.
+binding. Surviving inherited bindings are compared as complete operation
+families by the formal caller, as specified below. A leaf does not choose among
+them by carrier equality or engine class. These are mathematical selection
+rules applied before dispatch.
 
 The resulting request still names the selected operation ID and its full
 parameters. The published `op.monoids.mul` and `op.monoids.one` take the selected
@@ -526,6 +527,93 @@ These arrow descriptors have no operand fields. Invoke them using common
 a supported selected monoid-object form or `cat.monoids`; neither operation ID
 is itself an invented input form. The generated inventories settle which
 concrete addresses exist in the selected release.
+
+#### Agreement of inherited operations
+
+The formal caller may establish that two surviving bindings agree by checking
+equality of their **entire universally abstracted operation families**. The
+comparison includes the complete source category and its chosen structure,
+every dependent source, route and declaration parameter, and a variable source
+object. These variables are fixed independently before the whole morphisms are
+compared. No particular object or operand has yet been substituted. Each
+morphism retains its actual operand domain and result interface. Unresolved
+variables, a selected numerical parameter, or agreement at sampled operands
+cannot stand for this universal context.
+
+When common endpoints require registered comparisons, their actual directed
+components are composed into the operation families before checking equality.
+The two original operation IDs, routes and these transports remain part of the
+interpretation. An equality of carriers does not supply that transport or
+identify independently selected algebraic structures.
+
+If the complete typed families are definitionally equal, Lean's checked
+reflexivity proof at that exact equality type is sufficient. No additional
+operation-agreement registry row is required. Otherwise an existing accepted
+comparison must establish the same whole-family equality with its actual
+transports; without it the surviving bindings remain ambiguous. Several
+possible transports remain distinct unless the accepted coherence or checked
+whole-family equality identifies their resulting operations. None is selected
+by owner name, declaration ID, route length or registry order.
+
+After this check, the formal caller instantiates the witness at the exact
+selected context. Precomposition through a structural functor retains that
+functor and every parameter. It does not drop a nonidentity presentation or
+replace a prescribed structural map. For example, the whole multiplication of
+a ring agrees with the whole multiplication of its selected multiplicative
+monoid; the monoid obtained through the ring's additive group instead carries
+the ring's addition. Merely sharing a carrier does not identify these operations.
+
+All of this agreement stays on the interpretation side. Requests still carry
+their ordinary declared operation, full parameters, actual arrows, endpoints
+and computational arguments. Replies supply only their declared result data.
+There is no agreement tag, proof field, certificate, alternative endpoint choice
+or leaf-supplied assertion. Agreement of mathematical operations also does not
+rank competing computational registrations or certify any returned answer.
+
+This is the public specification in
+[`operation-agreement.md` at the pinned mathematics revision](https://github.com/dzackgarza/lean-categories/blob/4acd7aff0350c5a84ce695e42eaadfd583ac343d/LeanCategories/Catalogue/Registry/operation-agreement.md).
+The complete rules needed to consume the wire interface are given above; a
+leaf does not need to implement the comparison procedure.
+
+#### Additive operations and their carrier comparison
+
+The selected additive monoid exposes its full binary addition through
+`op.additive_monoids.add`, with ordered declaration parameters `[M]` for the
+complete selected additive monoid `M`. Its source is the product of that
+monoid's carrier with itself and its target is the same selected carrier.
+Registration uses a compatible object form or `cat.additive_monoids`; the
+operation ID itself is not a new input form.
+
+`fun.additive_groups.additive_monoid` forgets the inverses of the actual selected
+additive group while retaining its addition and zero. It has no explicit
+declaration parameters. Its object-action request uses the existing functor
+request with `args: []` and the actual group as `receiver`. Its retained image
+and addition descriptor therefore have the ordinary forms:
+
+```python
+additive_monoid = node(
+    "functorAction", node("fun.additive_groups.additive_monoid"), selected_group)
+addition_arrow = node("op.additive_monoids.add", additive_monoid)
+```
+
+The invertible cell `cell.additive_groups.carrier` compares the two set-carrier
+routes of that same additive group: the existing route through groups and the
+route through its additive monoid. Both components act as the identity on its
+carrier; their exact selected endpoints and route data remain present. This
+set-level comparison does not identify addition with another multiplicative
+structure. The complete component data use:
+
+```python
+carrier_comparison = node(
+    "cellComponent", "cell.additive_groups.carrier", [], selected_group, False)
+```
+
+For common `apply`, the operation and complete-request input address are
+`cell.additive_groups.carrier#component`, and the ordered parameters are
+`[[],selected_group,inverse]`. `False` has the displayed forward direction;
+`True` selects its inverse. The original generalized domain, actual argument
+and exact comparison endpoints stay in the same seven-field invocation.
+Neither this cell nor the additive operation adds a wire constructor.
 
 #### Automorphism multiplication convention
 
