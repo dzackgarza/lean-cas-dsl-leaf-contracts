@@ -555,6 +555,17 @@ address. The public API exports the exact component type and both oriented route
 id, an equal carrier, or its role in resolution is not permission to replace its action by
 an identity. Wrong but well-framed point data remains a possible answer.
 
+A constructor-induced component retains its entire accepted constructor path as
+`{"ctor":"constructedCellComponent","args":[[<constructor ids>],<cellComponent>]}`.
+The nonempty constructor list is ordered outermost to innermost. In this enclosing form,
+the nested component's receiver is the complete constructed receiver; its type is the one
+obtained by the registered constructors' `comparisonAction` declarations. It is not an
+argument of the base cell's unconstructed port. The operation and input address are both
+`component:` followed by compact JSON `[<cell id>,[<constructor ids>]]`. An empty path uses
+the existing `<cell id>#component` address and four-field `cellComponent` form. Parameters,
+orientation, seven-field point application and ordinary result/ownership rules are unchanged.
+Only registered comparison actions determine the derived source, target and actual map.
+
 An arrow of a registered presentation comparison is
 `{"ctor":"presentation","args":[<comparison id>,[<ordered explicit parameters>],
 <inverse boolean>]}`. False selects its forward arrow; true selects its inverse.
@@ -858,6 +869,31 @@ def CellComponent.decode (json : Json) : Except String CellComponent := do
   let cell ← cell.getStr?
   if cell.isEmpty then throw "a natural component has no registered cell id"
   return { cell, parameters := ← parameters.getArr?, receiver, inverse := ← inverse.getBool? }
+
+/-- A component induced through a complete ordered path of registered constructors.
+The nested receiver has the derived constructed type, fixed by the formal caller. -/
+structure ConstructedCellComponent where
+  constructors : Array String
+  component : CellComponent
+
+def ConstructedCellComponent.address (value : ConstructedCellComponent) : String :=
+  if value.constructors.isEmpty then value.component.cell ++ "#component"
+  else "component:" ++ (Json.arr #[toJson value.component.cell, toJson value.constructors]).compress
+
+def ConstructedCellComponent.encode (value : ConstructedCellComponent) : Json :=
+  if value.constructors.isEmpty then value.component.encode
+  else Json.mkObj [("ctor", toJson "constructedCellComponent"),
+    ("args", Json.arr #[toJson value.constructors, value.component.encode])]
+
+def ConstructedCellComponent.decode (json : Json) : Except String ConstructedCellComponent := do
+  unless (← json.getObjValAs? String "ctor") == "constructedCellComponent" do
+    throw "an induced component requires the constructedCellComponent envelope"
+  let #[constructors, component] ← (← json.getObjVal? "args").getArr?
+    | throw "an induced component requires its constructor path and complete component"
+  let constructors ← (← constructors.getArr?).mapM Json.getStr?
+  if constructors.isEmpty || constructors.any String.isEmpty then
+    throw "an induced component requires a nonempty path of registered constructor ids"
+  return { constructors, component := ← CellComponent.decode component }
 
 /-- Complete source data of the actual `Core` object selected by a construction.
 The surrounding declared functor fixes the ambient category, independently of data. -/

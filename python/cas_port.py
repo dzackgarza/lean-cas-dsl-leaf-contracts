@@ -117,6 +117,40 @@ def cell_component(args):
     return tuple(fields)
 
 
+def component_address(cell_id, constructors=()):
+    """Canonical public address; registration and type validity belong to the kernel."""
+    if not isinstance(cell_id, str) or not cell_id:
+        raise ValueError("a component address requires a registered cell id")
+    if not isinstance(constructors, (list, tuple)) or any(
+        not isinstance(item, str) or not item for item in constructors
+    ):
+        raise ValueError("a component address requires an ordered constructor path")
+    if not constructors:
+        return cell_id + "#component"
+    return "component:" + json.dumps(
+        [cell_id, list(constructors)], ensure_ascii=False, separators=(",", ":")
+    )
+
+
+def constructed_cell_component(args):
+    """Read (outer-to-inner constructor ids, complete component fields).
+
+    The nested receiver has the derived constructed type. No constructor action,
+    naturality, invertibility, or endpoint identity is established by parsing.
+    """
+    if not isinstance(args, dict) or args.get("ctor") != "constructedCellComponent":
+        raise ValueError("an induced component requires the constructedCellComponent envelope")
+    fields = args.get("args")
+    if not isinstance(fields, list) or len(fields) != 2:
+        raise ValueError("an induced component requires its constructor path and component")
+    constructors, component = fields
+    if not isinstance(constructors, list) or not constructors:
+        raise ValueError("an induced component requires a nonempty constructor path")
+    base = cell_component(component)
+    component_address(base[0], constructors)
+    return constructors, base
+
+
 def core_object(args):
     """Read the complete underlying object of the caller's selected Core source."""
     if not isinstance(args, dict) or args.get("ctor") != "coreObject":

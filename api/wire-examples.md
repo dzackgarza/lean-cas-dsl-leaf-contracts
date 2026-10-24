@@ -156,6 +156,47 @@ selecting an inverse of a noninvertible cell, or changing either full selected e
 malformed. A well-framed result at those endpoints can still be mathematically wrong.
 The `cell_component` Python helper and `Backend.CellComponent` Lean helper check framing only.
 
+### Constructor-induced components
+
+Each constructor layer uses its published `functorialAction`, `comparisonAction`,
+`identityComparison`, and `compositionComparison`. The left and right endpoints are the
+composites of the individually mapped route edges. To obtain the induced comparison,
+first invert the left route-expansion comparison, then apply `comparisonAction`, then
+apply the right route-expansion comparison. Empty routes use `identityComparison`;
+successive edges use `compositionComparison`. Repeat inside-out through the retained
+constructor path. These are the accepted declarations exported under `cellConstructors`
+in `api/declared-ports.json`; identity or composition preservation is never assumed to
+hold by definitional equality.
+
+An accepted constructor's `comparisonAction` acts on the complete registered comparison.
+For a nonempty constructor path, retain that path in outermost-to-innermost order:
+
+```python
+constructors = [outer_constructor_id, inner_constructor_id]
+base = node("cellComponent", cell_id, declaration_parameters, constructed_receiver, False)
+component = node("constructedCellComponent", constructors, base)
+address = component_address(cell_id, constructors)
+request = {
+    "op": address,
+    "args": apply(address, [declaration_parameters, constructed_receiver, False],
+                  component, domain, constructed_source, constructed_target, point_data),
+}
+reply = value_data(result_point_data)
+```
+
+The operation and complete-input address are `component:` followed by compact JSON
+`[cell_id, constructors]`. The nested component uses the **constructed receiver**,
+whose complete type and both endpoints are fixed by those declared comparison actions.
+It is not sent to the unconstructed cell's `<cell id>#component` port. An empty path
+uses the original four-field component and original address.
+
+Every constructor must publish the required comparison action. Changing a constructor,
+its order, a full declaration parameter, receiver, or orientation changes the declared
+request. An inverse still requires the accepted invertible comparison. No graph or
+identity representation is presumed. Nested opaque data retain their owning connection.
+`constructed_cell_component`, `component_address` and `Backend.ConstructedCellComponent`
+provide framing and canonical addresses; they supply no mathematical evidence.
+
 ## Direct constructions
 
 A registered `ConstructionEntry` is applied at its full dependent parameters. It
