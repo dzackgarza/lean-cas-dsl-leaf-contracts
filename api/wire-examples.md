@@ -527,6 +527,25 @@ a supported selected monoid-object form or `cat.monoids`; neither operation ID
 is itself an invented input form. The generated inventories settle which
 concrete addresses exist in the selected release.
 
+#### Automorphism multiplication convention
+
+When the supplied selected monoid is the underlying monoid of `Aut(X)`, it
+retains the multiplication of that complete automorphism group. For two
+automorphisms `a` and `b`, their forward maps satisfy
+`forward(a * b) = forward(b) ≫ forward(a)`. Thus, on a selected set-valued
+action, `(a * b)(x) = a(b(x))`. Categorical composition `f ≫ g` applies `f`
+first and `g` second. The forward and backward projections of `a` are its
+actual `hom` and `inv`; the unit is the identity automorphism. This order is
+part of the declared mathematical interface and must be preserved when a
+native permutation or automorphism API uses a different composition convention.
+
+This convention is the existing general `forward_mul` statement in the public
+mathematical interface `CasCatalogue.Algebra.AutomorphismArrows`, published in
+`lean-categories` revision `4ea82e7cf6f5fd75234fd2ce18255a45ad851379`.
+It holds for the complete selected category and object. The request still uses
+the ordinary selected-monoid operation and common `apply` frame; no finite
+sample, permutation carrier, or additional automorphism operation is implied.
+
 ### Admitted group and module morphisms
 
 The published hom-set objects retain all selected structures:
