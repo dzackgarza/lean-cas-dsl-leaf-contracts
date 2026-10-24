@@ -8,6 +8,15 @@ set_option pp.fullNames true
 run_cmd do
   let result : Json ← liftTermElabM do
     let state ← semanticState
+    -- Explicit lift choices may use a non-structural functor. Reading its
+    -- declared source does not add it to automatic semantic resolution.
+    let rec sourceOf? : EdgeRef → Option CategoryExpr
+      | .functor id => (state.functor? id).map (·.source)
+      | .classifierForget id => (state.structuralEdge? (.classifierForget id)).map (·.source)
+      | .constructMap id inner => do
+          let constructor ← state.constructor? id
+          guard constructor.functorialAction.isSome
+          return .construct id #[.category (← sourceOf? inner)]
     let declarations ← IO.mkRef (#[] : Array Name)
     let describe (name : Name) : TermElabM Json := do
       declarations.modify (·.push name)
@@ -42,22 +51,43 @@ run_cmd do
       let computation ← match row.computation with
         | some name => describe name
         | none => pure Json.null
+      let factor ← if row.kind == .subobjects && row.computation.isSome then do
+          let info ← getConstInfo row.evidence
+          forallTelescope info.type fun params _ => do
+            let evidence := mkAppN (mkConst row.evidence (info.levelParams.map Level.param)) params
+            let canonical ← mkAppM ``MonoLift.factorComputation #[evidence]
+            let callable := mkProj ``MonoLiftFactorComputation 0 canonical
+            let type ← mkForallFVars params (← inferType callable)
+            if type.hasFVar || type.hasMVar || type.hasLevelMVar then
+              throwError "lift {row.id.raw} factor has an open public signature"
+            declarations.modify (· ++ type.getUsedConstants ++ canonical.getUsedConstants)
+            return Json.mkObj [("operation", toJson s!"{row.id.raw}#factor"),
+              ("input", toJson s!"{row.id.raw}#input"),
+              ("declaration", toJson "CasCatalogue.MonoLiftFactorComputation.factor"),
+              ("type", toJson (← ppExpr type).pretty),
+              ("documentation", toJson (← findDocString? (← getEnv)
+                ``MonoLiftFactorComputation)),
+              ("computation", ← describe ``MonoLift.factorComputation)]
+        else pure Json.null
       let sources := state.categories.filter fun category =>
-        (state.edgesFrom category.expression).any (·.ref == row.edge)
+        (sourceOf? row.edge).any (category.expression.syntacticEq ·)
       lifts := lifts.push (Json.mkObj [("id", toJson row.id.raw),
         ("edge", toJson row.edge.label),
         ("kind", toJson (reprStr row.kind)),
         ("sourceCategories", toJson (sources.map (·.id.raw))),
         ("input", toJson s!"{row.id.raw}#input"),
-        ("wire", toJson "CasContract/Port.lean:146"),
+        ("wire", toJson "api/wire-examples.md#complete-results-projections-and-lifts"),
+        ("selection", ← describe row.evidence),
         ("computation", computation),
-        ("ports", Json.arr ports)])
+        ("ports", Json.arr ports), ("factor", factor)])
     let mut entries : Array Json := #[]
     for row in state.entries do
       let names := row.declarations ++ match row with
         | .object object => object.generator.toArray ++ object.application.toArray ++
             object.constants.toArray ++ object.inclusion.toArray ++ object.admission.toArray ++
-            (object.refines.toArray.map (·.identification))
+            (object.refines.toArray.map (·.identification)) ++
+            (object.functorPresentation.toArray.flatMap fun presentation =>
+              #[presentation.argument, presentation.identification])
         | _ => #[]
       let signatures ← names.mapM describe
       entries := entries.push (Json.mkObj [("id", toJson row.stableId),
@@ -66,15 +96,127 @@ run_cmd do
     let mut categories : Array Json := #[]
     for row in state.categories do
       categories := categories.push (Json.mkObj [("id", toJson row.id.raw),
-        ("signature", ← describe row.declaration)])
+        ("expression", toJson (reprStr row.expression)),
+        ("signature", ← describe row.declaration), ("realization", ← describe row.realization)])
+    let mut categoryFamilies : Array Json := #[]
+    for row in state.categoryFamilies do
+      let parameters := row.schema.parameterMetadata.map fun parameter =>
+        Json.mkObj [("name", toJson parameter.name), ("kind", toJson parameter.kind.raw),
+          ("identifiers", toJson (parameter.ids.map (·.raw))),
+          ("dependency", toJson parameter.dependency)]
+      categoryFamilies := categoryFamilies.push (Json.mkObj [("id", toJson row.id.raw),
+        ("schema", toJson (reprStr row.schema)), ("parameters", Json.arr parameters),
+        ("realization", ← describe row.realization), ("transport", ← describe row.transport),
+        ("transportSemantics", toJson (reprStr row.transportSemantics)),
+        ("wire", toJson "api/wire-examples.md#family-reindexing-and-cartesian-arrows")])
     let mut objects : Array Json := #[]
     for row in state.objects do
+      let presentation ← match row.functorPresentation with
+        | none => pure Json.null
+        | some presentation => do
+          let info ← getConstInfo presentation.identification
+          let fields ← forallTelescope info.type fun parameters _ => do
+            let comparison := mkAppN
+              (mkConst presentation.identification (info.levelParams.map Level.param)) parameters
+            let mut fields := #[]
+            for (field, projection) in #[("presentation", ``CategoryTheory.Iso.hom),
+                ("inversePresentation", ``CategoryTheory.Iso.inv)] do
+              let arrow ← mkAppM projection #[comparison]
+              let type ← mkForallFVars parameters (← inferType arrow)
+              if type.hasFVar || type.hasMVar || type.hasLevelMVar then
+                throwError "object {row.id.raw} field {field} has an open public signature"
+              declarations.modify (· ++ type.getUsedConstants)
+              fields := fields.push (Json.mkObj [("field", toJson field),
+                ("type", toJson (← ppExpr type).pretty)])
+            return fields
+          pure (Json.mkObj [("functor", toJson presentation.functor.raw),
+            ("route", toJson (presentation.route.map reprStr)),
+            ("argument", ← describe presentation.argument),
+            ("identification", ← describe presentation.identification),
+            ("fields", Json.arr fields),
+            ("wire", toJson "api/wire-examples.md#registered-object-fields")])
       objects := objects.push (Json.mkObj [("id", toJson row.id.raw),
-        ("category", toJson row.category.raw), ("signature", ← describe row.declaration)])
+        ("category", toJson row.category.raw), ("signature", ← describe row.declaration),
+        ("functorPresentation", presentation)])
     let mut functors : Array Json := #[]
     for row in state.functors do
+      let cartesian ← match row.expression.registrationKind with
+        | .familyReindex family =>
+          pure (Json.mkObj [("family", toJson family.raw),
+            ("operation", toJson s!"{row.id.raw}#cartesian"),
+            ("input", toJson s!"{row.id.raw}#cartesian"),
+            ("action", ← describe ``CategoryTheory.Pseudofunctor.CoGrothendieck.cartesianLift),
+            ("wire", toJson "api/wire-examples.md#family-reindexing-and-cartesian-arrows")])
+        | _ => pure Json.null
       functors := functors.push (Json.mkObj [("id", toJson row.id.raw),
-        ("signature", ← describe row.declaration)])
+        ("source", toJson (reprStr row.source)), ("target", toJson (reprStr row.target)),
+        ("expression", toJson (reprStr row.expression)),
+        ("signature", ← describe row.declaration), ("cartesian", cartesian)])
+    let mut cells : Array Json := #[]
+    for row in state.cells do
+      let info ← getConstInfo row.declaration
+      let componentType ← forallTelescope info.type fun parameters _ => do
+        let value := mkAppN (mkConst row.declaration (info.levelParams.map Level.param)) parameters
+        let natural ← if row.invertible then mkAppM ``CategoryTheory.Iso.hom #[value]
+          else pure value
+        let component ← mkAppM ``CategoryTheory.NatTrans.app #[natural]
+        let type ← mkForallFVars parameters (← inferType component)
+        if type.hasFVar || type.hasMVar || type.hasLevelMVar then
+          throwError "cell {row.id.raw} has an open public component signature"
+        declarations.modify (· ++ type.getUsedConstants)
+        return (← ppExpr type).pretty
+      cells := cells.push (Json.mkObj [("id", toJson row.id.raw),
+        ("source", toJson (reprStr row.source)), ("target", toJson (reprStr row.target)),
+        ("left", toJson (reprStr row.left)), ("right", toJson (reprStr row.right)),
+        ("invertible", toJson row.invertible), ("signature", ← describe row.declaration),
+        ("operation", toJson s!"{row.id.raw}#component"),
+        ("input", toJson s!"{row.id.raw}#component"),
+        ("componentType", toJson componentType),
+        ("wire", toJson "api/wire-examples.md#natural-cell-components")])
+    let mut constructions : Array Json := #[]
+    let mut cellConstructors : Array Json := #[]
+    let mut categoryConstructors : Array Json := #[]
+    for row in state.constructors do
+      categoryConstructors := categoryConstructors.push (Json.mkObj [
+        ("id", toJson row.id.raw),
+        ("signature", toJson (row.signature.map fun kind => match kind with
+          | .category => "category" | .object => "object" | .functor => "functor")),
+        ("semantics", ← describe row.semantics),
+        ("wire", toJson "api/wire-examples.md#direct-constructions")])
+      if let some action := row.comparisonAction then
+        cellConstructors := cellConstructors.push (Json.mkObj [
+          ("id", toJson row.id.raw), ("comparisonAction", ← describe action),
+          ("semantics", ← describe row.semantics),
+          ("functorialAction", ← match row.functorialAction with
+            | some declaration => describe declaration | none => pure Json.null),
+          ("identityComparison", ← match row.identityComparison with
+            | some declaration => describe declaration | none => pure Json.null),
+          ("compositionComparison", ← match row.compositionComparison with
+            | some declaration => describe declaration | none => pure Json.null),
+          ("wire", toJson "api/wire-examples.md#constructor-induced-components")])
+    for row in state.constructions do
+      let info ← getConstInfo row.declaration
+      let (objectActionType, mapActionType) ← forallTelescope info.type fun params _ => do
+        let value := mkAppN (mkConst row.declaration (info.levelParams.map Level.param)) params
+        let objectAction ← mkAppM ``Prefunctor.obj #[
+          ← mkAppM ``CategoryTheory.Functor.toPrefunctor #[value]]
+        let mapAction ← mkAppM ``CategoryTheory.Functor.map #[value]
+        let objectType ← mkForallFVars params (← inferType objectAction)
+        let mapType ← mkForallFVars params (← inferType mapAction)
+        if objectType.hasFVar || objectType.hasMVar || objectType.hasLevelMVar ||
+            mapType.hasFVar || mapType.hasMVar || mapType.hasLevelMVar then
+          throwError "construction {row.id.raw} has an open public action signature"
+        declarations.modify (· ++ objectType.getUsedConstants ++ mapType.getUsedConstants)
+        return ((← ppExpr objectType).pretty, (← ppExpr mapType).pretty)
+      constructions := constructions.push (Json.mkObj [("id", toJson row.id.raw),
+        ("name", toJson row.name), ("target", toJson (reprStr row.target)),
+        ("signature", ← describe row.declaration),
+        ("input", toJson s!"{row.id.raw}#input"),
+        ("objectOperation", toJson row.id.raw),
+        ("mapOperation", toJson s!"{row.id.raw}#map"),
+        ("objectActionType", toJson objectActionType),
+        ("mapActionType", toJson mapActionType),
+        ("wire", toJson "api/wire-examples.md#direct-constructions")])
     let mut datatypes : Array Json := #[]
     let mut typeAliases : Array Json := #[]
     let seeds ← declarations.get
@@ -134,7 +276,10 @@ run_cmd do
         ("constructors", Json.arr constructors)])
     return Json.mkObj [("entries", Json.arr entries), ("categories", Json.arr categories),
       ("datatypes", Json.arr datatypes), ("typeAliases", Json.arr typeAliases), ("lifts", Json.arr lifts), ("objects", Json.arr objects),
-      ("functors", Json.arr functors)]
+      ("functors", Json.arr functors), ("constructions", Json.arr constructions),
+      ("cells", Json.arr cells), ("cellConstructors", Json.arr cellConstructors),
+      ("categoryConstructors", Json.arr categoryConstructors),
+      ("categoryFamilies", Json.arr categoryFamilies)]
   let output := (← IO.getEnv "CAS_DECLARED_PORTS_OUTPUT").getD "declared-ports.json"
   let required (name : String) : IO String := do
     let some value ← IO.getEnv name | throw (IO.userError s!"missing provenance: {name}")
