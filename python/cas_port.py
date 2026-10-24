@@ -89,6 +89,17 @@ def category_parameter(args):
     return _selected_parameter(args, "category")
 
 
+def constructed_category(args):
+    """Read (registered constructor id, ordered complete argument descriptors).
+
+    The published constructor signature fixes each argument kind and its order.
+    Category arguments recursively use category/constructedCategory descriptors;
+    object and functor arguments keep their existing complete representations.
+    Parsing does not supply a category law or select a different formal category.
+    """
+    return _selected_parameter(args, "constructedCategory")
+
+
 def functor_parameter(args):
     """Read (registered functor id, ordered parameters) without choosing an action.
 

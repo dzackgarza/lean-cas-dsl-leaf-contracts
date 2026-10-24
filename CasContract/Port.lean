@@ -170,6 +170,12 @@ Every explicit data parameter remains in declaration order. A selected category 
 `{"ctor":"category","args":[<registered category id>,[<ordered parameters>]]}` and a
 selected functor parameter is
 `{"ctor":"functor","args":[<registered functor id>,[<ordered parameters>]]}`.
+An accepted category-constructor application, including one with no separate named
+category row, is `{"ctor":"constructedCategory","args":[<constructor id>,
+[<ordered constructor argument descriptors>]]}`. Its argument kinds and order are
+the published `ConstructorEntry.signature`; its complete category is the application
+of the published `semantics`. Category arguments recursively use `category` or
+`constructedCategory`; object and functor arguments use their existing complete forms.
 The kernel checks each full declared dictionary, including chosen category structures and
 functor source and target, before dispatch. Equal carriers do not identify those selections.
 
@@ -826,6 +832,26 @@ def CategoryParameter.decode (json : Json) : Except String CategoryParameter := 
   let category ← category.getStr?
   if category.isEmpty then throw "a selected category has no registered id"
   return { category, parameters := ← parameters.getArr? }
+
+/-- An actual application of a registered category constructor, retaining all arguments.
+The caller validates the accepted signature, semantics and complete selected category.
+This representation does not require an additional named row for the resulting category. -/
+structure ConstructedCategory where
+  constructor : String
+  arguments : Array Json
+
+def ConstructedCategory.encode (category : ConstructedCategory) : Json :=
+  Json.mkObj [("ctor", toJson "constructedCategory"), ("args", Json.arr #[
+    toJson category.constructor, Json.arr category.arguments])]
+
+def ConstructedCategory.decode (json : Json) : Except String ConstructedCategory := do
+  unless (← json.getObjValAs? String "ctor") == "constructedCategory" do
+    throw "a constructed category requires the constructedCategory envelope"
+  let #[constructor, arguments] ← (← json.getObjVal? "args").getArr?
+    | throw "a constructed category requires its registered constructor and ordered arguments"
+  let constructor ← constructor.getStr?
+  if constructor.isEmpty then throw "a constructed category has no registered constructor id"
+  return { constructor, arguments := ← arguments.getArr? }
 
 /-- A selected registered functor with its complete ordered declaration parameters.
 Its full formal source and target, including their category dictionaries, are checked

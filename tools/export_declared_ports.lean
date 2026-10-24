@@ -153,7 +153,14 @@ run_cmd do
         ("wire", toJson "api/wire-examples.md#natural-cell-components")])
     let mut constructions : Array Json := #[]
     let mut cellConstructors : Array Json := #[]
+    let mut categoryConstructors : Array Json := #[]
     for row in state.constructors do
+      categoryConstructors := categoryConstructors.push (Json.mkObj [
+        ("id", toJson row.id.raw),
+        ("signature", toJson (row.signature.map fun kind => match kind with
+          | .category => "category" | .object => "object" | .functor => "functor")),
+        ("semantics", ← describe row.semantics),
+        ("wire", toJson "api/wire-examples.md#direct-constructions")])
       if let some action := row.comparisonAction then
         cellConstructors := cellConstructors.push (Json.mkObj [
           ("id", toJson row.id.raw), ("comparisonAction", ← describe action),
@@ -248,7 +255,8 @@ run_cmd do
     return Json.mkObj [("entries", Json.arr entries), ("categories", Json.arr categories),
       ("datatypes", Json.arr datatypes), ("typeAliases", Json.arr typeAliases), ("lifts", Json.arr lifts), ("objects", Json.arr objects),
       ("functors", Json.arr functors), ("constructions", Json.arr constructions),
-      ("cells", Json.arr cells), ("cellConstructors", Json.arr cellConstructors)]
+      ("cells", Json.arr cells), ("cellConstructors", Json.arr cellConstructors),
+      ("categoryConstructors", Json.arr categoryConstructors)]
   let output := (← IO.getEnv "CAS_DECLARED_PORTS_OUTPUT").getD "declared-ports.json"
   let required (name : String) : IO String := do
     let some value ← IO.getEnv name | throw (IO.userError s!"missing provenance: {name}")

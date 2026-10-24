@@ -36,6 +36,7 @@ failure. An unhandled kernel exception is internal; it cannot judge the question
 
 Python helpers `object_field`, `point_invocation`, `presentation_invocation`, `admitted_point`,
 `constrained_point`, `operation_expression`, `construction_invocation`, `category_parameter`,
+`constructed_category`,
 `functor_parameter`, `core_object`, `core_iso`, `typed_map` and `object_product` parse public envelopes. `value_data`, `opaque_data`
 and `map_data` construct them. They establish framing, not mathematical laws.
 
@@ -233,6 +234,7 @@ Selected parameters always retain order and structure:
 | Declared parameter | Descriptor |
 | --- | --- |
 | Registered category dictionary | `node("category", category_id, ordered_parameters)` |
+| Accepted category-constructor application | `node("constructedCategory", constructor_id, ordered_argument_descriptors)` |
 | Registered functor dictionary | `node("functor", functor_id, ordered_parameters)` |
 | Registered object | `node(object_id, *ordered_parameters)` |
 | Object of the selected core source | `node("coreObject", underlying_object)` |
@@ -244,6 +246,17 @@ checks its complete typed dictionary. The same carrier with another category
 structure or another selected functor is different data. Empty parameter arrays
 are explicit; they do not authorize omitted required parameters. Nested selected
 parameters use the same grammar.
+
+A `constructedCategory` retains the full accepted constructor application even
+when its resulting category has no separately registered name. The exported
+`categoryConstructors` metadata gives every argument's kind in order and the actual
+`semantics` declaration with its dependent type. Category arguments use `category`
+or another `constructedCategory`; object and functor arguments use their existing
+complete descriptors. For example, the core of the already selected category is
+`node("constructedCategory", "ctor.core", [groups])`. A constructor id, argument
+count, argument kind, or complete dictionary that differs from the formal caller's
+selection is malformed. Shared carriers and identical printed names do not identify
+different category structures.
 
 For a source isomorphism, `source` and `target` in `coreIso` are the complete
 underlying objects. `forward` has type `source → target`, and `backward` has the
