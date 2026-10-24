@@ -491,6 +491,15 @@ finite domain the inventory is explicit:
 {"ctor":"finiteGraph","args":[[0,1],[[0,11],[1,-4]]]}
 ```
 
+An explicit inventory must agree with any independently fixed domain inventory;
+it cannot shorten a matrix row or omit an index. For a structured map whose
+source is a supplied computational object, that source must already carry its
+inventory, for example `finiteData(source,keys)`. Repeating `keys` in a
+`finiteGraph` checks agreement with that source; it does not replace its source
+descriptor. A source without a usable inventory requires an owned or symbolic
+callable. A function-valued record field with no independently fixed inventory
+can instead carry its inventory in the `finiteGraph` itself.
+
 The matrix application address and complete request are:
 
 ```python
