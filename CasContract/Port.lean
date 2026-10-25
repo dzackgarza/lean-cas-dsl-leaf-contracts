@@ -34,6 +34,51 @@ malformed examples are published in `api/wire-examples.md`.
 Loss of the connection before a complete reply, including an interrupted frame or a broken
 request pipe, is unavailable. A complete invalid frame or reply remains malformed.
 
+## Kernel-mediated computations requested by a leaf
+
+A handler may return a successful reply whose value is
+`{"ctor":"deferredData","args":[[<calls in dependency order>],<result template>]}`.
+Each call is exactly `{"op":<published operation address>,"input":<published input form>,
+"args":<that operation's existing complete request template>}`. A template can contain
+`{"ctor":"resultRef","args":[<zero-based earlier call index>]}` in a typed data slot.
+Call arguments may refer only to prior calls; the final template may refer to any call in
+that program. The kernel resolves each reference to the actual typed result and retained
+dependencies, checks its exact role, parameters and endpoints, and dispatches through the
+ordinary published interface. It derives the result interface from the registered declaration
+and selected request. Neither `op` nor `input` selects a backend or supplies result-type authority.
+
+These are computational control forms, interpreted only within a service reply. They are not
+mathematical constructors and do not reach a target consumer as recipes. A called implementation
+may itself return a deferred reply; the same shared service interprets it in its own reference
+scope before completing that node. A literal nested `deferredData` in a template is malformed.
+Only ordinary published data constructors and scoped `resultRef` occur in templates.
+
+The service permits published constructors and operations across the existing operation families,
+not merely replay of the current functor action. Every family retains its existing full request
+and result contract, including complete diagrams, callable endpoints, selected actions, evidence
+parameters and structured defining maps where required. The public guide lists these families.
+An object/category/data-constructor descriptor is an input or result form; it is not an executable
+operation address unless the published interface gives it one. A missing required generic
+declaration-to-request implementation remains kernel work; this grammar does not establish that
+such coverage is complete.
+
+Each node result retains its actual supplier and all nested computational dependencies. A final
+result from another backend is not restamped as owned by the leaf that returned the program.
+References preserve separate owners; resolving a template does not flatten or erase mixed opaque
+dependencies. The kernel must arrange an admitted computation or representation bridge before
+such dependencies can be consumed together. Portable data remain portable. New opaque literals
+supplied by the returning leaf retain that leaf's live session; no field in a program chooses an
+owner. A missing implementation or bridge is a computational gap, an unavailable owner remains
+unavailable, and malformed control/type/parameter/endpoint framing is rejected. A well-framed
+wrong result remains computational data; it neither changes the original formal question nor
+establishes equality to the requested object or correctness of its construction.
+
+A leaf may implement a published functor by requesting existing constructors of its target and
+retaining the corresponding maps and selected comparisons. The kernel owns their interpretation
+and composition. Native adaptations and optional imports of other implementations are permitted;
+they have no semantic standing and do not replace a missing generic kernel service. Source
+isolation is a diagnostic choice, not a restriction on leaf internals.
+
 ## The wire encoding of inputs and answers
 
 The kernel's codec (`CasCatalogue.Codec`) fixes one structural encoding, derived from each form's
@@ -1373,6 +1418,82 @@ def ComputationalValue.decode (json : Json) : Except String ComputationalValue :
       if token.isEmpty then throw "an opaque computational value has no token"
       return .opaque token
   | _ => throw "the reply has no declared computational value envelope"
+
+/-- Require exactly the fields of a computational control record. No ignored field
+may smuggle a backend selection, owner, result type or mathematical assertion. -/
+def checkServiceFields (names : Array String) (json : Json) : Except String Unit := do
+  let fields ← json.getObj?
+  unless fields.toList.length == names.size &&
+      fields.toList.all (fun field => names.contains field.1) do
+    throw "a computation control record has unexpected or missing fields"
+
+/-- Reference one actual node result in the surrounding deferred computation only. -/
+def resultRef (index : Nat) : Json :=
+  Json.mkObj [("ctor", toJson "resultRef"), ("args", Json.arr #[toJson index])]
+
+/-- Ordinary JSON is `none`; a malformed reserved reference is an error, not data. -/
+def resultRefIndex? (json : Json) : Except String (Option Nat) := do
+  if (json.getObjValAs? String "ctor").toOption != some "resultRef" then return none
+  checkServiceFields #["ctor", "args"] json
+  let #[index] ← (← json.getObjVal? "args").getArr?
+    | throw "a result reference requires exactly one node index"
+  return some (← index.getNat?)
+
+/-- Check reference scope throughout a request/result template. This function does
+not substitute JSON for typed results or decide any operation's result interface. -/
+partial def validateResultRefs (bound : Nat) (json : Json) : Except String Unit := do
+  if (json.getObjValAs? String "ctor").toOption == some "deferredData" then
+    throw "a deferred computation is a service reply, not a template data constructor"
+  if let some index ← resultRefIndex? json then
+    unless index < bound do throw "a result reference is self, forward or outside its program"
+    return
+  match json with
+  | .arr values => for value in values do validateResultRefs bound value
+  | .obj fields => for (_, value) in fields.toList do validateResultRefs bound value
+  | _ => pure ()
+
+/-- One call through an existing published computational interface. The kernel
+selects implementations and derives the result interface from the formal declaration. -/
+structure DeferredCall where
+  operation : String
+  input : String
+  arguments : Json
+
+def DeferredCall.encode (call : DeferredCall) : Json :=
+  Json.mkObj [("op", toJson call.operation), ("input", toJson call.input),
+    ("args", call.arguments)]
+
+def DeferredCall.decode (json : Json) : Except String DeferredCall := do
+  checkServiceFields #["op", "input", "args"] json
+  let operation ← json.getObjValAs? String "op"
+  let input ← json.getObjValAs? String "input"
+  if operation.isEmpty || input.isEmpty then
+    throw "a deferred call requires its published operation and input addresses"
+  return { operation, input, arguments := ← json.getObjVal? "args" }
+
+/-- An ordered computational dependency graph. The final template remains data for
+the original independently fixed result contract; it supplies no equality or proof. -/
+structure DeferredData where
+  calls : Array DeferredCall
+  result : Json
+
+def DeferredData.encode (program : DeferredData) : Json :=
+  Json.mkObj [("ctor", toJson "deferredData"), ("args", Json.arr #[
+    Json.arr (program.calls.map DeferredCall.encode), program.result])]
+
+/-- Check control framing and backward-only references. Exact declaration, role,
+parameter, endpoint and owner checks are performed after resolving actual node Wires. -/
+def DeferredData.decode (json : Json) : Except String DeferredData := do
+  checkServiceFields #["ctor", "args"] json
+  unless (← json.getObjValAs? String "ctor") == "deferredData" do
+    throw "a deferred computation requires the deferredData envelope"
+  let #[calls, result] ← (← json.getObjVal? "args").getArr?
+    | throw "a deferred computation requires its ordered calls and final result template"
+  let calls ← (← calls.getArr?).mapM DeferredCall.decode
+  for (call, index) in calls.zipIdx do
+    validateResultRefs index call.arguments
+  validateResultRefs calls.size result
+  return { calls, result }
 
 /-- Why a backend call failed. -/
 inductive PortError

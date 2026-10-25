@@ -87,6 +87,22 @@ Announcement capabilities do not add registrations. A program is started when
 an admitted registration first needs it, and its connection may own opaque data
 that later requests reuse.
 
+A handler can request further computations through a
+[deferred kernel-service reply](kernel-service.md). Its nodes name published
+operation and input addresses and retain their ordinary complete request data.
+They contain no backend selector, owner declaration, replacement result type or
+proof. The kernel resolves typed dependencies and selects implementations,
+including implementations in other leaf packages. The
+[deferred framing schema](deferred.schema.json) describes the control records;
+reference scope and selected formal interfaces require additional kernel checks.
+No service registration or mathematical row is created.
+
+Leaf implementations may share private code or import other implementations for
+convenience. Such dependencies are optional and carry no mathematical authority.
+A frozen independent consumer is an interoperability diagnostic, not a restriction
+on leaf internals. Native adaptations or shared code cannot stand in for a required
+generic kernel construction/operation service.
+
 One backend may implement many registrations. The `op` of each request is the
 exact admitted operation address, while `args` retains that operation's complete
 public input representation. The request does not contain the manifest's backend

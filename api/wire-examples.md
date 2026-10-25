@@ -45,6 +45,8 @@ Python helpers `object_field`, `point_invocation`, `presentation_invocation`, `a
 and `map_data` construct them. They establish framing, not mathematical laws.
 `action_address` and `action_identity` encode the canonical derived-action address;
 `action_invocation` and `action_map_invocation` frame its complete object/map requests.
+`deferred_call`, `result_ref` and `deferred_data` construct a computational service
+reply; `deferred_computation` checks its framing and reference scope.
 
 ## Notation used below
 
@@ -376,6 +378,17 @@ unconstructed component address. No graph or
 identity representation is presumed. Nested opaque data retain their owning connection.
 `constructed_cell_component`, `component_address` and `Backend.ConstructedCellComponent`
 provide framing and canonical addresses; they supply no mathematical evidence.
+
+## Kernel-mediated deferred computations
+
+A handler may return `deferredData([calls], result_template)` directly as its
+successful reply value. Each call invokes a published operation/input interface
+using its ordinary complete request; `resultRef(index)` retains an earlier actual
+typed result and its dependencies. These are computational control forms, not
+mathematical constructors or backend selectors. See the complete
+[kernel-service guide](kernel-service.md) for constructor and map examples, every
+public operation family, nested ownership, framing controls and implementation
+irrelevance, and the [framing schema](deferred.schema.json) for the JSON structure.
 
 ## Registered functor actions
 

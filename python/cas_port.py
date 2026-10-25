@@ -380,6 +380,99 @@ def value_data(data):
     return {"ctor": "valueData", "args": [data]}
 
 
+def _service_fields(value, names):
+    if not isinstance(value, dict) or set(value) != set(names):
+        raise ValueError("a computation control record has unexpected or missing fields")
+
+
+def result_ref(index):
+    """Reference an actual earlier node result in one deferred computation only."""
+    if type(index) is not int or index < 0:
+        raise ValueError("a result reference requires a natural node index")
+    return {"ctor": "resultRef", "args": [index]}
+
+
+def result_ref_index(value):
+    """Return None for ordinary JSON; reject malformed reserved reference syntax."""
+    if not isinstance(value, dict) or value.get("ctor") != "resultRef":
+        return None
+    _service_fields(value, ("ctor", "args"))
+    fields = value["args"]
+    if not isinstance(fields, list) or len(fields) != 1 or \
+            type(fields[0]) is not int or fields[0] < 0:
+        raise ValueError("a result reference requires exactly one natural node index")
+    return fields[0]
+
+
+def validate_result_refs(bound, value):
+    """Check nested reference scope without resolving data, types or live owners."""
+    if type(bound) is not int or bound < 0:
+        raise ValueError("a reference scope requires a natural bound")
+    if isinstance(value, dict) and value.get("ctor") == "deferredData":
+        raise ValueError("a deferred computation is a service reply, not a template data constructor")
+    index = result_ref_index(value)
+    if index is not None:
+        if index >= bound:
+            raise ValueError("a result reference is self, forward or outside its program")
+        return
+    if isinstance(value, list):
+        for item in value:
+            validate_result_refs(bound, item)
+    elif isinstance(value, dict):
+        for item in value.values():
+            validate_result_refs(bound, item)
+
+
+def _deferred_call(call):
+    _service_fields(call, ("op", "input", "args"))
+    if not isinstance(call["op"], str) or not call["op"] or \
+            not isinstance(call["input"], str) or not call["input"]:
+        raise ValueError("a deferred call requires its published operation and input addresses")
+    return call
+
+
+def deferred_call(operation, input_form, arguments):
+    """Describe a call to a published interface; never choose its implementation.
+
+    `arguments` keeps that operation's full ordinary request grammar. The kernel
+    checks admission and derives the result interface from the formal declaration.
+    """
+    return _deferred_call({"op": operation, "input": input_form, "args": arguments})
+
+
+def deferred_computation(packet):
+    """Parse an ordered service program and return its unchanged (calls, result).
+
+    Only framing and backward-reference scope are checked. The shared kernel
+    service resolves typed node results with their actual suppliers/dependencies,
+    validates every request role and executes admitted operations. This parser
+    supplies no mathematical statement, owner transfer or correctness evidence.
+    """
+    _service_fields(packet, ("ctor", "args"))
+    if packet["ctor"] != "deferredData":
+        raise ValueError("a deferred computation requires the deferredData envelope")
+    fields = packet["args"]
+    if not isinstance(fields, list) or len(fields) != 2 or not isinstance(fields[0], list):
+        raise ValueError("a deferred computation requires its ordered calls and final result template")
+    calls, result = fields
+    for index, call in enumerate(calls):
+        validate_result_refs(index, _deferred_call(call)["args"])
+    validate_result_refs(len(calls), result)
+    return calls, result
+
+
+def deferred_data(calls, result):
+    """Return a service program directly from a handler, without a valueData wrapper.
+
+    A node may invoke any published constructor/operation through its admitted
+    input interface. Backend selection, result typing and ownership remain in the
+    kernel. Optional private implementation imports have no semantic standing.
+    """
+    packet = {"ctor": "deferredData", "args": [calls, result]}
+    deferred_computation(packet)
+    return packet
+
+
 def lift_parameters(args):
     """Read all explicit data arguments of the selected evidence declaration.
 
@@ -621,7 +714,13 @@ def write_frame(obj):
 
 
 def serve(backend, backend_version, adapter_version, ops, protocol=1):
-    """Announce `ops` (keys: registered semantic operations) and answer requests until EOF."""
+    """Announce `ops` and answer requests until EOF.
+
+    A handler may return deferred_data(...) directly. It is sent as the ordinary
+    successful reply value, then interpreted by the shared kernel service before
+    computational result decoding. There is no backend callback or local recipe
+    interpreter in this server.
+    """
     write_frame({"op": "ready", "protocol": protocol, "backend": backend,
                  "backend_version": backend_version, "adapter_version": adapter_version,
                  "capabilities": sorted(ops)})
