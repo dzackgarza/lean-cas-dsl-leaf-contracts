@@ -43,6 +43,8 @@ Python helpers `object_field`, `point_invocation`, `presentation_invocation`, `a
 `constructed_category`, `cartesian_map`, `construction_field`, `structured_projection_action`,
 `functor_parameter`, `core_object`, `core_iso`, `typed_map` and `object_product` parse public envelopes. `value_data`, `opaque_data`
 and `map_data` construct them. They establish framing, not mathematical laws.
+`action_address` and `action_identity` encode the canonical derived-action address;
+`action_invocation` and `action_map_invocation` frame its complete object/map requests.
 
 ## Notation used below
 
@@ -475,6 +477,71 @@ Subsequent requests also retain any actual parameters they themselves need.
 No wrapper strips a dependency, transfers a handle or revives an expired session.
 An absent action or representation bridge is a computational gap; a foreign or
 expired owner is unavailable. The formal expression stays fixed in every case.
+
+## Derived structural actions
+
+The same object/map execution boundary applies to classifier-forget edges and
+the action of an accepted category constructor on a registered functor. The
+address identity has one of these forms:
+
+| Identity | Meaning selected by the registry |
+| --- | --- |
+| `{"classifierForget": classifier_id}` | The registered classifier's forgetful functor. |
+| `{"constructorMap": [constructor_id, inner_identity]}` | The registered constructor's published action on the complete inner functor. |
+| `{"functor": functor_id}` | A registered functor, permitted inside `constructorMap` only. |
+
+The object address is `action:` plus that identity's compact JSON, with no extra
+fields or alternate whitespace. Map and input addresses append `#map` and `#input`.
+A bare functor root would alias its existing operation and is rejected. The kernel
+checks every nested registry id and the constructor's actual `functorialAction`;
+an absent action is not supplied by its name or a shared carrier.
+
+For example, this addresses the registered Arrow constructor's action on the
+published multiplicative-monoid functor:
+
+```python
+from cas_port import action_address, action_invocation, action_map_invocation
+
+identity = {"constructorMap": [
+    "ctor.arrow", {"functor": "fun.rings.multiplicative_monoid"}]}
+object_operation = action_address(identity)
+map_operation = object_operation + "#map"
+input_form = object_operation + "#input"
+complete_action = node(
+    "constructorMap", "ctor.arrow", node("fun.rings.multiplicative_monoid"))
+object_args = {
+    "ctor": object_operation, "args": [complete_action], "receiver": X,
+}
+action_invocation(object_args, object_operation)
+map_args = apply(
+    map_operation, [complete_action],
+    node("map", complete_action, map_data(X, Y, f_data)),
+    FX, FX, FY, node("identity", FX, FX),
+)
+action_map_invocation(map_args, object_operation)
+```
+
+Here `X`, `Y`, `f_data`, `FX` and `FY` are the actual complete source objects,
+source map and already computed images fixed by the request. Arrow objects retain
+their existing source, target and defining-map record. Core objects and comparisons
+retain their existing complete wrappers. No new representation tag is introduced.
+
+For classifier forgetting the complete action is
+`node("classifierForget", classifier_id, ordered_actual_parameters)`. Constructor
+actions nest `node("constructorMap", constructor_id, inner_complete_action)` and
+ordinary functor descriptors retain their explicit parameters. The complete
+descriptor remains the object's sole invocation argument and occurs identically
+in the map invocation's parameter array and `map` field. Removing, changing or
+reordering a nested parameter changes the actual request even though its stable
+registration address stays the same.
+
+The helpers check that the complete descriptor has the address's identity and
+that both map occurrences agree exactly. They retain the original packets and
+owners; only the kernel checks the complete formal action and live sessions.
+The `edgeActions` export is a finite observed inventory. The recursive address
+family supports further registered constructor nesting without claiming an
+exhaustive list. A constructor without `functorialAction`, a wrong actual parameter
+or a different independently selected action remains rejected by its owning check.
 
 ## Direct constructions
 
@@ -1255,6 +1322,9 @@ a type signature alone does not choose a modulus or generator image.
 | Functor map action id differs from the dispatched `<id>#map` | Selected functor changed |
 | Functor map invocation/action parameters differ, including order or a nested opaque token | Actual selected parameter data changed |
 | Functor map omits an original `typedMap` endpoint or an outer selected image | Complete source arrow or image framing is incomplete |
+| Derived action address has a bare functor root, extra fields or noncanonical JSON spelling | No canonical derived operation address |
+| Derived action's complete descriptor differs from its address identity | Selected registered edge changed |
+| Derived map changes one occurrence of a nested actual parameter | Complete action descriptor changed |
 | Graph omits or repeats an actual domain key | Incomplete total callable |
 | Matrix row omits a column | Incomplete inner callable |
 | `opaqueData("")` | Empty token |

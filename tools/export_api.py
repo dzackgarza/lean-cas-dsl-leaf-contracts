@@ -114,7 +114,7 @@ def validate_addresses(document: dict) -> None:
         ports.extend(row["ports"])
         if row.get("factor") is not None:
             ports.append(row["factor"])
-    for kind in ("constructions", "functors"):
+    for kind in ("constructions", "functors", "edgeActions"):
         for row in document.get(kind, []):
             ports.extend({"operation": row[key], "input": row["input"]}
                          for key in ("objectOperation", "mapOperation"))

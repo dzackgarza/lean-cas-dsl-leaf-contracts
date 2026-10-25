@@ -207,6 +207,8 @@ run_cmd do
         ("signature", toJson (row.signature.map fun kind => match kind with
           | .category => "category" | .object => "object" | .functor => "functor")),
         ("semantics", ← describe row.semantics),
+        ("functorialAction", ← match row.functorialAction with
+          | some declaration => describe declaration | none => pure Json.null),
         ("wire", toJson "api/wire-examples.md#direct-constructions")])
       if let some action := row.comparisonAction then
         cellConstructors := cellConstructors.push (Json.mkObj [

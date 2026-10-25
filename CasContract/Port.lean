@@ -195,6 +195,28 @@ parameters required by the subsequent request. A descriptor never transfers an o
 An absent implementation or representation bridge is a computational gap; a foreign or
 expired owner remains unavailable. Neither changes the formal functor or its laws.
 
+Classifier forgetting and registered category-constructor actions use the same executable
+boundary. Their stable identity is one of `{"classifierForget":<classifier id>}` or
+`{"constructorMap":[<constructor id>,<inner identity>]}`; an inner identity may also be
+`{"functor":<functor id>}`. Each constructor must publish its actual `functorialAction`,
+and every nested classifier/functor id must be registered. Their object-operation address is
+`action:` followed by the compact JSON of that complete identity. The map and complete-input
+addresses append `#map` and `#input`. Only this canonical spelling is admitted. A bare
+`{"functor":...}` root is rejected because a `FunctorEntry` already has its own addresses.
+These are computational projections of existing edges, not new mathematical rows or tags.
+
+The identity omits parameters only for registration. The actual object invocation is the
+existing construction frame `{"ctor":<object address>,"args":[<complete action descriptor>],
+"receiver":<actual source object>}`. Its one argument is the existing `classifierForget`
+or `constructorMap` wire descriptor, retaining every actual parameter at its original nested
+position. The map invocation uses `apply(<map address>,[<complete action descriptor>],
+map(<that same descriptor>,typedMap(X,Y,f)),domain,F(X),F(Y),argument)`. The selected image
+packets, original typed source arrow and generalized argument obey the same rules as a
+registered functor's map action above. Address identity, both occurrences of the complete
+descriptor and the full independently selected formal action must agree. The derived action
+accepts only its own complete-input address. Constructor nesting is an address family, so a
+finite exported inventory is not an exhaustive enumeration of its possible applications.
+
 A directly applied `ConstructionEntry` exports the object operation `<construction id>`,
 the map point operation `<construction id>#map`, and the complete request input
 `<construction id>#input`. The image form uses `<construction id>` in the construction's
@@ -1116,6 +1138,64 @@ def ConstructionInvocation.decode (construction : String) (json : Json) :
   let receiver ← json.getObjVal? "receiver"
   return { construction, parameters, receiver }
 
+/-- Validate the public identity grammar only. Registry membership and the actual
+constructor's functorial action remain independent kernel checks. -/
+partial def checkActionIdentity (identity : Json) : Except String Unit := do
+  let fields ← identity.getObj?
+  match fields.toList with
+  | [("functor", .str id)] | [("classifierForget", .str id)] =>
+      if id.isEmpty then throw "an action identity has an empty registered id"
+  | [("constructorMap", .arr #[.str id, inner])] =>
+      if id.isEmpty then throw "an action identity has an empty constructor id"
+      checkActionIdentity inner
+  | _ => throw "an action identity requires one complete published edge descriptor"
+
+/-- Canonical computational address of a non-FunctorEntry edge. This encoder does
+not admit an edge or confer mathematical meaning on its string identifiers. -/
+def actionAddress (identity : Json) : Except String String := do
+  checkActionIdentity identity
+  if (identity.getObjVal? "functor").isOk then
+    throw "a bare registered functor uses its own published operation address"
+  return "action:" ++ identity.compress
+
+def actionIdentity (address : String) : Except String Json := do
+  unless address.startsWith "action:" do throw "a derived action requires its action address"
+  let identity ← Json.parse (address.drop 7).toString
+  unless (← actionAddress identity) == address do
+    throw "a derived action address must use its canonical compact identity"
+  return identity
+
+/-- Read registration identity without removing any parameter from the request.
+The complete original descriptor is retained by the invocation decoder. -/
+partial def descriptorActionIdentity (descriptor : Json) : Except String Json := do
+  let id ← descriptor.getObjValAs? String "ctor"
+  let parameters ← (← descriptor.getObjVal? "args").getArr?
+  if id == "classifierForget" then
+    let #[.str classifier, .arr _] := parameters
+      | throw "classifier forgetting requires its id and ordered actual parameters"
+    if classifier.isEmpty then throw "classifier forgetting has an empty registered id"
+    return Json.mkObj [("classifierForget", toJson classifier)]
+  if id == "constructorMap" then
+    let #[.str constructor, inner] := parameters
+      | throw "a constructor action requires its constructor and complete inner action"
+    if constructor.isEmpty then throw "a constructor action has an empty registered id"
+    return Json.mkObj [("constructorMap", Json.arr #[toJson constructor,
+      ← descriptorActionIdentity inner])]
+  if id.isEmpty then throw "a functor action has an empty registered id"
+  return Json.mkObj [("functor", toJson id)]
+
+/-- Frame the object action at its canonical edge address, preserving its complete
+nested parameter descriptor and actual receiver. -/
+def ConstructionInvocation.decodeAction (address : String) (json : Json) :
+    Except String ConstructionInvocation := do
+  let identity ← actionIdentity address
+  let request ← ConstructionInvocation.decode address json
+  let #[action] := request.parameters
+    | throw "a derived object action requires its one complete action descriptor"
+  unless (← descriptorActionIdentity action) == identity do
+    throw "the complete action descriptor differs from the registered address"
+  return request
+
 /-- Complete computational context for an independently admitted formal point. The original
 data are retained, not replaced by a formal representative or checked as an admission proof. -/
 structure AdmittedPoint where
@@ -1218,6 +1298,25 @@ def PointInvocation.decodeFunctorMap (functorId : String) (json : Json) :
   let parameters ← (← action.getObjVal? "args").getArr?
   unless parameters == request.parameters do
     throw "the functor map action changed its ordered invocation parameters"
+  discard <| TypedMap.decode arrow
+  return request
+
+/-- Frame the morphism action of a non-FunctorEntry edge. The two action
+occurrences are exact data, including every ordered nested parameter packet. -/
+def PointInvocation.decodeActionMap (address : String) (json : Json) :
+    Except String PointInvocation := do
+  let identity ← actionIdentity address
+  let request ← PointInvocation.decode json
+  unless request.operation == address ++ "#map" do
+    throw "the derived map invocation differs from the dispatched operation"
+  unless (← request.arrow.getObjValAs? String "ctor") == "map" do
+    throw "a derived map invocation requires its selected map action"
+  let #[action, arrow] ← (← request.arrow.getObjVal? "args").getArr?
+    | throw "a derived map action requires its complete action and source arrow"
+  unless request.parameters == #[action] do
+    throw "the derived map action changed its complete invocation descriptor"
+  unless (← descriptorActionIdentity action) == identity do
+    throw "the complete action descriptor differs from the registered address"
   discard <| TypedMap.decode arrow
   return request
 

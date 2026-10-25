@@ -288,6 +288,93 @@ def construction_invocation(args, operation):
     return operation, parameters, args["receiver"]
 
 
+def _action_identity(identity):
+    if not isinstance(identity, dict) or len(identity) != 1:
+        raise ValueError("an action identity requires one complete published edge descriptor")
+    if "functor" in identity or "classifierForget" in identity:
+        selected = identity.get("functor", identity.get("classifierForget"))
+        if not isinstance(selected, str) or not selected:
+            raise ValueError("an action identity has no registered id")
+    elif "constructorMap" in identity:
+        fields = identity["constructorMap"]
+        if not isinstance(fields, list) or len(fields) != 2 or \
+                not isinstance(fields[0], str) or not fields[0]:
+            raise ValueError("a constructor identity requires its id and complete inner identity")
+        _action_identity(fields[1])
+    else:
+        raise ValueError("an action identity requires a published edge descriptor")
+    return identity
+
+
+def action_address(identity):
+    """Encode a canonical non-FunctorEntry edge address; registry checks remain external."""
+    _action_identity(identity)
+    if "functor" in identity:
+        raise ValueError("a bare registered functor uses its own published operation address")
+    return "action:" + json.dumps(identity, ensure_ascii=False, separators=(",", ":"))
+
+
+def action_identity(address):
+    """Read only the canonical address spelling, including complete constructor nesting."""
+    if not isinstance(address, str) or not address.startswith("action:"):
+        raise ValueError("a derived action requires its action address")
+    identity = json.loads(address[7:])
+    if action_address(identity) != address:
+        raise ValueError("a derived action address must use its canonical compact identity")
+    return identity
+
+
+def _descriptor_action_identity(descriptor):
+    if not isinstance(descriptor, dict) or not isinstance(descriptor.get("ctor"), str) or \
+            not descriptor["ctor"] or not isinstance(descriptor.get("args"), list):
+        raise ValueError("a complete action requires its id and ordered parameters")
+    name, fields = descriptor["ctor"], descriptor["args"]
+    if name == "classifierForget":
+        if len(fields) != 2 or not isinstance(fields[0], str) or not fields[0] or \
+                not isinstance(fields[1], list):
+            raise ValueError("classifier forgetting requires its id and ordered actual parameters")
+        return {"classifierForget": fields[0]}
+    if name == "constructorMap":
+        if len(fields) != 2 or not isinstance(fields[0], str) or not fields[0]:
+            raise ValueError("a constructor action requires its constructor and complete inner action")
+        return {"constructorMap": [fields[0], _descriptor_action_identity(fields[1])]}
+    return {"functor": name}
+
+
+def action_invocation(args, address):
+    """Read the existing object frame without discarding nested action parameters."""
+    identity = action_identity(address)
+    request = construction_invocation(args, address)
+    if len(request[1]) != 1:
+        raise ValueError("a derived object action requires its one complete action descriptor")
+    if _descriptor_action_identity(request[1][0]) != identity:
+        raise ValueError("the complete action descriptor differs from the registered address")
+    return request
+
+
+def action_map_invocation(args, address):
+    """Read the unchanged apply packet for the canonical derived map action.
+
+    These checks establish framing and exact descriptor occurrence only. Registry
+    membership, constructor functorialAction, formal endpoints and owners remain
+    independently checked; source data do not prove any mathematical law.
+    """
+    identity = action_identity(address)
+    request = point_invocation(args, address + "#map")
+    arrow = request[2]
+    if not isinstance(arrow, dict) or arrow.get("ctor") != "map" or \
+            not isinstance(arrow.get("args"), list) or len(arrow["args"]) != 2:
+        raise ValueError("a derived map action requires its complete action and source arrow")
+    action, source_arrow = arrow["args"]
+    if json.dumps(request[1], sort_keys=True, allow_nan=False) != \
+            json.dumps([action], sort_keys=True, allow_nan=False):
+        raise ValueError("the derived map action changed its complete invocation descriptor")
+    if _descriptor_action_identity(action) != identity:
+        raise ValueError("the complete action descriptor differs from the registered address")
+    typed_map(source_arrow)
+    return request
+
+
 def value_data(data):
     """Supply inline computational data under the caller's fixed result contract."""
     return {"ctor": "valueData", "args": [data]}

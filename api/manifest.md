@@ -147,6 +147,23 @@ source functor, relabel an opaque owner or change selected image endpoints.
 The actual operation and input inventories are generated from the compatible built
 kernel and contract sources; these address rules are not a substitute for that export.
 
+Classifier forgetting and constructor-induced actions have a canonical derived
+address family. The object operation is `action:` followed by compact JSON of the
+complete registered edge identity; its map and input addresses append `#map` and
+`#input`. The identity is `{"classifierForget":id}` or
+`{"constructorMap":[constructor_id,inner_identity]}`, where an inner identity may
+also be `{"functor":id}`. Bare functor roots are rejected: they use the existing
+functor addresses above. Every constructor must publish `functorialAction`, and all
+nested identities must be registered. Only the canonical spelling is admitted.
+
+These derived actions accept their own complete request input. Actual declaration
+parameters stay in the nested complete action descriptor carried by each request;
+the registration identity cannot replace that data. The finite `edgeActions`
+inventory reports currently derived addresses, while the recursive family permits
+further registered constructor nesting. `categoryConstructors[].functorialAction`
+publishes the actual constructor action signature or `null` when absent. See
+[derived structural actions](wire-examples.md#derived-structural-actions).
+
 A registered natural cell exports the point operation `<cell id>#component` and
 complete input of the same address. The common `apply` request retains the
 component's declaration parameters, complete selected receiver, direction, and
