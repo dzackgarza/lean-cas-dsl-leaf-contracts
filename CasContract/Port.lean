@@ -155,6 +155,46 @@ types, source and target, including dependent parameters. The kernel checks thos
 endpoints; a backend cannot choose the functor or its parameters. The result is decoded in
 the declared target form.
 
+A `FunctorEntry` additionally exposes its morphism action at `<functor id>#map` and
+the complete-request input `<functor id>#input` for either action. Existing object-action
+registrations on admitted source-object or source-category forms remain peers of that
+complete-request registration; overlap is ambiguous. The two action addresses project the
+already registered functor, not new mathematical rows. Supplying its object action does not
+advertise its morphism action or any subsequent operation on the target category.
+
+The morphism action uses the existing seven-field `PointInvocation`:
+`{"ctor":"apply","args":["<functor id>#map",[<ordered explicit parameters>],
+{"ctor":"map","args":[{"ctor":<functor id>,"args":[<the same parameters>]},
+{"ctor":"typedMap","args":[<actual X>,<actual Y>,<actual f>]}]},
+<original domain>,<actual F(X)>,<actual F(Y)>,<original argument>]}`.
+The kernel first executes or reuses the selected object actions at `X` and `Y`. Their
+actual returned images, including every retained dependency, are the outer source and
+target. Both are required even if the functor preserves the underlying carrier. The inner
+map retains the complete source-category endpoints and the original callable `f`.
+Core comparisons and Arrow-valued endpoints retain their existing complete data forms.
+The invocation id and action id must select this same functor, and both ordered parameter
+arrays must agree exactly. The formal caller independently checks their full declaration
+signature and the actual source and target categories; parsing supplies none of these laws.
+
+To obtain the whole map `F(f)`, the original domain is the actual `F(X)` and the argument
+is `{"ctor":"identity","args":[<actual F(X)>,<actual F(X)>]}`. The same request form
+also applies the map to an already selected generalized point, retaining its actual domain
+and argument. For the whole-domain request a reply is ordinary callable data at the fixed
+`F(X)` and `F(Y)`: a `typedMap` retaining both exact image descriptors, or an owning opaque
+callable under the existing result rules. For a point request the reply instead has the
+declared point-data interface at `F(Y)`. A result cannot choose replacement endpoints.
+
+The shared executor interprets composed object and morphism actions through these registered
+primitives and retains their actual returned data. A later target-category operation receives
+that data in its admitted input form; it need not interpret the source functor's recipe or
+private representation. A complete self-contained reply with no nested opaque dependency
+is portable to another admitted consumer. Retained input/action provenance alone does not
+make such a reply session-owned. Conversely, `valueData` does not make nested opaque data
+portable: every such dependency keeps its supplying live connection, as do any actual
+parameters required by the subsequent request. A descriptor never transfers an opaque owner.
+An absent implementation or representation bridge is a computational gap; a foreign or
+expired owner remains unavailable. Neither changes the formal functor or its laws.
+
 A directly applied `ConstructionEntry` exports the object operation `<construction id>`,
 the map point operation `<construction id>#map`, and the complete request input
 `<construction id>#input`. The image form uses `<construction id>` in the construction's
@@ -1158,6 +1198,28 @@ def PointInvocation.decode (json : Json) : Except String PointInvocation := do
   if operation.isEmpty then throw "a point invocation has no released operation id"
   let parameters ← parameters.getArr?
   return { operation, parameters, arrow, domain, source, target, argument }
+
+/-- Frame the morphism action of one registered functor using the existing `apply`,
+`map` and `typedMap` records. Preserve the complete invocation, including both actual
+image endpoints and the original generalized argument. The caller separately checks
+the formal signature, selected images and live owners; this parser supplies no laws. -/
+def PointInvocation.decodeFunctorMap (functorId : String) (json : Json) :
+    Except String PointInvocation := do
+  if functorId.isEmpty then throw "a functor map invocation has no registered id"
+  let request ← PointInvocation.decode json
+  unless request.operation == functorId ++ "#map" do
+    throw "the functor map invocation differs from the dispatched operation"
+  unless (← request.arrow.getObjValAs? String "ctor") == "map" do
+    throw "a functor map invocation requires its selected map action"
+  let #[action, arrow] ← (← request.arrow.getObjVal? "args").getArr?
+    | throw "a functor map action requires its selected functor and complete source arrow"
+  unless (← action.getObjValAs? String "ctor") == functorId do
+    throw "the functor map action differs from the dispatched functor"
+  let parameters ← (← action.getObjVal? "args").getArr?
+  unless parameters == request.parameters do
+    throw "the functor map action changed its ordered invocation parameters"
+  discard <| TypedMap.decode arrow
+  return request
 
 /-- Apply a registered presentation comparison in its independently selected direction.
 The enclosing port request's operation id names the comparison; this packet retains

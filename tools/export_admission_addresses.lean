@@ -13,6 +13,9 @@ run_cmd do
   candidates := candidates ++ state.objects.map (·.applicationAddress)
   candidates := candidates ++ state.cells.map (·.componentAddress)
   candidates := candidates ++ state.functors.map (·.cartesianAddress)
+  for row in state.functors do
+    candidates := candidates.push row.inputAddress
+    candidates := candidates.push row.mapAddress
   for row in state.constructions do
     candidates := candidates.push row.inputAddress
     candidates := candidates.push row.mapAddress

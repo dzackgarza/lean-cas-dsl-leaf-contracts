@@ -49,6 +49,37 @@ def point_invocation(args, operation=None):
     return tuple(fields)
 
 
+def functor_map_invocation(args, functor_id):
+    """Read the unchanged seven-field invocation of a registered functor's map.
+
+    Require its exact action id, matching ordered parameter data and a typed source
+    arrow. Both actual image endpoints and the original generalized argument remain
+    in the returned tuple. Formal types, selected images and live owners are checked
+    by the caller; this helper supplies framing, not functor laws or portability.
+    """
+    if not isinstance(functor_id, str) or not functor_id:
+        raise ValueError("a functor map invocation has no registered id")
+    fields = point_invocation(args, functor_id + "#map")
+    arrow = fields[2]
+    if not isinstance(arrow, dict) or arrow.get("ctor") != "map":
+        raise ValueError("a functor map invocation requires its selected map action")
+    action_fields = arrow.get("args")
+    if not isinstance(action_fields, list) or len(action_fields) != 2:
+        raise ValueError("a functor map action requires its selected functor and complete source arrow")
+    action, source_arrow = action_fields
+    if not isinstance(action, dict) or action.get("ctor") != functor_id:
+        raise ValueError("the functor map action differs from the dispatched functor")
+    parameters = action.get("args")
+    if not isinstance(parameters, list):
+        raise ValueError("functor map parameters must be ordered data")
+    # Compare JSON data, so false and zero are distinct and object-key order is not.
+    if json.dumps(parameters, sort_keys=True, allow_nan=False) != \
+            json.dumps(fields[1], sort_keys=True, allow_nan=False):
+        raise ValueError("the functor map action changed its ordered invocation parameters")
+    typed_map(source_arrow)
+    return fields
+
+
 def presentation_invocation(args):
     """Read parameters, inverse flag, source, target and point data, in that order.
 

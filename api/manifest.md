@@ -128,6 +128,25 @@ map point action or a later target operation. Use the exported construction and
 admission inventories for concrete addresses and the
 [direct-construction protocol](wire-examples.md#direct-constructions) for their data.
 
+A registered functor exports object operation `<functor id>`, morphism-action
+operation `<functor id>#map`, and complete-request input `<functor id>#input`.
+These addresses project the two actions of its existing full dependent declaration.
+The object action also retains its admitted source-object and source-category input
+forms; these registrations are peers of the complete-request form. An overlap is
+ambiguous. The morphism-action request retains the original complete source arrow
+and both already computed image endpoints, with every ordered functor parameter.
+It can request the whole map or apply it to a supplied generalized point through
+the existing `apply` record. See [registered functor actions](wire-examples.md#registered-functor-actions).
+Providing one action does not provide the other or a later target operation.
+
+The shared executor materializes the registered action before an unrelated target
+consumer needs its data. A self-contained returned packet is usable by another
+admitted consumer; a nested opaque dependency keeps its supplying live session.
+The registration never authorizes a consumer to infer a category, reconstruct a
+source functor, relabel an opaque owner or change selected image endpoints.
+The actual operation and input inventories are generated from the compatible built
+kernel and contract sources; these address rules are not a substitute for that export.
+
 A registered natural cell exports the point operation `<cell id>#component` and
 complete input of the same address. The common `apply` request retains the
 component's declaration parameters, complete selected receiver, direction, and

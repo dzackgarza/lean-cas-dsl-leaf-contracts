@@ -30,6 +30,24 @@ run_cmd do
         ("type", toJson (← ppExpr info.type).pretty),
         ("resultType", toJson resultType),
         ("documentation", toJson (← findDocString? (← getEnv) name))]
+    let actionTypes (id : String) (declaration : Name) : TermElabM (String × String) := do
+      let info ← getConstInfo declaration
+      forallTelescope info.type fun params _ => do
+        let value := mkAppN (mkConst declaration (info.levelParams.map Level.param)) params
+        let type ← whnf (← inferType value)
+        let value ← if type.isAppOfArity ``CategoryTheory.Cat.Hom 2 then
+            mkAppM ``CategoryTheory.Cat.Hom.toFunctor #[value]
+          else pure value
+        let objectAction ← mkAppM ``Prefunctor.obj #[
+          ← mkAppM ``CategoryTheory.Functor.toPrefunctor #[value]]
+        let mapAction ← mkAppM ``CategoryTheory.Functor.map #[value]
+        let objectType ← mkForallFVars params (← inferType objectAction)
+        let mapType ← mkForallFVars params (← inferType mapAction)
+        if objectType.hasFVar || objectType.hasMVar || objectType.hasLevelMVar ||
+            mapType.hasFVar || mapType.hasMVar || mapType.hasLevelMVar then
+          throwError "functor {id} has an open public action signature"
+        declarations.modify (· ++ objectType.getUsedConstants ++ mapType.getUsedConstants)
+        return ((← ppExpr objectType).pretty, (← ppExpr mapType).pretty)
     let mut lifts : Array Json := #[]
     for row in state.lifts do
       let mut ports : Array Json := #[]
@@ -140,6 +158,7 @@ run_cmd do
         ("functorPresentation", presentation)])
     let mut functors : Array Json := #[]
     for row in state.functors do
+      let (objectActionType, mapActionType) ← actionTypes row.id.raw row.declaration
       let cartesian ← match row.expression.registrationKind with
         | .familyReindex family =>
           pure (Json.mkObj [("family", toJson family.raw),
@@ -151,7 +170,13 @@ run_cmd do
       functors := functors.push (Json.mkObj [("id", toJson row.id.raw),
         ("source", toJson (reprStr row.source)), ("target", toJson (reprStr row.target)),
         ("expression", toJson (reprStr row.expression)),
-        ("signature", ← describe row.declaration), ("cartesian", cartesian)])
+        ("signature", ← describe row.declaration), ("cartesian", cartesian),
+        ("input", toJson s!"{row.id.raw}#input"),
+        ("objectOperation", toJson row.id.raw),
+        ("mapOperation", toJson s!"{row.id.raw}#map"),
+        ("objectActionType", toJson objectActionType),
+        ("mapActionType", toJson mapActionType),
+        ("wire", toJson "api/wire-examples.md#registered-functor-actions")])
     let mut cells : Array Json := #[]
     for row in state.cells do
       let info ← getConstInfo row.declaration
@@ -195,19 +220,7 @@ run_cmd do
             | some declaration => describe declaration | none => pure Json.null),
           ("wire", toJson "api/wire-examples.md#constructor-induced-components")])
     for row in state.constructions do
-      let info ← getConstInfo row.declaration
-      let (objectActionType, mapActionType) ← forallTelescope info.type fun params _ => do
-        let value := mkAppN (mkConst row.declaration (info.levelParams.map Level.param)) params
-        let objectAction ← mkAppM ``Prefunctor.obj #[
-          ← mkAppM ``CategoryTheory.Functor.toPrefunctor #[value]]
-        let mapAction ← mkAppM ``CategoryTheory.Functor.map #[value]
-        let objectType ← mkForallFVars params (← inferType objectAction)
-        let mapType ← mkForallFVars params (← inferType mapAction)
-        if objectType.hasFVar || objectType.hasMVar || objectType.hasLevelMVar ||
-            mapType.hasFVar || mapType.hasMVar || mapType.hasLevelMVar then
-          throwError "construction {row.id.raw} has an open public action signature"
-        declarations.modify (· ++ objectType.getUsedConstants ++ mapType.getUsedConstants)
-        return ((← ppExpr objectType).pretty, (← ppExpr mapType).pretty)
+      let (objectActionType, mapActionType) ← actionTypes row.id.raw row.declaration
       constructions := constructions.push (Json.mkObj [("id", toJson row.id.raw),
         ("name", toJson row.name), ("target", toJson (reprStr row.target)),
         ("signature", ← describe row.declaration),

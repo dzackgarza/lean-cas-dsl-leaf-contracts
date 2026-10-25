@@ -39,7 +39,7 @@ wrong request identities and invalid reply fields are `malformed` even if the pr
 then exits. Neither outcome changes the mathematical question or restarts an opaque owner.
 
 Python helpers `object_field`, `point_invocation`, `presentation_invocation`, `admitted_point`,
-`constrained_point`, `operation_expression`, `construction_invocation`, `category_parameter`,
+`constrained_point`, `operation_expression`, `construction_invocation`, `functor_map_invocation`, `category_parameter`,
 `constructed_category`, `cartesian_map`, `construction_field`, `structured_projection_action`,
 `functor_parameter`, `core_object`, `core_iso`, `typed_map` and `object_product` parse public envelopes. `value_data`, `opaque_data`
 and `map_data` construct them. They establish framing, not mathematical laws.
@@ -374,6 +374,107 @@ unconstructed component address. No graph or
 identity representation is presumed. Nested opaque data retain their owning connection.
 `constructed_cell_component`, `component_address` and `Backend.ConstructedCellComponent`
 provide framing and canonical addresses; they supply no mathematical evidence.
+
+## Registered functor actions
+
+A `FunctorEntry` supplies the already formalized functor `F : C → D`. Its object
+action has operation `<id>` and its morphism action has operation `<id>#map`.
+Both accept the complete-request input `<id>#input`. Existing object-action
+registrations on admitted source-object and source-category forms remain valid
+peers; overlapping registrations are ambiguous. These addresses expose the two
+actions of that same declaration. They do not add a mathematical functor, define
+new laws, or imply that either action or a later target operation is implemented.
+
+The object request retains the full ordered parameter list and the actual receiver:
+
+```python
+functor_id = "fun.rings.multiplicative_monoid"
+parameters = []  # This published declaration has no explicit data parameters.
+X = node("obj.rings.integers")
+object_request = {
+    "request_id": 60,
+    "op": functor_id,
+    "args": {"ctor": functor_id, "args": parameters, "receiver": X},
+}
+```
+
+The reply uses `valueData(DATA)` at the fixed target form or an owning
+`opaqueData` token. This example prescribes no mathematical answer. A parameterized
+functor instead sends every explicit non-proof argument in its declaration's order,
+including complete category/functor selections, actual object data and any retained
+callable parameters. No parameter is reconstructed from the receiver's carrier.
+
+Before invoking the map action on `f : X → Y`, the shared executor executes or
+reuses `F`'s object actions at both original endpoints. Let `FX` and `FY` be those
+actual returned packets, and `f_data` the original source-category callable. The
+following is the complete whole-domain demand; each variable denotes retained
+request data, not a choice made by the map implementation:
+
+```python
+from cas_port import functor_map_invocation, map_data, opaque_data, value_data
+
+action = node(functor_id, *parameters)
+source_arrow = map_data(X, Y, f_data)
+map_operation = functor_id + "#map"
+whole_map_request = {
+    "request_id": 61,
+    "op": map_operation,
+    "args": apply(map_operation, parameters, node("map", action, source_arrow),
+                  FX, FX, FY, node("identity", FX, FX)),
+}
+invocation = functor_map_invocation(whole_map_request["args"], functor_id)
+assert invocation[3] is FX and invocation[4] is FX and invocation[5] is FY
+```
+
+The outer `source` and `target` are both required and retain the already computed
+images. The inner `typedMap` preserves both original endpoints and `f_data`.
+An Arrow-valued endpoint keeps its whole `arrow(source,target,defining_map)`
+record; a Core arrow keeps its `coreIso` with both directions inside the source
+map's callable slot and the corresponding `coreObject` endpoints. None is replaced
+by a carrier inventory or a source-category-specific instruction for a later leaf.
+The action id must be `functor_id`, the dispatched operation must be its `#map`,
+and the invocation/action copies of `parameters` must be identical ordered JSON
+data. The kernel separately checks that list against the full formal signature.
+
+A successful whole-map reply can retain an owning callable together with the
+exact selected images, or return the whole callable as an opaque result:
+
+```python
+framed_reply = {
+    "request_id": 61, "status": "ok",
+    "value": value_data(map_data(FX, FY, opaque_data("mapped-callable-61"))),
+}
+opaque_reply = {
+    "request_id": 61, "status": "ok",
+    "value": opaque_data("mapped-callable-61"),
+}
+```
+
+These tokens are meaningful only to the supplying live connection. A returned
+`typedMap` with a different source or target is malformed; the reply cannot select
+another image. An otherwise complete wrong callable remains untrusted data. For
+application to a generalized point, the same request retains that point's original
+`domain` and `argument` instead of the whole-domain identity above. Its reply then
+has the ordinary point-data interface at `FY`.
+
+The helper returns the unchanged seven fields. It checks the operation, action,
+matching ordered parameter packets and the complete source `typedMap` framing.
+It does not check the declaration's parameter arity, prove a functor law, compare
+the reply's endpoints with retained images, or validate a live session. Those
+checks retain their existing formal or runtime owners. A changed parameter in both
+copies therefore requires the formal/request-context check, not just this helper.
+
+After an action is executed, an unrelated operation on `D` consumes the returned
+`D` packet through its own admitted input form. It need not interpret a new `C`,
+`F`, `functorAction` recipe or source leaf's private data. A complete self-contained
+reply with no nested opaque dependency can pass to that consumer even when the
+input action used an opaque value; input/action provenance alone is not ownership
+of the reply. If the returned packet contains an opaque dependency anywhere,
+including under `valueData`, that dependency keeps its original live owner.
+Subsequent requests also retain any actual parameters they themselves need.
+No wrapper strips a dependency, transfers a handle or revives an expired session.
+An absent action or representation bridge is a computational gap; a foreign or
+expired owner is unavailable. The formal expression stays fixed in every case.
 
 ## Direct constructions
 
@@ -1151,6 +1252,9 @@ a type signature alone does not choose a modulus or generator image.
 | Direct-construction request omits a selected category/functor parameter | Full dependent request is incomplete |
 | `coreIso` omits its backward map or reverses only one endpoint | Complete comparison framing changed |
 | Construction map packet names another `<id>#map` | Dispatched operation identity changed |
+| Functor map action id differs from the dispatched `<id>#map` | Selected functor changed |
+| Functor map invocation/action parameters differ, including order or a nested opaque token | Actual selected parameter data changed |
+| Functor map omits an original `typedMap` endpoint or an outer selected image | Complete source arrow or image framing is incomplete |
 | Graph omits or repeats an actual domain key | Incomplete total callable |
 | Matrix row omits a column | Incomplete inner callable |
 | `opaqueData("")` | Empty token |
