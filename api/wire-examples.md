@@ -625,8 +625,12 @@ directions. Neither slot is an assertion that two presentations are equal.
 
 The construction's map acts on a supplied point through the common seven-field
 `apply` request. In the following schema, `construction_id`, `parameters`, `X`,
-`Y`, `comparison_id`, `comparison_parameters`, `domain` and `point_data` are the
-values already selected in the formal request, not choices made by the leaf:
+`Y`, `comparison_id`, `comparison_parameters`, `domain` and `point_data` are
+already fixed by the formal request. `image_source` and `image_target` retain the
+actual data for its selected construction images of `coreObject(X)` and
+`coreObject(Y)`. When earlier calls computed those images, these fields contain
+their returned packets, or references to those results in a kernel-service
+program. Every opaque dependency keeps its original supplying session.
 
 ```python
 action = node(construction_id, *parameters)
@@ -635,24 +639,26 @@ comparison = node(
     node("presentation", comparison_id, comparison_parameters, False),
     node("presentation", comparison_id, comparison_parameters, True),
 )
-source = node("functorAction", action, node("coreObject", X))
-target = node("functorAction", action, node("coreObject", Y))
+original = node("typedMap", node("coreObject", X), node("coreObject", Y), comparison)
 map_operation = construction_id + "#map"
 map_request = {
     "request_id": 30,
     "op": map_operation,
-    "args": apply(map_operation, parameters, node("map", action, comparison),
-                  domain, source, target, point_data),
+    "args": apply(map_operation, parameters, node("map", action, original),
+                  domain, image_source, image_target, point_data),
 }
 ```
 
 Register that map point action on `<construction id>#input`. Preserve the complete
-source comparison and both directions when lowering the declared functor map to
-the native engine. Swapping the comparison direction changes the actual source
-and target. Dropping its inverse or replacing it by an identity does not implement
+original `typedMap`: its endpoints are the two Core objects, while the enclosed
+`coreIso` retains their underlying objects and both comparison directions. The
+outer invocation's source and target are the actual construction image data.
+Preserve these fields when lowering the declared functor map to the native engine.
+Swapping the comparison direction changes the actual source and target.
+Dropping its inverse or replacing it by an identity does not implement
 the request. The point's generalized domain also remains exactly the supplied one.
-The reply has the ordinary computational element representation at `target`; it
-cannot select a different target, comparison or parameter dictionary.
+The reply has the ordinary computational element representation at `image_target`;
+it cannot select a different target, comparison or parameter dictionary.
 
 Constructed images support the operations of their target category through the
 ordinary registered structure. A subsequent method or element operation receives
@@ -664,8 +670,12 @@ backend. The kernel chooses formal meaning independently of returned data.
 
 The helpers `construction_invocation`, `category_parameter`, `functor_parameter`,
 `core_object` and `core_iso` check only their published packet shapes.
-`point_invocation` parses the map point request. Missing parameters, missing a
-comparison direction, a wrong dispatched construction id or incompatible complete
+`functor_map_invocation(map_request["args"], construction_id)` checks the map
+point request's seven fields, matching ordered parameters and complete original
+`typedMap`. `typed_map`, `core_object` and `core_iso` expose its original map fields;
+the kernel checks the selected Core endpoints and actual construction images.
+Missing parameters, a missing comparison direction, a wrong dispatched construction
+id or incompatible complete
 endpoint framing is malformed. A well-framed wrong result remains computational
 data for independent acceptance; a helper never proves inverse laws or a group law.
 
@@ -1331,6 +1341,8 @@ a type signature alone does not choose a modulus or generator image.
 | Map declares target `Z` instead of selected target `Y` | Complete endpoint changed |
 | Direct-construction request omits a selected category/functor parameter | Full dependent request is incomplete |
 | `coreIso` omits its backward map or reverses only one endpoint | Complete comparison framing changed |
+| Construction map supplies a bare `coreIso` as its original map | The complete original `typedMap` and its endpoints are missing |
+| A construction's original `typedMap` uses underlying objects as its Core endpoints | The selected endpoints must be `coreObject(X)` and `coreObject(Y)` |
 | Construction map packet names another `<id>#map` | Dispatched operation identity changed |
 | Functor map action id differs from the dispatched `<id>#map` | Selected functor changed |
 | Functor map invocation/action parameters differ, including order or a nested opaque token | Actual selected parameter data changed |

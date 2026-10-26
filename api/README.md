@@ -3,8 +3,8 @@
 `declared-ports.json` is generated documentation of the public declarations in the
 `lean-categories` catalogue. It supplies concrete registration addresses and complete
 parameterized signatures alongside the generic wire protocol in
-[CasContract/Port.lean](../CasContract/Port.lean). It contains no implementation,
-mathematical definition body, expected answer, or correctness evidence. The kernel
+[CasContract/Port.lean](../CasContract/Port.lean). It contains no backend implementation,
+mathematical definition body, expected answer, or evidence of backend correctness. The kernel
 reads the upstream registry directly; it must not read this document to decide meaning.
 
 [Computational wire examples](wire-examples.md) supplies complete request/reply
@@ -83,6 +83,26 @@ The [operation-agreement guide](wire-examples.md#agreement-of-inherited-operatio
 states the public rule and its limits. Agreement is interpretation-side evidence,
 never a leaf proof field or a priority order for computational registrations.
 A leaf implements the operation and selected data supplied by the kernel.
+
+`computationDerivations` publishes the upstream catalogue of proved alternatives for
+computing an already fixed mathematical family. Each row retains its stable `id`,
+exact `target` and ordered `prerequisites`; a reference includes its owner `kind`,
+registered `id`, declaration and complete signature. Each reference's `family` and
+`familyType` preserve the checked universe application.
+The row retains the target's
+`universeParameters` and full `targetType`, the `plan` and `correctness` declaration
+signatures, the closed `planApplication`, and its whole-family `correctnessType`.
+The exporter checks the original upstream derivation before describing it. Proof
+bodies and executable plans are not wire fields supplied by a leaf.
+
+Prerequisite order is the plan's argument order. Neither row order nor that argument
+order establishes a preferred implementation. These alternatives describe mathematics
+independently of installed leaves. Computational support requires a finite grounded
+derivation whose primitive calls have applicable implementations; an unsupported or
+ungrounded cycle does not remove the mathematical operation. Derivations retain the
+same selected parameters and actual intermediate data as ordinary calls. A leaf
+continues to register only the existing operation/input/implementation triple and
+may implement a primitive without also registering every operation derived from it.
 
 The additive owner `op.additive_monoids.add`, structural functor
 `fun.additive_groups.additive_monoid`, and invertible cell

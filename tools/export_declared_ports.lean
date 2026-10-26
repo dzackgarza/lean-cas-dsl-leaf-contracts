@@ -1,6 +1,8 @@
 module
 import LeanCategories.Catalogue
 meta import LeanCategories.Catalogue
+import LeanCategories.Catalogue.Registry.Computation
+meta import LeanCategories.Catalogue.Registry.Computation
 open Lean Meta Elab Command CasCatalogue
 set_option pp.explicit true
 set_option pp.universes true
@@ -232,6 +234,32 @@ run_cmd do
         ("objectActionType", toJson objectActionType),
         ("mapActionType", toJson mapActionType),
         ("wire", toJson "api/wire-examples.md#direct-constructions")])
+    let describeComputationReference (reference : ComputationRef)
+        (family familyType : Expr) : TermElabM Json := do
+      let (kind, id) := match reference with
+        | .operation id => ("operation", id.raw)
+        | .functor id => ("functor", id.raw)
+        | .method id => ("method", id.raw)
+        | .construction id => ("construction", id.raw)
+        | .morphism id => ("morphism", id.raw)
+      let declaration ← reference.declaration state
+      return Json.mkObj [("kind", toJson kind), ("id", toJson id),
+        ("declaration", toJson declaration.toString), ("signature", ← describe declaration),
+        ("family", toJson (← ppExpr family).pretty),
+        ("familyType", toJson (← ppExpr familyType).pretty)]
+    let mut derivations : Array Json := #[]
+    for row in ← computationDerivations do
+      let checked ← validateComputationDerivation state row
+      derivations := derivations.push (Json.mkObj [("id", toJson row.id.raw),
+        ("target", ← describeComputationReference row.target checked.target checked.familyType),
+        ("prerequisites", Json.arr (← checked.prerequisites.mapM fun prerequisite =>
+          describeComputationReference prerequisite.reference prerequisite.family
+            prerequisite.familyType)),
+        ("universeParameters", toJson (checked.universeParams.map Name.toString)),
+        ("targetType", toJson (← ppExpr checked.familyType).pretty),
+        ("plan", ← describe row.plan), ("correctness", ← describe row.correctness),
+        ("planApplication", toJson (← ppExpr checked.plan).pretty),
+        ("correctnessType", toJson (← ppExpr (← inferType checked.correctness)).pretty)])
     let mut datatypes : Array Json := #[]
     let mut typeAliases : Array Json := #[]
     let seeds ← declarations.get
@@ -294,7 +322,8 @@ run_cmd do
       ("functors", Json.arr functors), ("constructions", Json.arr constructions),
       ("cells", Json.arr cells), ("cellConstructors", Json.arr cellConstructors),
       ("categoryConstructors", Json.arr categoryConstructors),
-      ("categoryFamilies", Json.arr categoryFamilies)]
+      ("categoryFamilies", Json.arr categoryFamilies),
+      ("computationDerivations", Json.arr derivations)]
   let output := (← IO.getEnv "CAS_DECLARED_PORTS_OUTPUT").getD "declared-ports.json"
   let required (name : String) : IO String := do
     let some value ← IO.getEnv name | throw (IO.userError s!"missing provenance: {name}")
