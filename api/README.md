@@ -176,8 +176,11 @@ dictionaries, complete core comparison data, and `typedMap` replies. The signatu
 formal types; the protocol fixes their computational encoding. A well-framed wrong
 answer remains possible.
 
-Lift requests retain their five ordered fields and additionally publish actual
-`sourceImage` data, with `comparisonImage` from the forward stage onward. Completed
+Lift requests retain their five ordered fields and additionally publish the full
+`sourceImage` interface as actual data or a typed deferred plan. The forward
+request may supply `comparisonImage` or obtain it
+from the forward reply's complete source endpoint at the fixed `U(O)` interface.
+The backward request requires that image. Completed
 `liftStep` and factor contexts retain both images. Python `lift_images` reads this
 metadata independently of `lift_input`'s unchanged tuple and `lift_parameters`'s
 ordered evidence arguments. Packets omitting both image fields use the documented

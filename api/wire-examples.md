@@ -1358,15 +1358,23 @@ historical `liftInput` spelling accepts its omission as an empty list.
 
 New executions also supply actual image metadata outside the ordered `args`.
 Every field request has `sourceImage`: for a prescribed `liftInput`, this is the
-complete Arrow returned by the selected induced Arrow action; for an explicit
-`monoLiftInput`, it is the actual object image `U(X)`. The `forward` and `backward`
-requests additionally have `comparisonImage`, the actual result of applying the
-selected `U` to the already returned object `O`. That field is absent at `obj`
-and `hom`, whose preceding output prefixes have length zero and one. The selected
-action is executed by the common runtime; a lift leaf consumes these image data
-at its declared port. It need not recreate an opaque image from a descriptor.
+complete selected Arrow-image interface; for an explicit `monoLiftInput`, it is
+the image `U(X)` fixed by the retained base inclusion's target. Image slots may
+carry actual retained data or typed deferred plans under their complete public
+interfaces. Only an actual producer receipt establishes execution history.
+A `forward` request may
+additionally have `comparisonImage`, fixing its actual source endpoint `U(O)`.
+If that field is omitted, the forward reply supplies its source endpoint at the
+independently fixed formal object `U(O)`; the reply must still use the retained
+base object `K` as its target. That exact returned source is required as
+`comparisonImage` in `backward` and completed steps. It is an endpoint supplied
+by the complete forward result, not evidence of a separate object-action call.
+The image field is absent at `obj` and `hom`, whose prefixes have length zero and
+one. Both ways of supplying the image retain opaque data and their owners.
 
-For example, the forward request retains its original five ordered arguments:
+For example, a forward request with a preselected image retains its original
+five ordered arguments. Omitting its `comparisonImage` field asks the forward
+reply to supply that complete endpoint:
 
 ```python
 forward_request = {
@@ -1385,7 +1393,7 @@ source_image, comparison_image = lift_images(forward_request)
 framing. Its first result contains both actual endpoints and the mapped callable
 for a prescribed source Arrow. Neither result establishes that an action was
 executed or that an answer is mathematically correct. Runtime validation compares
-them with the exact retained action outputs, including their separate session
+them with the exact retained image occurrences, including their separate session
 ownership. Standalone decoding checks the independently fixed interfaces and
 packet framing without asserting that execution history.
 
@@ -1393,8 +1401,8 @@ Omitting both fields selects the explicitly supported legacy recipe form. Its
 image of an object is `functorAction(action, object)`, and its transported source
 Arrow uses those endpoint descriptors with `map(action, callable)`. A metadata
 field containing `null` is malformed, as are a comparison image without its
-source image, a premature comparison image, and a missing comparison image from
-`forward` onward in the new form. Consumers never choose between these formats
+source image, a premature comparison image, and a missing comparison image after
+the forward result in the new form. Consumers never choose between these formats
 by comparing packet bytes or guessing whether opaque data is a recipe.
 
 `liftInput` also retains the selected lift id, complete action, source Arrow and
@@ -1404,7 +1412,8 @@ base subobject. The explicit-object variant is
 unrelated source Arrow. The public `lift_input` Python helper distinguishes the
 variants and returns their exact retained fields; it supplies no mathematical
 identification or proof. `X` is the source Arrow's source; `K` is the base subobject's apex.
-`U(O)` uses the supplied actual `comparisonImage` in the new form and retains the
+`U(O)` uses the preselected image or the forward reply's actual source endpoint
+in the new form and retains the
 actual `O` and full selected action in the legacy recipe form. Each step receives the
 previous step's actual object and inclusion. Completed `liftedSubobject` stores
 all four outputs of every step. Each retained `liftStep` also has the same top-level
@@ -1537,3 +1546,7 @@ packet, exact operation, complete base and four typed prior outputs. Composed
 lifts execute the inner factor first, then feed that actual arrow into the
 outer factor's base-map slot under the canonical `MonoLift.factor_comp` law.
 The original four-field outputs and session ownership survive both requests.
+Internally derived cone and action inputs may be typed deferred plans. A complete
+factor implementation may use the public kernel service or private implementation
+reuse without installing or invoking every internal `U#obj` and `U#map` through
+the kernel. This does not change its seven ordered arguments.

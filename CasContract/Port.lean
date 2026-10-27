@@ -444,14 +444,22 @@ The field order is fixed. `obj` sees an empty output prefix; `hom`, `forward`, a
 selected action parameters, original Arrow endpoints and map, actual base apex and
 inclusion, and session ownership survive every request. No reply chooses the lift.
 
-New executions additionally retain top-level actual image data; the five ordered
+New executions additionally retain top-level complete image interfaces; the five ordered
 arguments above are unchanged. `"sourceImage":<data>` is present in every field
-request. For `liftInput` it is the complete Arrow produced by the selected inner
-action on the source Arrow, including both actual image endpoints and the actual
-mapped callable. For `monoLiftInput` it is the actual object image `U(X)`.
-`"comparisonImage":<data>` is absent for `obj` and `hom` requests and required for
-`forward` and `backward` requests (preceding output prefix length at least two).
-It is the actual result of applying the selected `U` to the returned object `O`.
+request. For `liftInput` it retains the complete selected Arrow-image interface,
+including both image endpoints and its mapped callable. For `monoLiftInput` it
+retains the object-image interface `U(X)` fixed by the base inclusion's target.
+These positions may hold actual retained data or a typed deferred plan under the
+complete public interface. Only an actual producer receipt establishes execution
+history; a well-framed image descriptor alone does not assert a separate action call.
+`"comparisonImage":<data>` is absent for `obj` and `hom` requests, optional for
+`forward` (preceding output prefix length two), and required for `backward`.
+When supplied to `forward`, it fixes the actual image endpoint `U(O)`. When
+omitted, the forward reply's complete typed map supplies that endpoint at the
+independently fixed formal object `U(O)`; its target must still match the retained
+base object `K`. The exact returned source then supplies `comparisonImage` for
+the backward request and completed step. This is a field-produced endpoint, not
+evidence that a separate object-action operation ran.
 These fields retain their own session ownership. A supplied `null`, a comparison
 image without a source image, or image metadata at the wrong stage is malformed.
 
@@ -461,15 +469,16 @@ transported Arrow uses those descriptors with `map(action, callable)`. This
 compatibility mode is chosen by field absence, never by comparing token bytes or
 guessing whether an action was executed. A metadata-bearing packet is checked at
 the independently selected full interfaces. During execution its fields must also
-match the exact retained request and action outputs; a standalone framing decode
+match the exact retained request and image occurrences; a standalone framing decode
 does not establish any execution history or mathematical equality.
 
 The object reply is ordinary object data. Each map reply is
 `{"ctor":"typedMap","args":[<actual domain data>,<actual codomain data>,<callable data>]}`.
 For object output `O`, source Arrow `X → Y`, and base subobject `K → U(X)`, the map
 endpoints are `O → X`, `U(O) → K`, and `K → U(O)`, in that order. `U(O)` uses the
-actual `comparisonImage` in the new form, or the complete selected inner action
-descriptor applied to the actual object output in the legacy form. In the new
+preselected `comparisonImage` or the forward reply's source endpoint in the new
+form, or the complete selected inner action descriptor applied to the actual
+object output in the legacy form. In the new
 form the base's ambient retains the actual `sourceImage` source object. Callable
 data may be opaque on infinite carriers; it is not enumerated or converted to a Lean
 morphism. Finite graphs use their actual domain and codomain descriptors. Missing fields
@@ -495,6 +504,11 @@ The factor request may carry the same top-level `sourceImage` and
 `comparisonImage` together, retaining the actual `U(X)` and `U(O)` used by its
 completed four-field computation. Its seven ordered arguments are unchanged;
 omitting both image fields selects the same legacy recipe framing.
+Internally derived cone and action inputs may be typed deferred plans. A complete
+factor implementation need not install or invoke every internal `U#obj` or
+`U#map` through the kernel: it may use the public kernel service or private
+implementation reuse. The selected full interfaces and seven ordered arguments
+remain the same.
 
 For a composed lift, the kernel factors through the inner action and then the
 outer action. The actual returned first factor is the next request's base map;
@@ -932,9 +946,9 @@ def TypedMap.decode (json : Json) : Except String TypedMap := do
     | throw "a computational map requires its complete source, target and callable"
   return { source, target, callable }
 
-/-- Actual results of the selected inner object's action. Absence of both fields
-selects the historical recipe framing; it does not assert that an action ran.
-The comparison image is available only once the object and inclusion outputs exist. -/
+/-- Actual image interfaces of the selected stage. Absence of both fields selects
+the historical recipe framing. A forward reply may supply its own image endpoint;
+that field alone does not assert that a separate object action ran. -/
 structure LiftImages where
   sourceImage? : Option Json := none
   comparisonImage? : Option Json := none
@@ -953,8 +967,10 @@ def LiftImages.decode (json : Json) (outputCount : Nat) : Except String LiftImag
   if sourceImage?.isNone && comparisonImage?.isSome then
     throw "a comparison image requires the actual selected source image"
   if sourceImage?.isSome then
-    unless comparisonImage?.isSome == decide (outputCount >= 2) do
-      throw "the comparison image is required exactly from the forward stage onward"
+    if outputCount < 2 && comparisonImage?.isSome then
+      throw "a comparison image is unavailable before the forward stage"
+    if outputCount >= 3 && comparisonImage?.isNone then
+      throw "the comparison image is required after the forward result"
   return { sourceImage?, comparisonImage? }
 
 /-- Either complete source context for the four existing lift fields. The source

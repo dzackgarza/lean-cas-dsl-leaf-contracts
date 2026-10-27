@@ -105,12 +105,24 @@ The top-level lift `sourceImage` and `comparisonImage` slots may contain the sam
 typed service references as other operands. The kernel resolves each reference
 at the already selected image interface and retains that exact occurrence's
 session ownership. A prescribed `sourceImage` resolves to a complete transported
-Arrow; explicit-object and factor requests use an object image. `comparisonImage`
-is available from the forward field onward and in completed factor contexts.
+Arrow interface; explicit-object and factor requests use the object image fixed
+by the retained base inclusion. Image slots can carry actual data or typed deferred
+plans under the full public interface. Only an actual retained producer receipt
+establishes that an action was executed. `comparisonImage`
+is optional in the forward request. When omitted there, the complete forward
+reply supplies its source at the fixed `U(O)` interface, while its target must
+match the retained base object. The returned source then becomes the required
+comparison image for backward and completed factor contexts.
 The selected action and existing outputs fix these formal roles before the data
-are read. These metadata slots preserve action outputs; they do not create new
+are read. These metadata slots preserve selected image occurrences; they do not create new
 operations, supply inverse laws, or identify mathematical objects through JSON
 equality. Metadata-absent requests retain the documented legacy recipe framing.
+
+A factor's internally derived cone and action inputs may be typed deferred plans.
+A complete factor implementation can use the public kernel service or private
+implementation reuse; it need not install or invoke every internal `U#obj` or
+`U#map` through the kernel. Its seven ordered input arguments and selected full
+interfaces are unchanged.
 
 References inside those descriptor parameters are resolved with their original
 typed dependencies, just like references in the receiver. A kernel may explicitly

@@ -515,9 +515,13 @@ def lift_images(args):
     """Read (source_image, comparison_image) without identifying it with a recipe.
 
     Both are absent for legacy recipe framing. In the explicit image form,
-    sourceImage is present at every stage and comparisonImage is present from
-    forward onward. A prescribed source image is a complete transported Arrow;
-    an explicit-object or factor source image is the actual image of X.
+    sourceImage is present at every stage. comparisonImage is optional for the
+    forward request and required after its result; when absent for forward,
+    that complete typed map supplies its source endpoint at the fixed U(O).
+    A prescribed source image has the complete transported Arrow interface;
+    an explicit-object or factor source image has the U(X) interface fixed by
+    the base inclusion. Image slots may contain actual data or typed deferred
+    plans; only an actual retained producer receipt establishes execution.
     Completed liftStep records retain both fields. These are computational data,
     not evidence that an action ran or that an output satisfies its laws.
     """
@@ -543,8 +547,10 @@ def lift_images(args):
         raise ValueError("lift image metadata must contain data rather than null")
     if has_comparison and not has_source:
         raise ValueError("a comparison image requires the actual selected source image")
-    if has_source and has_comparison != (len(outputs) >= 2):
-        raise ValueError("the comparison image is required exactly from the forward stage onward")
+    if has_source and len(outputs) < 2 and has_comparison:
+        raise ValueError("a comparison image is unavailable before the forward stage")
+    if has_source and len(outputs) >= 3 and not has_comparison:
+        raise ValueError("the comparison image is required after the forward result")
     if has_source and args["ctor"] in {"liftInput", "liftStep"}:
         image = args["sourceImage"]
         if not isinstance(image, dict) or image.get("ctor") != "arrow" or \
