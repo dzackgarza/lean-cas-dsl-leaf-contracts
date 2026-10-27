@@ -25,6 +25,15 @@ specifies symbolic expression inputs and reuse of actual computational answers.
 All nested opaque dependencies retain their live session; a formal description
 does not replace returned data or turn it into a portable value.
 
+The [complete method request](wire-examples.md#complete-method-requests) uses the
+existing construction envelope with the method id, actual chosen receiver, each
+residual structural action's complete descriptor and the final method-functor
+descriptor. All selected parameters remain present even when the receiver is
+opaque. The method's input registration describes its receiver boundary; a
+category-wide registration does not discard the envelope or take over unrelated
+unexecuted actions. The generic method decoder checks framing without selecting
+the mathematics.
+
 [Backend and registration manifests](manifest.md) specifies the complete `leaves.json`
 schema, backend command arguments, process environment and input matching rules.
 

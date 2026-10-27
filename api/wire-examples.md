@@ -39,7 +39,8 @@ wrong request identities and invalid reply fields are `malformed` even if the pr
 then exits. Neither outcome changes the mathematical question or restarts an opaque owner.
 
 Python helpers `object_field`, `point_invocation`, `presentation_invocation`, `admitted_point`,
-`constrained_point`, `operation_expression`, `construction_invocation`, `functor_map_invocation`, `category_parameter`,
+`constrained_point`, `operation_expression`, `construction_invocation`, `method_invocation`,
+`functor_map_invocation`, `category_parameter`,
 `constructed_category`, `cartesian_map`, `construction_field`, `structured_projection_action`,
 `functor_parameter`, `core_object`, `core_iso`, `typed_map` and `object_product` parse public envelopes. `value_data`, `opaque_data`
 and `map_data` construct them. They establish framing, not mathematical laws.
@@ -389,6 +390,92 @@ mathematical constructors or backend selectors. See the complete
 [kernel-service guide](kernel-service.md) for constructor and map examples, every
 public operation family, nested ownership, framing controls and implementation
 irrelevance, and the [framing schema](deferred.schema.json) for the JSON structure.
+
+## Complete method requests
+
+A method registration implements the exact selected method at an admitted receiver
+form. Its complete request reuses `ConstructionInvocation`; it introduces no new
+wire tag, operation or mathematical declaration. The envelope's `ctor` is the
+method id. Its `args` contains complete residual structural-action descriptors
+in composition order, followed by the complete selected method-functor descriptor.
+
+The following variables are fixed by the public declarations and the actual
+request, independently of a leaf. They are not backend choices:
+
+```python
+from cas_port import method_invocation
+
+# method_id and method_functor_id are the published linked declaration ids.
+# method_parameters contains every explicit non-proof declaration argument.
+# residual_actions contains the complete selected action descriptors, in order.
+# actual_receiver is the complete data at this registration's chosen boundary.
+method_action = node(method_functor_id, *method_parameters)
+method_args = {
+    "ctor": method_id,
+    "args": [*residual_actions, method_action],
+    "receiver": actual_receiver,
+}
+request = {"request_id": 62, "op": method_id, "args": method_args}
+operation, actions, receiver = method_invocation(
+    request["args"], method_id, method_functor_id)
+assert actions is method_args["args"]
+assert receiver is actual_receiver
+```
+
+Each residual descriptor is the existing
+`node(functor_id, *ordered_parameters)`,
+`node("classifierForget", classifier_id, ordered_parameters)`, or
+`node("constructorMap", constructor_id, complete_inner_action)`.
+Parameters stay at their original nested positions. They may include actual
+objects, maps, scalar data or selected category/functor descriptors according to
+the declaration. A descriptor's identity alone does not replace those parameters.
+Opaque data anywhere in the receiver or descriptors retain their supplying live
+connections; the whole request carries those dependencies.
+
+For a method directly at its owner, or after the shared executor has produced the
+selected transported input, the same format has just the final descriptor. For
+example, the published cardinality method on a set has this complete request:
+
+```python
+actual_set = node("obj.sets.fin", 3)
+direct_args = {
+    "ctor": "meth.cardinality",
+    "args": [node("fun.sets.cardinality")],
+    "receiver": actual_set,
+}
+method_invocation(direct_args, "meth.cardinality", "fun.sets.cardinality")
+```
+
+This is a framing example and prescribes no cardinality reply. The one-element
+descriptor list remains although this functor has no explicit data parameters.
+The receiver is the exact chosen registration-boundary data: here the set itself.
+The published `MethodEntry.shape` determines the formal Core argument of this
+iso-invariant method; a leaf does not add `coreObject` or select another input
+form. If the independently chosen receiver form itself is Core, its complete Core
+data are retained. Equal carriers or equal-looking packets supply no replacement.
+
+An explicitly admitted source-composite registration may implement the supplied
+residual actions together with the method. A registration at the method owner's
+category instead consumes the already executed target data and an empty residual
+list. Adding a category-wide registration does not make that consumer interpret
+an unexecuted source `functorAction`, `map` or creation recipe. Exact-form and
+category-wide registrations remain peers, with ambiguity on overlap.
+
+The decoder returns the original three fields. It requires the exact dispatched
+method id, a nonempty descriptor array, the existing complete descriptor grammar,
+and a final descriptor whose id is the independently supplied method functor.
+The kernel separately checks the ordered selected route and all actual parameters,
+complete source/target dictionaries and result interface. Parsing cannot infer
+these from the receiver, and a syntactically valid reordered route still fails
+that independent check. The reply uses the selected method's existing complete
+result grammar.
+
+Uniform complete requests are primary. The kernel may explicitly permit the
+historical raw receiver form only after checking both an empty residual route and
+zero explicit computational method parameters. No parser guesses that condition
+from the packet, reconstructs parameters from opaque data, or falls back after a
+malformed complete envelope. Property and direct functor/construction requests
+keep their existing grammars.
 
 ## Registered functor actions
 
@@ -1339,6 +1426,11 @@ a type signature alone does not choose a modulus or generator image.
 | --- | --- |
 | `typedMap(X,Y)` | Callable missing |
 | Map declares target `Z` instead of selected target `Y` | Complete endpoint changed |
+| Method request has an empty descriptor list or omits its receiver | Complete selected method request is absent |
+| Method request names another method or ends in another functor descriptor | Dispatched method or independently selected functor changed |
+| A residual descriptor is missing ordered arguments or a constructor's nested action | Complete action framing is malformed |
+| Method parameters or residual actions are reordered, replaced or omitted | Independent full selected-application check fails; grammar alone cannot recover them |
+| Raw method data with residual actions or explicit computational parameters | Outside the explicit compatibility subset; missing data must not be inferred |
 | Direct-construction request omits a selected category/functor parameter | Full dependent request is incomplete |
 | `coreIso` omits its backward map or reverses only one endpoint | Complete comparison framing changed |
 | Construction map supplies a bare `coreIso` as its original map | The complete original `typedMap` and its endpoints are missing |

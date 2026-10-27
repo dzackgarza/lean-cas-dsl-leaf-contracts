@@ -341,6 +341,26 @@ def _descriptor_action_identity(descriptor):
     return {"functor": name}
 
 
+def method_invocation(args, operation, functor_id):
+    """Read (method id, ordered complete action descriptors, actual receiver).
+
+    The last descriptor is the independently selected method functor; preceding
+    descriptors are its residual structural actions in composition order. Keep
+    every original parameter packet and receiver. Registry membership, the full
+    selected route, types, result interface and live owners are kernel checks.
+    This parser has no raw-receiver compatibility fallback.
+    """
+    if not isinstance(functor_id, str) or not functor_id:
+        raise ValueError("a method invocation has no selected functor id")
+    request = construction_invocation(args, operation)
+    if not request[1]:
+        raise ValueError("a method invocation requires its final complete functor descriptor")
+    identities = [_descriptor_action_identity(descriptor) for descriptor in request[1]]
+    if identities[-1] != {"functor": functor_id}:
+        raise ValueError("the method invocation differs from its selected registered functor")
+    return request
+
+
 def action_invocation(args, address):
     """Read the existing object frame without discarding nested action parameters."""
     identity = action_identity(address)

@@ -78,7 +78,8 @@ resolution.
 
 | Published family | Required retained data |
 | --- | --- |
-| Methods and properties | Exact registered declaration, selected receiver/form and full dependent parameters; the declared result interface. |
+| Methods | Construction-invocation envelope with the exact method id, chosen receiver, ordered complete residual-action descriptors and final method-functor descriptor; the declared result interface. |
+| Properties | Exact registered declaration, selected receiver/form and the property's existing complete request and result interface. |
 | Element operations, named morphisms, object applications and binders | Complete `apply` data where prescribed: original generalized domain, argument, whole callable, parameters and endpoints. |
 | Functor and direct-construction object/map actions | Actual source object or complete original source arrow, full functor parameters, and both selected image endpoints around a map action. |
 | Classifier-forget and constructor-induced edge actions | Canonical recursive action identity, complete nested parameter descriptor, actual source and image data. |
@@ -87,6 +88,24 @@ resolution.
 | Presentation comparisons | Selected comparison, direction, complete parameters, actual endpoints and original point data. |
 | Ordinary limits and colimits | Full registered diagram constructor and ordered defining maps; complete declared construction result data. |
 | Prescribed lift fields and factors | Selected lift/evidence parameters, complete source/action/base data, prior actual outputs and defining/factor maps. |
+
+The [complete method request](wire-examples.md#complete-method-requests) keeps its
+whole selected computation visible. A node uses the existing method operation id
+and admitted input form; its `args` is
+`{"ctor":method_id,"args":[residual_action_1,...,method_functor],"receiver":actual_input}`.
+Every descriptor includes all ordered explicit data parameters. At a fully
+transported method-owner input, the residual list is empty and the final functor
+descriptor remains. The receiver keeps the chosen registration form; the method's
+published shape fixes any formal Core wrapping without adding a wire wrapper.
+An explicitly admitted source-composite implementation owns its supplied residual
+actions. An unrelated target-category implementation receives their actual results
+through the shared executor.
+
+References inside those descriptor parameters are resolved with their original
+typed dependencies, just like references in the receiver. A kernel may explicitly
+permit legacy raw receiver data only after checking an empty residual route and
+no explicit computational method parameters. This is not a parser fallback or
+permission to reconstruct absent parameters from the receiver.
 
 Use the compatible exported declarations and admission addresses for each concrete
 call. Object, category and ordinary constructor descriptors can be typed input or

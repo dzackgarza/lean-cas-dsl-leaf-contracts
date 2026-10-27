@@ -193,6 +193,49 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
   are retained exactly, including a registered trivial or zero arrow where the
   mathematical declaration specifies one; a shape label does not replace an arrow.
 
+A registered method uses the same construction-invocation envelope, with its own
+method id as the dispatched `op` and `ctor`:
+`{"ctor":<method id>,"args":[<residual action descriptor>,...,
+<selected method-functor descriptor>],"receiver":<chosen input data>}`.
+The final argument is always the complete descriptor
+`{"ctor":<method's registered functor id>,"args":[<ordered explicit parameters>]}`,
+including when there are no residual actions or explicit parameters. Earlier arguments
+are the selected residual structural actions, in composition order from the chosen receiver
+toward the method owner. They use the existing functor, `classifierForget` and
+`constructorMap` descriptor grammar, retaining every nested parameter at its declared
+position. This is one ordered list of complete descriptors, not a flattened parameter list.
+
+The receiver is the complete actual input at the chosen registration boundary. An
+explicitly admitted source-composite implementation may receive that source receiver and
+its residual action descriptors. A registration at the method owner's category receives
+the actual transported receiver after the shared actions have executed; its residual list
+is empty. Category-wide registration does not make a target consumer responsible for
+unexecuted source actions. The published `MethodEntry.shape` fixes the final formal argument.
+For an iso-invariant method it applies the formal Core wrapping to that receiver; it does
+not introduce another registration input or an extra `coreObject` wire wrapper. Thus
+`meth.cardinality` at a set input retains the actual set data. An independently selected
+receiver whose own declared form is Core still keeps that form's complete data.
+
+The kernel fixes and checks the method, the complete residual action applications, their
+ordered parameter occurrences, the final functor application, source and target dictionaries,
+and result interface before using a reply. Every computational dependency of the receiver
+and every descriptor parameter belongs to this whole request and retains its original live
+owner. Equal carriers, recoverable-looking formal parameters or private runtime handles do
+not justify omitting data from the request. The reply uses the method's independently
+declared complete result interface; it supplies no route, parameter replacement or law.
+
+`ConstructionInvocation.decodeMethod` and Python `method_invocation` check the envelope,
+nonempty descriptor sequence, existing descriptor grammar and the final independently
+supplied functor id. They return the unchanged complete request; they do not establish
+registry membership, parameter types, route order, formal applicability or live ownership.
+
+The uniform complete request is the primary method interface. A raw receiver-only request
+is permitted solely by an explicit kernel compatibility rule that has checked both an empty
+residual route and zero explicit computational parameters of the selected method functor.
+This subset carries no omitted selected data. A generic decoder never infers that rule from
+receiver bytes or falls back to raw data after a malformed complete request. This method
+convention does not change property requests or direct functor/construction action requests.
+
 A registered functor's object action receives
 `{"ctor": <functor id>, "args": [<ordered explicit declaration arguments>],
 "receiver": <source object data>}`. The registered declaration determines the argument
@@ -747,8 +790,10 @@ formal context; parsing it does not reconstruct an arrow or choose a mathematica
 
 A category-wide registration uses its registered category id as `input` and accepts the same
 complete public representation of values in that exact category. For a limit this is its
-diagram; for a method, functor or other applicable operation it is its complete actual input
-value. Structural transport is fixed before dispatch. Exact-form and category-wide
+diagram. A method keeps its complete invocation envelope above, including the actual receiver
+and final method-functor descriptor; the category input describes that receiver, not permission
+to omit selected parameters. Other applicable operations retain their own complete request
+grammar. Structural transport is fixed before dispatch. Exact-form and category-wide
 registrations have equal standing: overlapping applicable registrations are ambiguous, with
 no implicit specialization order.
 
@@ -1160,9 +1205,11 @@ def CoreIso.decode (json : Json) : Except String CoreIso := do
     | throw "a core comparison requires both complete endpoints and both directions"
   return { source, target, forward, backward }
 
-/-- Object action of one directly applied registered construction. The operation
-address is the construction id; the complete request input is `<id>#input`.
-The full dependent declaration determines parameters, source and target. -/
+/-- Existing object-action envelope, also used for complete registered method
+requests. Direct constructions use their ordered explicit parameters; methods use
+ordered residual action descriptors followed by the complete method-functor descriptor.
+The selected public operation determines the argument convention and input forms.
+Its full dependent declaration determines parameters, source and target. -/
 structure ConstructionInvocation where
   construction : String
   parameters : Array Json
@@ -1228,6 +1275,24 @@ partial def descriptorActionIdentity (descriptor : Json) : Except String Json :=
       ← descriptorActionIdentity inner])]
   if id.isEmpty then throw "a functor action has an empty registered id"
   return Json.mkObj [("functor", toJson id)]
+
+/-- Check the complete method envelope against the dispatched method and its
+independently selected registered functor. Earlier descriptors retain the residual
+actions in composition order; the final one is the complete method-functor application.
+Parsing checks grammar and identity only. The kernel separately checks the full
+selected route, declaration parameters, categories, result interface and live owners.
+This decoder never interprets raw receiver data as a compatibility fallback. -/
+def ConstructionInvocation.decodeMethod (methodId functorId : String) (json : Json) :
+    Except String ConstructionInvocation := do
+  if functorId.isEmpty then throw "a method invocation has no selected functor id"
+  let request ← ConstructionInvocation.decode methodId json
+  let some finalAction := request.parameters.back?
+    | throw "a method invocation requires its final complete functor descriptor"
+  for descriptor in request.parameters do
+    discard <| descriptorActionIdentity descriptor
+  unless (← descriptorActionIdentity finalAction) == Json.mkObj [("functor", toJson functorId)] do
+    throw "the method invocation differs from its selected registered functor"
+  return request
 
 /-- Frame the object action at its canonical edge address, preserving its complete
 nested parameter descriptor and actual receiver. -/
