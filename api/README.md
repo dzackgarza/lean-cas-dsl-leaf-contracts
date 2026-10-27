@@ -176,6 +176,15 @@ dictionaries, complete core comparison data, and `typedMap` replies. The signatu
 formal types; the protocol fixes their computational encoding. A well-framed wrong
 answer remains possible.
 
+Lift requests retain their five ordered fields and additionally publish actual
+`sourceImage` data, with `comparisonImage` from the forward stage onward. Completed
+`liftStep` and factor contexts retain both images. Python `lift_images` reads this
+metadata independently of `lift_input`'s unchanged tuple and `lift_parameters`'s
+ordered evidence arguments. Packets omitting both image fields use the documented
+legacy recipe form; present metadata never becomes proof of an action's result.
+See [the lift wire examples](wire-examples.md) for stage ordering and complete
+Arrow versus object image data.
+
 The [constrained-point envelope](wire-examples.md#constrained-points) retains the actual
 constructor name, original generalized domain, original data-field type, complete selected
 target and original point data, in that order. It is limited to an independently checked

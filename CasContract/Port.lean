@@ -444,11 +444,33 @@ The field order is fixed. `obj` sees an empty output prefix; `hom`, `forward`, a
 selected action parameters, original Arrow endpoints and map, actual base apex and
 inclusion, and session ownership survive every request. No reply chooses the lift.
 
+New executions additionally retain top-level actual image data; the five ordered
+arguments above are unchanged. `"sourceImage":<data>` is present in every field
+request. For `liftInput` it is the complete Arrow produced by the selected inner
+action on the source Arrow, including both actual image endpoints and the actual
+mapped callable. For `monoLiftInput` it is the actual object image `U(X)`.
+`"comparisonImage":<data>` is absent for `obj` and `hom` requests and required for
+`forward` and `backward` requests (preceding output prefix length at least two).
+It is the actual result of applying the selected `U` to the returned object `O`.
+These fields retain their own session ownership. A supplied `null`, a comparison
+image without a source image, or image metadata at the wrong stage is malformed.
+
+Packets omitting both image fields retain the legacy recipe format: image
+endpoints are the declared `functorAction(action, object)` descriptors, and a
+transported Arrow uses those descriptors with `map(action, callable)`. This
+compatibility mode is chosen by field absence, never by comparing token bytes or
+guessing whether an action was executed. A metadata-bearing packet is checked at
+the independently selected full interfaces. During execution its fields must also
+match the exact retained request and action outputs; a standalone framing decode
+does not establish any execution history or mathematical equality.
+
 The object reply is ordinary object data. Each map reply is
 `{"ctor":"typedMap","args":[<actual domain data>,<actual codomain data>,<callable data>]}`.
 For object output `O`, source Arrow `X → Y`, and base subobject `K → U(X)`, the map
 endpoints are `O → X`, `U(O) → K`, and `K → U(O)`, in that order. `U(O)` uses the
-complete selected inner action descriptor applied to the actual object output. Callable
+actual `comparisonImage` in the new form, or the complete selected inner action
+descriptor applied to the actual object output in the legacy form. In the new
+form the base's ambient retains the actual `sourceImage` source object. Callable
 data may be opaque on infinite carriers; it is not enumerated or converted to a Lean
 morphism. Finite graphs use their actual domain and codomain descriptors. Missing fields
 or incompatible declared endpoints are malformed. Well-framed mathematically wrong
@@ -469,6 +491,10 @@ satisfy both `U.map factor ≫ forward = g` and `factor ≫ hom = f`, as tested 
 independent acceptance. A framed wrong factor remains computational data.
 This is a separate computation, with no fifth field added to the four lift
 outputs and no permission to substitute a comparison isomorphism for the factor.
+The factor request may carry the same top-level `sourceImage` and
+`comparisonImage` together, retaining the actual `U(X)` and `U(O)` used by its
+completed four-field computation. Its seven ordered arguments are unchanged;
+omitting both image fields selects the same legacy recipe framing.
 
 For a composed lift, the kernel factors through the inner action and then the
 outer action. The actual returned first factor is the next request's base map;
@@ -488,6 +514,12 @@ The kernel encodes a completed prescribed lift for subsequent computations as
 [<object output>,<typed inclusion output>,<typed forward output>,<typed backward output>]]}`.
 Each step retains the same evidence-family parameters as its four field requests;
 they are not inferred from the inner action or reconstructed from the returned object.
+Each new completed step also retains both top-level `sourceImage` and
+`comparisonImage`, with the complete transported Arrow as `sourceImage`. The next
+forward-route source is exactly that actual Arrow; the comparison maps use the
+actual `comparisonImage` endpoint. Historical steps without both fields retain
+their recipe framing. The selected formal plan fixes every interface independently
+of these data, and runtime validation compares each field with its retained stage.
 Execution runs in reverse route order. Its next base is the subobject formed from the
 preceding step's actual object and inclusion outputs, with its actual source ambient;
 it never repeats the initial base packet for later steps. All four actual fields are
@@ -900,9 +932,34 @@ def TypedMap.decode (json : Json) : Except String TypedMap := do
     | throw "a computational map requires its complete source, target and callable"
   return { source, target, callable }
 
+/-- Actual results of the selected inner object's action. Absence of both fields
+selects the historical recipe framing; it does not assert that an action ran.
+The comparison image is available only once the object and inclusion outputs exist. -/
+structure LiftImages where
+  sourceImage? : Option Json := none
+  comparisonImage? : Option Json := none
+
+def LiftImages.fields (images : LiftImages) : List (String × Json) :=
+  (images.sourceImage?.toList.map fun data => ("sourceImage", data)) ++
+    (images.comparisonImage?.toList.map fun data => ("comparisonImage", data))
+
+/-- Validate the explicit metadata mode and its stage, without resolving typed
+references or claiming that supplied data resulted from an execution. -/
+def LiftImages.decode (json : Json) (outputCount : Nat) : Except String LiftImages := do
+  let sourceImage? := (json.getObjVal? "sourceImage").toOption
+  let comparisonImage? := (json.getObjVal? "comparisonImage").toOption
+  if sourceImage? == some Json.null || comparisonImage? == some Json.null then
+    throw "lift image metadata must contain data rather than null"
+  if sourceImage?.isNone && comparisonImage?.isSome then
+    throw "a comparison image requires the actual selected source image"
+  if sourceImage?.isSome then
+    unless comparisonImage?.isSome == decide (outputCount >= 2) do
+      throw "the comparison image is required exactly from the forward stage onward"
+  return { sourceImage?, comparisonImage? }
+
 /-- Either complete source context for the four existing lift fields. The source
 is an actual object when `originalArrow` is false, and a complete Arrow otherwise. -/
-structure LiftInput where
+structure LiftInput extends LiftImages where
   originalArrow : Bool
   lift : String
   action : Json
@@ -913,10 +970,10 @@ structure LiftInput where
   parameters : Array Json := #[]
 
 def LiftInput.encode (input : LiftInput) : Json :=
-  Json.mkObj [("ctor", toJson (if input.originalArrow then "liftInput" else "monoLiftInput")),
+  Json.mkObj ([("ctor", toJson (if input.originalArrow then "liftInput" else "monoLiftInput")),
     ("parameters", Json.arr input.parameters),
     ("args", Json.arr #[toJson input.lift, input.action, input.source, input.base,
-      Json.arr input.outputs])]
+      Json.arr input.outputs])] ++ input.toLiftImages.fields)
 
 /-- Check only public framing and field order. Mathematical endpoint types and
 laws remain the independent caller's responsibility. -/
@@ -934,6 +991,7 @@ def LiftInput.decode (json : Json) (operation : String) : Except String LiftInpu
     | throw "the dispatched operation differs from the selected lift field"
   unless outputs.size == index do
     throw "the lift request omits or changes the actual preceding output prefix"
+  let images ← LiftImages.decode json outputs.size
   let baseTag ← base.getObjValAs? String "ctor"
   unless (baseTag == "arrow" || baseTag == "subobject") &&
       (← base.getObjVal? "args" >>= Json.getArr?).size == 3 do
@@ -942,16 +1000,21 @@ def LiftInput.decode (json : Json) (operation : String) : Except String LiftInpu
     unless (← source.getObjValAs? String "ctor") == "arrow" &&
         (← source.getObjVal? "args" >>= Json.getArr?).size == 3 do
       throw "the prescribed lift requires its complete original source Arrow"
+    if let some image := images.sourceImage? then
+      unless (← image.getObjValAs? String "ctor") == "arrow" &&
+          (← image.getObjVal? "args" >>= Json.getArr?).size == 3 do
+        throw "the prescribed source image requires its complete transported Arrow"
   let parameters ← match json.getObjVal? "parameters" with
     | .ok data => data.getArr?
     | .error _ =>
         if tag == "liftInput" then pure #[]
         else throw "an explicit lift request requires its ordered selection parameters"
-  return { originalArrow := tag == "liftInput", lift, action, source, base, outputs, parameters }
+  return { images with originalArrow := tag == "liftInput", lift, action, source, base,
+    outputs, parameters }
 
 /-- The separate universal-factor request retains all four actual lift outputs
 and both input maps. The public record contains no proof or certificate field. -/
-structure LiftFactorInput where
+structure LiftFactorInput extends LiftImages where
   lift : String
   action : Json
   source : Json
@@ -963,10 +1026,10 @@ structure LiftFactorInput where
   parameters : Array Json := #[]
 
 def LiftFactorInput.encode (input : LiftFactorInput) : Json :=
-  Json.mkObj [("ctor", toJson "liftFactorInput"), ("parameters", Json.arr input.parameters),
+  Json.mkObj ([("ctor", toJson "liftFactorInput"), ("parameters", Json.arr input.parameters),
     ("args", Json.arr #[
     toJson input.lift, input.action, input.source, input.base, Json.arr input.outputs,
-    input.baseMap.encode, input.cone.encode])]
+    input.baseMap.encode, input.cone.encode])] ++ input.toLiftImages.fields)
 
 def LiftFactorInput.decode (json : Json) (operation : String) : Except String LiftFactorInput := do
   unless (← json.getObjValAs? String "ctor") == "liftFactorInput" do
@@ -980,12 +1043,13 @@ def LiftFactorInput.decode (json : Json) (operation : String) : Except String Li
   let outputs ← earlier.getArr?
   unless outputs.size == 4 do
     throw "a factor request requires exactly the four existing lift outputs"
+  let images ← LiftImages.decode json outputs.size
   for output in outputs.extract 1 4 do discard <| TypedMap.decode output
   let baseTag ← base.getObjValAs? String "ctor"
   unless (baseTag == "arrow" || baseTag == "subobject") &&
       (← base.getObjVal? "args" >>= Json.getArr?).size == 3 do
     throw "a factor request requires its complete base subobject"
-  return {
+  return { images with
     lift
     action
     source

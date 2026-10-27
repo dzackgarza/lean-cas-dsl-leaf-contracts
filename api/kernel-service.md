@@ -87,7 +87,7 @@ resolution.
 | Cartesian reindex maps | Registered family action, original base morphism, full parameters and receiver. |
 | Presentation comparisons | Selected comparison, direction, complete parameters, actual endpoints and original point data. |
 | Ordinary limits and colimits | Full registered diagram constructor and ordered defining maps; complete declared construction result data. |
-| Prescribed lift fields and factors | Selected lift/evidence parameters, complete source/action/base data, prior actual outputs and defining/factor maps. |
+| Prescribed lift fields and factors | Selected lift/evidence parameters, complete source/action/base data, actual source and comparison images, prior actual outputs and defining/factor maps. |
 
 The [complete method request](wire-examples.md#complete-method-requests) keeps its
 whole selected computation visible. A node uses the existing method operation id
@@ -100,6 +100,17 @@ published shape fixes any formal Core wrapping without adding a wire wrapper.
 An explicitly admitted source-composite implementation owns its supplied residual
 actions. An unrelated target-category implementation receives their actual results
 through the shared executor.
+
+The top-level lift `sourceImage` and `comparisonImage` slots may contain the same
+typed service references as other operands. The kernel resolves each reference
+at the already selected image interface and retains that exact occurrence's
+session ownership. A prescribed `sourceImage` resolves to a complete transported
+Arrow; explicit-object and factor requests use an object image. `comparisonImage`
+is available from the forward field onward and in completed factor contexts.
+The selected action and existing outputs fix these formal roles before the data
+are read. These metadata slots preserve action outputs; they do not create new
+operations, supply inverse laws, or identify mathematical objects through JSON
+equality. Metadata-absent requests retain the documented legacy recipe framing.
 
 References inside those descriptor parameters are resolved with their original
 typed dependencies, just like references in the receiver. A kernel may explicitly

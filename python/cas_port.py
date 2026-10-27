@@ -511,6 +511,48 @@ def lift_parameters(args):
     return parameters
 
 
+def lift_images(args):
+    """Read (source_image, comparison_image) without identifying it with a recipe.
+
+    Both are absent for legacy recipe framing. In the explicit image form,
+    sourceImage is present at every stage and comparisonImage is present from
+    forward onward. A prescribed source image is a complete transported Arrow;
+    an explicit-object or factor source image is the actual image of X.
+    Completed liftStep records retain both fields. These are computational data,
+    not evidence that an action ran or that an output satisfies its laws.
+    """
+    if not isinstance(args, dict) or args.get("ctor") not in {
+            "liftInput", "monoLiftInput", "liftFactorInput", "liftStep"}:
+        raise ValueError("lift images require a declared lift envelope")
+    fields = args.get("args")
+    count = 7 if args["ctor"] == "liftFactorInput" else 5
+    if not isinstance(fields, list) or len(fields) != count:
+        raise ValueError("lift images require the complete ordered input fields")
+    outputs = fields[4]
+    if not isinstance(outputs, list):
+        raise ValueError("lift images require the ordered output prefix")
+    if args["ctor"] in {"liftStep", "liftFactorInput"}:
+        if len(outputs) != 4:
+            raise ValueError("a completed lift context requires four outputs")
+    elif len(outputs) > 3:
+        raise ValueError("a lift field request has at most three preceding outputs")
+    has_source = "sourceImage" in args
+    has_comparison = "comparisonImage" in args
+    if (has_source and args["sourceImage"] is None) or \
+            (has_comparison and args["comparisonImage"] is None):
+        raise ValueError("lift image metadata must contain data rather than null")
+    if has_comparison and not has_source:
+        raise ValueError("a comparison image requires the actual selected source image")
+    if has_source and has_comparison != (len(outputs) >= 2):
+        raise ValueError("the comparison image is required exactly from the forward stage onward")
+    if has_source and args["ctor"] in {"liftInput", "liftStep"}:
+        image = args["sourceImage"]
+        if not isinstance(image, dict) or image.get("ctor") != "arrow" or \
+                not isinstance(image.get("args"), list) or len(image["args"]) != 3:
+            raise ValueError("the prescribed source image requires its complete transported Arrow")
+    return args.get("sourceImage"), args.get("comparisonImage")
+
+
 def lift_input(args, operation):
     """Read a four-field lift request without inventing an original Arrow.
 
@@ -520,6 +562,7 @@ def lift_input(args, operation):
     registration and exactly four field operations. Framing is not monicity,
     inverse, factorization, universal or mathematical-correctness evidence.
     Use lift_parameters(args) for the separate ordered evidence-family data.
+    Use lift_images(args) for the explicit actual image metadata, when present.
     """
     if not isinstance(args, dict) or args.get("ctor") not in {"liftInput", "monoLiftInput"}:
         raise ValueError("a lift request requires its declared source context")
@@ -544,6 +587,7 @@ def lift_input(args, operation):
                 not isinstance(source.get("args"), list) or len(source["args"]) != 3:
             raise ValueError("the prescribed lift requires its complete original source Arrow")
     lift_parameters(args)
+    lift_images(args)
     return args["ctor"], lift_id, action, source, base, outputs
 
 
@@ -554,6 +598,7 @@ def lift_factor_input(args, operation):
     Endpoint laws belong to the independently selected formal factor and are
     tested by acceptance, never inferred from this framing validator.
     Use lift_parameters(args) for the same selection used by the four fields.
+    Use lift_images(args) for the retained actual source and comparison images.
     """
     if not isinstance(args, dict) or args.get("ctor") != "liftFactorInput":
         raise ValueError("a factor request requires its complete selected lift context")
@@ -574,6 +619,7 @@ def lift_factor_input(args, operation):
     typed_map(g)
     typed_map(f)
     lift_parameters(args)
+    lift_images(args)
     return lift_id, action, source, base, outputs, g, f
 
 

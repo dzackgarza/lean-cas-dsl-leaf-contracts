@@ -1356,6 +1356,47 @@ Use `cas_port.lift_parameters(request)` to read that list, and `lift_input` for 
 unchanged ordered request fields. New packets always include the list; only the
 historical `liftInput` spelling accepts its omission as an empty list.
 
+New executions also supply actual image metadata outside the ordered `args`.
+Every field request has `sourceImage`: for a prescribed `liftInput`, this is the
+complete Arrow returned by the selected induced Arrow action; for an explicit
+`monoLiftInput`, it is the actual object image `U(X)`. The `forward` and `backward`
+requests additionally have `comparisonImage`, the actual result of applying the
+selected `U` to the already returned object `O`. That field is absent at `obj`
+and `hom`, whose preceding output prefixes have length zero and one. The selected
+action is executed by the common runtime; a lift leaf consumes these image data
+at its declared port. It need not recreate an opaque image from a descriptor.
+
+For example, the forward request retains its original five ordered arguments:
+
+```python
+forward_request = {
+    "ctor": "liftInput",
+    "parameters": selected_parameters,
+    "sourceImage": transported_arrow,
+    "comparisonImage": actual_image_of_O,
+    "args": [lift_id, selected_action, original_arrow, base_subobject, [O, inclusion]],
+}
+kind, lift_id, action, source, base, earlier = lift_input(
+    forward_request, lift_id + "#forward")
+source_image, comparison_image = lift_images(forward_request)
+```
+
+`cas_port.lift_images` returns these two fields and checks their stage-dependent
+framing. Its first result contains both actual endpoints and the mapped callable
+for a prescribed source Arrow. Neither result establishes that an action was
+executed or that an answer is mathematically correct. Runtime validation compares
+them with the exact retained action outputs, including their separate session
+ownership. Standalone decoding checks the independently fixed interfaces and
+packet framing without asserting that execution history.
+
+Omitting both fields selects the explicitly supported legacy recipe form. Its
+image of an object is `functorAction(action, object)`, and its transported source
+Arrow uses those endpoint descriptors with `map(action, callable)`. A metadata
+field containing `null` is malformed, as are a comparison image without its
+source image, a premature comparison image, and a missing comparison image from
+`forward` onward in the new form. Consumers never choose between these formats
+by comparing packet bytes or guessing whether opaque data is a recipe.
+
 `liftInput` also retains the selected lift id, complete action, source Arrow and
 base subobject. The explicit-object variant is
 `monoLiftInput(liftId, action, X, subobject(K,U(X),i), earlierOutputs)` at the same
@@ -1363,11 +1404,18 @@ base subobject. The explicit-object variant is
 unrelated source Arrow. The public `lift_input` Python helper distinguishes the
 variants and returns their exact retained fields; it supplies no mathematical
 identification or proof. `X` is the source Arrow's source; `K` is the base subobject's apex.
-`U(O)` retains the actual `O` and full selected action. Each step receives the
+`U(O)` uses the supplied actual `comparisonImage` in the new form and retains the
+actual `O` and full selected action in the legacy recipe form. Each step receives the
 previous step's actual object and inclusion. Completed `liftedSubobject` stores
 all four outputs of every step. Each retained `liftStep` also has the same top-level
 `parameters` list as its four field requests, so evidence-family choices absent from
-the action parameters survive later result consumption. `createdCone` stores its selected lift, exact
+the action parameters survive later result consumption. New completed steps also
+retain both `sourceImage` and `comparisonImage`; the following forward-route
+stage uses the retained complete `sourceImage` as its source. The four outputs,
+their comparison endpoints and all image owners remain available to subsequent
+operations. A `liftFactorInput` may retain the same two metadata fields together,
+with actual object images `U(X)` and `U(O)`; its seven ordered arguments and
+separate factor port are unchanged. `createdCone` stores its selected lift, exact
 source diagram and complete computed target cone. No reply supplies a proof of
 monicity, inverse equations, commutation or universality.
 
