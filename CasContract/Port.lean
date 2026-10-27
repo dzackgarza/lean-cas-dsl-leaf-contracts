@@ -1025,8 +1025,9 @@ def LiftInput.decode (json : Json) (operation : String) : Except String LiftInpu
     | .error _ =>
         if tag == "liftInput" then pure #[]
         else throw "an explicit lift request requires its ordered selection parameters"
-  return { images with originalArrow := tag == "liftInput", lift, action, source, base,
-    outputs, parameters }
+  return { images with
+    originalArrow := tag == "liftInput"
+    lift, action, source, base, outputs, parameters }
 
 /-- The separate universal-factor request retains all four actual lift outputs
 and both input maps. The public record contains no proof or certificate field. -/
