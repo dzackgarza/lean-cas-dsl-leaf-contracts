@@ -124,9 +124,13 @@ gives their complete parameters and framing without requiring kernel source.
 An object's accepted `functorPresentation` retains its selected functor, argument,
 route and identification. The `objectField` selectors `presentation` and
 `inversePresentation` expose that identification's `hom` and `inv`, respectively,
-at the complete ordered object declaration parameters. These arrow descriptors
-add no operation or registration address; the declared identification owns their
-endpoints. [Object-field wire forms](wire-examples.md#registered-object-fields)
+at the complete ordered object declaration parameters. A named `refines` row
+also exposes `refinement` and `inverseRefinement`: the accepted maps from the
+complete structural image `U(X(p))` to the registered base `B(p)` and back.
+The original semantic object remains `U(X(p))` when `B(p)` supplies its data.
+These arrow descriptors add no operation or registration address; the declared
+identification owns their endpoints. Retaining a descriptor does not execute
+its map or establish a backend law. [Object-field wire forms](wire-examples.md#registered-object-fields)
 give the framing and its Python/Lean helpers.
 `categories`, `objects` and `functors` retain registered IDs and public declaration
 signatures. Categories also retain their complete category expressions and realizations.

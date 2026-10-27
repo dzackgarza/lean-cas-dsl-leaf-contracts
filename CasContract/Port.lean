@@ -151,13 +151,18 @@ inductive type; a leaf reads and writes exactly this, and nothing else:
   supplies operands and therefore describes an element expression instead of this arrow;
 * a map a registered object row declares as a field, its admission `inclusion` `D ↪ B`
   (`Mˣ ↪ M`), its `constants` `R → R[[t]]`, or either direction of its accepted
-  `functorPresentation`, is
+  `functorPresentation` or named `refines` comparison, is
   `{"ctor":"objectField","args":[<object id>,<field>,[<explicit parameters>]]}`; its endpoints are
   the ones the field's declaration gives at those parameters. The field `presentation`
   selects `functorPresentation.identification.hom`; `inversePresentation` selects its `inv`.
-  The identification is instantiated at the object's complete ordered declaration parameters,
-  retaining the registered functor, selected argument and structural route. The two directions
-  expose that actual comparison, not an identity inferred from equal carriers or endpoints;
+  The fields `refinement` and `inverseRefinement` select `refines.identification.hom` and
+  `refines.identification.inv`, respectively. If the named object is `X(p)`, its accepted
+  refinement route is `U`, and its registered base is `B(p)`, these maps have directions
+  `U(X(p)) → B(p)` and `B(p) → U(X(p))` in the route's target category.
+  Each identification is instantiated at the object's complete ordered declaration parameters,
+  retaining the registered functor, selected argument and structural route. These descriptors
+  retain the selected callable; forming one does not execute it or establish a backend law.
+  The semantic object remains `U(X(p))` when a computation uses the representation `B(p)`;
 * the mediator `⟨f, g⟩ : X → A × B` of two maps out of a domain other than `1` is
   `{"ctor":"mediator","args":[<f>,<g>]}`, each map in its morphism encoding; a mediator of two
   closed points may retain those two complete point arrows in the same mediator descriptor.
@@ -884,7 +889,9 @@ namespace CasCatalogue.Backend
 
 /-- A declared map field of a registered object, with its complete ordered parameters.
 Presentation fields select the accepted `ObjectEntry.functorPresentation` identification
-in the indicated direction. Framing does not establish the field or its endpoint types. -/
+in the indicated direction. Refinement fields select `ObjectEntry.refines.identification`
+from the full structural image to the registered base, or its inverse. Framing does not
+establish the field, its endpoint types, execution of the map, or a backend law. -/
 structure ObjectField where
   object : String
   field : String
@@ -902,7 +909,8 @@ def ObjectField.decode (json : Json) : Except String ObjectField := do
   let object ← object.getStr?
   if object.isEmpty then throw "an object field has no registered object id"
   let field ← field.getStr?
-  unless #["inclusion", "constants", "presentation", "inversePresentation"].contains field do
+  unless #["inclusion", "constants", "presentation", "inversePresentation",
+      "refinement", "inverseRefinement"].contains field do
     throw "an object field requires a published map field selector"
   return { object, field, parameters := ← parameters.getArr? }
 

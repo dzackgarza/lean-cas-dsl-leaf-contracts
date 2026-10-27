@@ -302,6 +302,30 @@ parameter is retained in order. The kernel instantiates the actual registered
 functor, argument, route and identification; a shared carrier or matching endpoint
 does not supply a comparison. The selected object must publish the requested field.
 
+For a named refinement, let `X(parameters)` be the selected object, `U` the
+accepted structural route, and `B(parameters)` the base object published in the
+same row's `refines` metadata. Its already accepted identification has type
+`U(X(parameters)) ≅ B(parameters)`. The two directions use the same envelope:
+
+```python
+forward = node("objectField", object_id, "refinement", declaration_parameters)
+backward = node("objectField", object_id, "inverseRefinement", declaration_parameters)
+```
+
+`refinement` is its `hom`, from the full image `U(X(parameters))` to the named
+base `B(parameters)`; `inverseRefinement` is its `inv`, in the opposite
+direction. Their category is the structural route's target category, which may
+differ from the category containing `X`. Parameters retain their original
+positions and actual data, including owned object or map parameters. These
+selectors remain distinct from `presentation` and `inversePresentation` when
+an object publishes both kinds of comparison.
+
+A computation may receive the data representation `B(parameters)` while its
+semantic receiver remains `U(X(parameters))`. The kernel retains both exact
+endpoint occurrences and both callable directions for later map/point framing.
+The accepted identification fixes mathematical meaning; the descriptor alone
+does not say that a backend has executed either map or that its output is correct.
+
 These are arrow descriptors and may occur in `map`, `compose`, `point`, or a
 declared callable's complete `apply` request. They introduce no new operation or
 registration address. `object_field` and `Backend.ObjectField` check the three-field

@@ -12,8 +12,10 @@ def object_field(args):
     """Read (object id, map field, ordered declaration parameters).
 
     presentation and inversePresentation select the accepted functorPresentation
-    identification's hom and inv. The formal caller fixes the field and complete
-    endpoints; this helper establishes framing only, not an identity or map law.
+    identification's hom and inv. refinement and inverseRefinement select the
+    accepted refines identification from the full structural image to its named
+    base, or its inverse. The formal caller fixes the field and complete endpoints;
+    this helper establishes framing only, not execution, an identity or a map law.
     """
     if not isinstance(args, dict) or args.get("ctor") != "objectField":
         raise ValueError("an object field requires the objectField envelope")
@@ -22,7 +24,10 @@ def object_field(args):
         raise ValueError("an object field requires its object id, field and ordered parameters")
     if not isinstance(fields[0], str) or not fields[0]:
         raise ValueError("an object field has no registered object id")
-    if fields[1] not in ("inclusion", "constants", "presentation", "inversePresentation"):
+    if fields[1] not in (
+        "inclusion", "constants", "presentation", "inversePresentation",
+        "refinement", "inverseRefinement",
+    ):
         raise ValueError("an object field requires a published map field selector")
     if not isinstance(fields[2], list):
         raise ValueError("object field parameters must be ordered data")
