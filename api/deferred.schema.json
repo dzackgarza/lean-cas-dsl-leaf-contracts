@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Deferred computation service reply value",
+  "description": "Computational framing only. Node references additionally require dynamic backward-index checks. Published operation admission, complete request/result types, parameters, endpoints and live owners are checked by the kernel.",
+  "type": "object",
+  "required": ["ctor", "args"],
+  "additionalProperties": false,
+  "properties": {
+    "ctor": {"const": "deferredData"},
+    "args": {
+      "type": "array",
+      "prefixItems": [
+        {"type": "array", "items": {"$ref": "#/$defs/call"}},
+        {"$ref": "#/$defs/template"}
+      ],
+      "minItems": 2,
+      "maxItems": 2
+    }
+  },
+  "$defs": {
+    "call": {
+      "type": "object",
+      "required": ["op", "input", "args"],
+      "additionalProperties": false,
+      "properties": {
+        "op": {"type": "string", "minLength": 1},
+        "input": {"type": "string", "minLength": 1},
+        "args": {"$ref": "#/$defs/template"}
+      }
+    },
+    "reference": {
+      "type": "object",
+      "required": ["ctor", "args"],
+      "additionalProperties": false,
+      "properties": {
+        "ctor": {"const": "resultRef"},
+        "args": {
+          "type": "array",
+          "prefixItems": [{"type": "integer", "minimum": 0}],
+          "minItems": 1,
+          "maxItems": 1
+        }
+      }
+    },
+    "inputReference": {
+      "type": "object",
+      "required": ["ctor", "args"],
+      "additionalProperties": false,
+      "properties": {
+        "ctor": {"const": "inputRef"},
+        "args": {
+          "type": "array",
+          "prefixItems": [{
+            "type": "array",
+            "items": {"anyOf": [
+              {"type": "string"},
+              {"type": "integer", "minimum": 0}
+            ]}
+          }],
+          "minItems": 1,
+          "maxItems": 1
+        }
+      }
+    },
+    "template": {
+      "anyOf": [
+        {"type": ["null", "boolean", "number", "string"]},
+        {"type": "array", "items": {"$ref": "#/$defs/template"}},
+        {
+          "type": "object",
+          "not": {
+            "required": ["ctor"],
+            "properties": {"ctor": {"enum": ["resultRef", "inputRef", "deferredData"]}}
+          },
+          "additionalProperties": {"$ref": "#/$defs/template"}
+        },
+        {"$ref": "#/$defs/reference"},
+        {"$ref": "#/$defs/inputReference"}
+      ]
+    }
+  }
+}

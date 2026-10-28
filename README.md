@@ -44,6 +44,8 @@ of the kernel.
 
 The [declared API reference](api/README.md) publishes the complete registered declaration
 signatures, computational port addresses and generic wire-shape references.
+The [manifest reference](api/manifest.md) specifies every backend command and registration
+field, defaults, process paths and matching behavior.
 
 Module roots: `CasContract.*` (namespaces `CasCatalogue`, shared with the kernel). The Python
 reference implementation of the port protocol is `python/cas_port.py`; the kernel puts it on every
@@ -52,3 +54,9 @@ program's `PYTHONPATH`.
 Every `require` tracks `main`. `just test-ci` builds on Mathlib's prebuilt cache and runs the
 kernel-axiom audit of this repository's own code (`AxiomAudit.lean`); the commit and push tiers
 compile nothing.
+
+The committed Lake manifest records the exact dependency revisions used by this
+source candidate. Use that lock when reproducing its build; `lake update` selects
+new dependency revisions and is a new integration. The declaration snapshot
+records the committed sources that produced it, separately from the later commit
+publishing that snapshot; see [API provenance](api/README.md).

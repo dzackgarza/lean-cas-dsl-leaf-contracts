@@ -84,6 +84,7 @@ def arrayField (j : Json) (k : String) : Except String (Array Json) :=
 
 /-- Read a manifest from its JSON. Fields other than the ones above are ignored. -/
 def parse (j : Json) : Except String Manifest := do
+  let .obj _ := j | throw "a leaf manifest must be a JSON object"
   let backends ← (← arrayField j "backends").mapM backendOf
   let registrations ← (← arrayField j "registrations").mapM registrationOf
   return { backends, registrations }
