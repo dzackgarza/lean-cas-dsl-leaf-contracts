@@ -51,7 +51,10 @@ These are computational control forms, interpreted only within a service reply. 
 mathematical constructors and do not reach a target consumer as recipes. A called implementation
 may itself return a deferred reply; the same shared service interprets it in its own reference
 scope before completing that node. A literal nested `deferredData` in a template is malformed.
-Only ordinary published data constructors and scoped `resultRef` occur in templates.
+Templates contain ordinary published data constructors, scoped `resultRef`, and
+`inputRef` paths to complete typed input occurrences retained by the original caller.
+An input reference uses string field names and natural array indices; it never
+chooses an occurrence by comparing packets or occupies a result index.
 
 The service permits published constructors and operations across the existing operation families,
 not merely replay of the current functor action. Every family retains its existing full request
@@ -1593,6 +1596,31 @@ def resultRefIndex? (json : Json) : Except String (Option Nat) := do
     | throw "a result reference requires exactly one node index"
   return some (← index.getNat?)
 
+/-- A position in the original complete public request. It selects an input
+occurrence retained by the caller, never a value found by comparing data. -/
+inductive InputPathStep where
+  | field (name : String)
+  | index (position : Nat)
+  deriving BEq, Inhabited, Repr
+
+def inputRef (path : Array InputPathStep) : Json :=
+  Json.mkObj [("ctor", toJson "inputRef"), ("args", Json.arr #[Json.arr
+    (path.map fun step => match step with
+      | .field name => toJson name
+      | .index position => toJson position)])]
+
+/-- The path grammar does not authorize a projection. The caller must have
+retained that exact complete typed input position in this request. -/
+def inputRefPath? (json : Json) : Except String (Option (Array InputPathStep)) := do
+  if (json.getObjValAs? String "ctor").toOption != some "inputRef" then return none
+  checkServiceFields #["ctor", "args"] json
+  let #[path] ← (← json.getObjVal? "args").getArr?
+    | throw "an input reference requires exactly one request path"
+  let path ← (← path.getArr?).mapM fun step => do
+    if let .str name := step then return InputPathStep.field name
+    return InputPathStep.index (← step.getNat?)
+  return some path
+
 /-- Check reference scope throughout a request/result template. This function does
 not substitute JSON for typed results or decide any operation's result interface. -/
 partial def validateResultRefs (bound : Nat) (json : Json) : Except String Unit := do
@@ -1601,6 +1629,7 @@ partial def validateResultRefs (bound : Nat) (json : Json) : Except String Unit 
   if let some index ← resultRefIndex? json then
     unless index < bound do throw "a result reference is self, forward or outside its program"
     return
+  if (← inputRefPath? json).isSome then return
   match json with
   | .arr values => for value in values do validateResultRefs bound value
   | .obj fields => for (_, value) in fields.toList do validateResultRefs bound value

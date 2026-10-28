@@ -5,7 +5,7 @@ choosing their implementations. It returns a deferred program directly as the
 normal successful reply's `value`. The shared kernel service interprets that
 program before ordinary computational result decoding.
 
-`deferredData` and `resultRef` are computational control forms. They create no
+`deferredData`, `resultRef` and `inputRef` are computational control forms. They create no
 mathematical constructor, operation, category, equality or proof. The formal
 question remains fixed independently of the program and its results.
 
@@ -140,6 +140,27 @@ declaration-to-invocation path remains kernel work. A missing native implementat
 remains a computational gap. Neither changes mathematical availability.
 
 ## Typed dependencies and exact endpoints
+
+`input_ref(path)` refers to a caller-retained input occurrence at an exact path
+in the original complete request. String steps select object fields and natural
+indices select array positions. For example, `input_ref(["args", 2])` denotes
+the original source slot of a lift request, and
+`input_ref(["args", 4, 0])` denotes its first preceding output. The wire form is
+`{"ctor":"inputRef","args":[["args",2]]}`. This uses a separate scope from
+the zero-based result indices below; no input occupies a result index.
+
+Only complete typed positions explicitly retained by the request producer are
+available. The kernel rejects absent paths, changed complete types, and expired
+owners. Arbitrary byte projections and a copied packet do not recover a retained
+input. Input references may be used in call arguments and the final result
+template wherever the independently fixed complete type permits them. Their
+actual supplying session and dependent fields follow the retained occurrence.
+
+For lift requests with positioned inputs, the source, base, selected action,
+declared parameter leaves, preceding outputs, and supplied image slots have
+their public request paths. The complete source/base and typed-map envelopes
+also retain their declared endpoint positions. These references identify the
+original inputs; they do not establish laws about their computed values.
 
 Nodes are indexed from zero in array order. A call can reference only earlier
 nodes; the final result template may reference any completed node. References can

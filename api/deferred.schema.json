@@ -42,6 +42,26 @@
         }
       }
     },
+    "inputReference": {
+      "type": "object",
+      "required": ["ctor", "args"],
+      "additionalProperties": false,
+      "properties": {
+        "ctor": {"const": "inputRef"},
+        "args": {
+          "type": "array",
+          "prefixItems": [{
+            "type": "array",
+            "items": {"anyOf": [
+              {"type": "string"},
+              {"type": "integer", "minimum": 0}
+            ]}
+          }],
+          "minItems": 1,
+          "maxItems": 1
+        }
+      }
+    },
     "template": {
       "anyOf": [
         {"type": ["null", "boolean", "number", "string"]},
@@ -50,11 +70,12 @@
           "type": "object",
           "not": {
             "required": ["ctor"],
-            "properties": {"ctor": {"enum": ["resultRef", "deferredData"]}}
+            "properties": {"ctor": {"enum": ["resultRef", "inputRef", "deferredData"]}}
           },
           "additionalProperties": {"$ref": "#/$defs/template"}
         },
-        {"$ref": "#/$defs/reference"}
+        {"$ref": "#/$defs/reference"},
+        {"$ref": "#/$defs/inputReference"}
       ]
     }
   }

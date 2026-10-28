@@ -429,6 +429,32 @@ def result_ref_index(value):
     return fields[0]
 
 
+def input_ref(path):
+    """Reference an exact typed input position in the complete caller request.
+
+    String steps name object fields; natural-number steps index arrays. Only
+    positions retained by the caller are available. Equal packets at another
+    position do not supply that occurrence or its owner.
+    """
+    value = {"ctor": "inputRef", "args": [path]}
+    input_ref_path(value)
+    return value
+
+
+def input_ref_path(value):
+    """Read a request path, rejecting malformed reserved input-reference syntax."""
+    if not isinstance(value, dict) or value.get("ctor") != "inputRef":
+        return None
+    _service_fields(value, ("ctor", "args"))
+    fields = value["args"]
+    if not isinstance(fields, list) or len(fields) != 1 or not isinstance(fields[0], list):
+        raise ValueError("an input reference requires exactly one request path")
+    if any(not (isinstance(step, str) or type(step) is int and step >= 0)
+           for step in fields[0]):
+        raise ValueError("an input reference path requires field names or natural indices")
+    return fields[0]
+
+
 def validate_result_refs(bound, value):
     """Check nested reference scope without resolving data, types or live owners."""
     if type(bound) is not int or bound < 0:
@@ -439,6 +465,8 @@ def validate_result_refs(bound, value):
     if index is not None:
         if index >= bound:
             raise ValueError("a result reference is self, forward or outside its program")
+        return
+    if input_ref_path(value) is not None:
         return
     if isinstance(value, list):
         for item in value:
