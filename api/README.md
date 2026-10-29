@@ -7,6 +7,14 @@ parameterized signatures alongside the generic wire protocol in
 mathematical definition body, expected answer, or evidence of backend correctness. The kernel
 reads the upstream registry directly; it must not read this document to decide meaning.
 
+[`extension-ports.json`](extension-ports.json) publishes the default catalogue together
+with the six modules listed in its `provenance.additionalImports`, including finite
+orders, two-element subsets, integer square bounds, cyclic quotients and scalar/form
+extensions. To reproduce it, use the already built source revisions in its provenance
+with the exporter below, repeat `--import` for every listed module, and select a
+separate `--output` path. Its recorded revisions identify the producer checkouts;
+this publication supplies declaration metadata and admission addresses only.
+
 [Computational wire examples](wire-examples.md) supplies complete request/reply
 framing and parameter order, scalar and matrix forms, infinite subsets and
 callables, structured projections, lift fields, malformed cases and ownership.
