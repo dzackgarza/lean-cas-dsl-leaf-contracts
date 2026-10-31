@@ -1,5 +1,10 @@
 # Ground everything in INTENT.md (read before anything else)
 
+Use the [shared math container](https://github.com/dzackgarza/ai-review-ci/blob/main/SAGE-CONTAINER.md#use-the-image)
+(`ghcr.io/dzackgarza/sage:develop`) for Lean/elan, Sage with mypy, GAP,
+Julia/Oscar, Macaulay2, and Singular. The guide covers image pull/run commands,
+CI use, and the host launchers.
+
 [`INTENT.md`](INTENT.md) states the architecture these repositories exist to build: single semantic
 authority in `lean-categories`; a kernel that consumes mathematics and authors none; leaves that hold
 zero semantic authority and ship no mathematics; permanent, leaf-agnostic acceptance tests as the
