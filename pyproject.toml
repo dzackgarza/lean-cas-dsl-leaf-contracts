@@ -1,0 +1,7 @@
+[project]
+name = "cas-leaf-contracts"
+version = "0.2.0"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.14.3",
+]
