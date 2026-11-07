@@ -226,25 +226,43 @@ class _Gateway:
         self.request = request
         self.scope = scope
         self.bindings: dict[Proxy, dict[str, JsonValue]] = {}
-        self.allowed = _references(arguments)
+        self.arguments = _json.validate_json(_json.dump_json(arguments))
+        self.allowed = _references(self.arguments)
         self.exports: list[dict[str, JsonValue]] = []
+
+    def admits(self, reference: JsonValue) -> bool:
+        address = _reference(reference)
+        if address is None:
+            return False
+        if address[0] != "inputRef":
+            return reference in self.allowed
+        # The kernel additionally checks that this is a complete prepared typed position.
+        value = self.arguments
+        for step in address[1]:
+            if isinstance(step, str) and isinstance(value, dict) and step in value:
+                value = value[step]
+            elif type(step) is int and isinstance(value, list) and step < len(value):
+                value = value[step]
+            else:
+                return False
+        return True
 
     def reference(self, value: Proxy) -> dict[str, JsonValue]:
         if _active.get() is not self or value not in self.bindings:
             raise ValueError("the proxy is expired or was not retained by this continuation")
         # Return a copy: mutating caller data cannot rewrite the retained correspondence.
-        return _json.validate_python(self.bindings[value]).copy()
+        return _json.validate_json(_json.dump_json(self.bindings[value]))
 
     def proxy(self, reference: JsonValue) -> Proxy:
         address = _reference(reference)
-        if address is None or reference not in self.allowed:
+        if address is None or not self.admits(reference):
             raise ValueError("the proxy address was not supplied in this request scope")
         for value, existing in self.bindings.items():
             if _reference(existing) == address:
                 return value
         assert isinstance(reference, dict)
         value = Proxy()
-        self.bindings[value] = _json.validate_python(reference).copy()
+        self.bindings[value] = _json.validate_json(_json.dump_json(reference))
         return value
 
 
@@ -294,7 +312,7 @@ def _check_value(value: JsonValue, gateway: _Gateway, result_bound: int) -> None
             assert isinstance(index, int)
             if index >= result_bound:
                 raise ValueError("a result reference is self, forward or outside its group")
-        elif value not in gateway.allowed:
+        elif not gateway.admits(value):
             raise ValueError("a reply used a reference outside its active scope")
         return
     if isinstance(value, dict):
@@ -417,10 +435,11 @@ class _Session:
         request_id = frame.get("request_id")
         if type(request_id) is not int or request_id < 0:
             raise ValueError("a request requires a natural request_id")
+        if request_id <= self.last_request:
+            return {"request_id": request_id, "status": "error", "kind": "ValueError",
+                    "message": "request IDs must increase on this connection"}
+        self.last_request = request_id
         try:
-            if request_id <= self.last_request:
-                raise ValueError("request IDs must increase on this connection")
-            self.last_request = request_id
             operation = frame.get("op")
             if operation == "$cas.discard":
                 request = _Discard.model_validate(frame)
