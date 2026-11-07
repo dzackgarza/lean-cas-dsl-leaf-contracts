@@ -79,11 +79,14 @@ The optional `CAS_SAGE_PYTHON` and `CAS_GAP_PYTHON` selectors identify engine Py
 interpreters where configured by the host; the backend must explicitly use them
 if it launches an engine subprocess. They do not expand inside manifest strings.
 
-The process first writes the length-framed `ready` announcement described in
-[CasContract/Port.lean](../CasContract/Port.lean). It then reads requests and writes
-replies on the same live standard-input/standard-output connection. Standard
+The process first writes the length-framed v2 `ready` announcement described in
+[CasContract/Port.lean](../CasContract/Port.lean). It acknowledges the kernel's
+`hello` with the same `cas-computation/2` contract before computation starts.
+The [Python SDK](python-sdk.md) supplies this handshake and its declared runtime
+dependencies. The process then reads requests and writes replies on the same live
+standard-input/standard-output connection. Standard
 output contains protocol frames only; diagnostics can go to standard error.
-Announcement capabilities do not add registrations. A program is started when
+A program is started when
 an admitted registration first needs it, and its connection may own opaque data
 that later requests reuse.
 

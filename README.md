@@ -49,7 +49,9 @@ field, defaults, process paths and matching behavior.
 
 Module roots: `CasContract.*` (namespaces `CasCatalogue`, shared with the kernel). The Python
 reference implementation of the port protocol is `python/cas_port.py`; the kernel puts it on every
-program's `PYTHONPATH`.
+program's `PYTHONPATH`. The [Python SDK](api/python-sdk.md) specifies native v2
+startup, exports, scoped proxies and captured generator suspension. Its runtime
+dependencies are declared in `pyproject.toml` and locked in `uv.lock`.
 
 Every `require` tracks `main`. `just test-ci` builds on Mathlib's prebuilt cache and runs the
 kernel-axiom audit of this repository's own code (`AxiomAudit.lean`); the commit and push tiers

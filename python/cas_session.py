@@ -4,6 +4,9 @@ Framing reuses cas_port. Generator advancement and disposal use Python's native
 send/close contract: https://docs.python.org/3/reference/expressions.html#generator-iterator-methods
 The public control shapes are fixed by the kernel's computation contract; these
 records establish transport structure, never a mathematical result type or law.
+Strict models and cross-field validators reuse Pydantic's public model contract:
+https://docs.pydantic.dev/latest/concepts/strict_mode/
+https://docs.pydantic.dev/latest/concepts/validators/
 """
 
 from __future__ import annotations
