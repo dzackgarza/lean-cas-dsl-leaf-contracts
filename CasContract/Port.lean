@@ -1772,7 +1772,7 @@ structure ReadyV2 where
 
 /-- Exact public protocol-v2 announcement. Additional feature strings are diagnostic.
 Reference: cas-computation/2 negotiation; reuse the strict control-field parser above. -/
-def ReadyV2.decode (json : Json) : Except String ReadyV2 := do
+opaque ReadyV2.decode (json : Json) : Except String ReadyV2 := do
   checkServiceFields #["op", "protocol", "contract", "features", "backend", "backend_version"] json
   unless (← json.getObjValAs? String "op") == "ready" &&
       (← json.getObjValAs? Nat "protocol") == 2 &&
@@ -1796,11 +1796,11 @@ private def checkV2Contract (json : Json) : Except String Unit := do
       (← json.getObjValAs? String "contract") == "cas-computation/2" do
     throw "the negotiation does not name protocol cas-computation/2"
 
-def checkHelloV2 (json : Json) : Except String Unit := do
+opaque checkHelloV2 (json : Json) : Except String Unit := do
   checkServiceFields #["op", "protocol", "contract"] json
   checkV2Contract json
 
-def checkHelloV2Ack (json : Json) : Except String Unit := do
+opaque checkHelloV2Ack (json : Json) : Except String Unit := do
   checkServiceFields #["op", "status", "protocol", "contract"] json
   checkV2Contract json
   unless (← json.getObjValAs? String "status") == "ok" do
