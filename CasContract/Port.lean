@@ -1764,6 +1764,66 @@ def readyOf (j : Json) : Except PortError Ready := do
            capabilities := ← caps.mapM fun c => c.getStr?.mapError fun _ =>
              .protocol "a capability is not a string" }
 
+/-- Transport negotiation metadata; it cannot add a registration or select an owner. -/
+structure ReadyV2 where
+  private mk ::
+  backend : String
+  backendVersion : String
+
+/-- Exact public protocol-v2 announcement. Additional feature strings are diagnostic.
+Reference: cas-computation/2 negotiation; reuse the strict control-field parser above. -/
+def ReadyV2.decode (json : Json) : Except String ReadyV2 := do
+  checkServiceFields #["op", "protocol", "contract", "features", "backend", "backend_version"] json
+  unless (← json.getObjValAs? String "op") == "ready" &&
+      (← json.getObjValAs? Nat "protocol") == 2 &&
+      (← json.getObjValAs? String "contract") == "cas-computation/2" do
+    throw "the announcement does not name protocol cas-computation/2"
+  let features ← (← json.getObjVal? "features").getArr? >>= (·.mapM Json.getStr?)
+  unless #["scoped-values/2", "deferred/2", "suspend-resume/2"].all features.contains do
+    throw "the announcement lacks a required protocol-v2 feature"
+  return ⟨← json.getObjValAs? String "backend", ← json.getObjValAs? String "backend_version"⟩
+
+def helloV2 : Json := Json.mkObj [
+  ("op", .str "hello"), ("protocol", toJson (2 : Nat)), ("contract", .str "cas-computation/2")]
+
+def helloV2Ack : Json := Json.mkObj [
+  ("op", .str "hello"), ("status", .str "ok"),
+  ("protocol", toJson (2 : Nat)), ("contract", .str "cas-computation/2")]
+
+private def checkV2Contract (json : Json) : Except String Unit := do
+  unless (← json.getObjValAs? String "op") == "hello" &&
+      (← json.getObjValAs? Nat "protocol") == 2 &&
+      (← json.getObjValAs? String "contract") == "cas-computation/2" do
+    throw "the negotiation does not name protocol cas-computation/2"
+
+def checkHelloV2 (json : Json) : Except String Unit := do
+  checkServiceFields #["op", "protocol", "contract"] json
+  checkV2Contract json
+
+def checkHelloV2Ack (json : Json) : Except String Unit := do
+  checkServiceFields #["op", "status", "protocol", "contract"] json
+  checkV2Contract json
+  unless (← json.getObjValAs? String "status") == "ok" do
+    throw "the peer did not acknowledge protocol cas-computation/2"
+
+/-- Negotiate on the actual dedicated channels before a computational request.
+The process supervisor supplies deadlines and closes a failed connection.
+Reuse: readFrame/writeFrame preserve the released UTF-8 byte-length framing. -/
+def negotiateV2 (backend : String) (input output : IO.FS.Handle) : IO (Except PortError ReadyV2) := do
+  let incompatible := fun (reason : String) => PortError.unavailable backend
+    s!"incompatible_protocol: {reason}"
+  let .ok announcement ← readFrame output
+    | return .error (incompatible "no valid ready frame")
+  let .ok ready := ReadyV2.decode announcement
+    | return .error (incompatible "invalid protocol-v2 announcement")
+  try writeFrame input helloV2
+  catch error => return .error (incompatible s!"cannot send hello: {error}")
+  let .ok acknowledgement ← readFrame output
+    | return .error (incompatible "no valid hello acknowledgement")
+  match checkHelloV2Ack acknowledgement with
+  | .error reason => return .error (incompatible reason)
+  | .ok () => return .ok ready
+
 /-- Kill a program and reap it. Nothing it does on the way out is waited on or believed. -/
 def abort (child : IO.Process.Child Stdio) : IO Unit := do
   try child.kill catch _ => pure ()
