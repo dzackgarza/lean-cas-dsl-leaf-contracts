@@ -14,7 +14,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter, model_validator
 
-from cas_port import point_invocation, read_frame, write_frame
+from cas_port import point_invocation, read_frame, typed_map, write_frame
 
 __all__ = ["JsonValue", "Proxy", "Suspension", "export", "proxy", "serve", "suspend"]
 
@@ -53,6 +53,8 @@ class _Published(_Control):
 
     @model_validator(mode="after")
     def complete_invocation(self) -> _Published:
+        if set(self.args) != {"ctor", "args"}:
+            raise ValueError("a published invocation has unexpected or missing fields")
         point_invocation(self.args, self.operation)
         return self
 
@@ -86,6 +88,19 @@ class _InvokeExport(_Request):
     scope_id: Text
     token: Text
     context: Annotated[_Published | _Dependent, Field(discriminator="kind")]
+
+    @model_validator(mode="after")
+    def actual_callable(self) -> _InvokeExport:
+        if isinstance(self.context, _Published):
+            fields = self.context.args["args"]
+            assert isinstance(fields, list)
+            arrow = fields[2]
+            if not isinstance(arrow, dict) or set(arrow) != {"ctor", "args"}:
+                raise ValueError("a published invocation requires its complete typed arrow")
+            _, _, callable_data = typed_map(arrow)
+            if callable_data != {"ctor": "opaqueData", "args": [self.token]}:
+                raise ValueError("the invocation changed its actual native callable token")
+        return self
 
 
 class _Resume(_Request):

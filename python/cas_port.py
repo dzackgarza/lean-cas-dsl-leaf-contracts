@@ -7,11 +7,14 @@ language."""
 from __future__ import annotations
 
 import json
+import math
 import sys
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from cas_session import Handler
+
+type JsonValue = None | bool | int | float | str | list[JsonValue] | dict[str, JsonValue]
 
 
 def object_field(args):
@@ -801,6 +804,30 @@ def _read_exact(n):
     return buf
 
 
+def _json_object(pairs: list[tuple[str, JsonValue]]) -> dict[str, JsonValue]:
+    """Reject duplicate keys before a parser can erase their control-field identity.
+
+    Reference: https://docs.python.org/3/library/json.html#json.load, object_pairs_hook.
+    """
+    fields: dict[str, JsonValue] = {}
+    for key, value in pairs:
+        if key in fields:
+            raise ValueError("a JSON object repeats a field")
+        fields[key] = value
+    return fields
+
+
+def _json_float(spelling: str) -> float:
+    value = float(spelling)
+    if not math.isfinite(value):
+        raise ValueError("a JSON number must be finite")
+    return value
+
+
+def _json_constant(spelling: str) -> JsonValue:
+    raise ValueError("a JSON frame contains a nonstandard constant: " + spelling)
+
+
 def read_frame():
     """One frame, or None on clean EOF at a frame boundary."""
     line = b""
@@ -815,11 +842,15 @@ def read_frame():
         line += ch
     if not line or any(ch < ord("0") or ch > ord("9") for ch in line):
         raise ValueError("bad frame length %r" % line)
-    return json.loads(_read_exact(int(line)).decode("utf-8"))
+    value = json.loads(_read_exact(int(line)).decode("utf-8"), object_pairs_hook=_json_object,
+                       parse_constant=_json_constant, parse_float=_json_float)
+    if value is None:
+        raise ValueError("a command frame cannot be null")
+    return value
 
 
 def write_frame(obj):
-    payload = json.dumps(obj, separators=(",", ":")).encode("utf-8")
+    payload = json.dumps(obj, separators=(",", ":"), allow_nan=False).encode("utf-8")
     sys.stdout.buffer.write(str(len(payload)).encode("ascii") + b"\n" + payload)
     sys.stdout.buffer.flush()
 
