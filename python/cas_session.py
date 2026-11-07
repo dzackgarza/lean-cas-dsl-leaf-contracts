@@ -130,9 +130,11 @@ class _GraphCall(_Control):
     @model_validator(mode="after")
     def graph_arguments(self) -> _GraphCall:
         if self.op == "$cas.project":
-            _reference(_Project.model_validate(self.args).value)
+            reference = _Project.model_validate(self.args).value
         else:
-            _reference(_Apply.model_validate(self.args).value)
+            reference = _Apply.model_validate(self.args).value
+        if _reference(reference) is None:
+            raise ValueError("a graph control requires a public value reference")
         return self
 
 

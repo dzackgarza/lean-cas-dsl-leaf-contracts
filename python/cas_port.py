@@ -4,8 +4,14 @@ of UTF-8 JSON; stdout carries only frames, stderr is the program's log stream. T
 protocol, not backend programs: a leaf's program may use this module or speak the protocol in any
 language."""
 
+from __future__ import annotations
+
 import json
 import sys
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from cas_session import Handler
 
 
 def object_field(args):
@@ -818,29 +824,8 @@ def write_frame(obj):
     sys.stdout.buffer.flush()
 
 
-def serve(backend, backend_version, adapter_version, ops, protocol=1):
-    """Announce `ops` and answer requests until EOF.
+def serve(backend: str, backend_version: str, ops: dict[str, Handler]) -> None:
+    """Serve the native computation-v2 contract on the dedicated framed channel."""
+    from cas_session import serve as run_session
 
-    A handler may return deferred_data(...) directly. It is sent as the ordinary
-    successful reply value, then interpreted by the shared kernel service before
-    computational result decoding. There is no backend callback or local recipe
-    interpreter in this server.
-    """
-    write_frame({"op": "ready", "protocol": protocol, "backend": backend,
-                 "backend_version": backend_version, "adapter_version": adapter_version,
-                 "capabilities": sorted(ops)})
-    while True:
-        frame = read_frame()
-        if frame is None:
-            return
-        rid, op = frame.get("request_id"), frame.get("op")
-        if op not in ops:
-            write_frame({"request_id": rid, "status": "unsupported", "op": op})
-            continue
-        try:
-            if "args" not in frame:
-                raise ValueError("the request omitted its args field")
-            write_frame({"request_id": rid, "status": "ok", "value": ops[op](frame["args"])})
-        except Exception as exc:  # the caller decodes, and rejects, whatever comes back
-            write_frame({"request_id": rid, "status": "error", "kind": type(exc).__name__,
-                         "message": str(exc)})
+    run_session(backend, backend_version, ops)
