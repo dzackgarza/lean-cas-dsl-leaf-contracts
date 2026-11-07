@@ -90,6 +90,7 @@ class _InvokeExport(_Request):
     op: Literal["$cas.invoke_export"]
     scope_id: Text
     token: Text
+    captures: list[JsonValue]
     context: Annotated[_Published | _Dependent, Field(discriminator="kind")]
 
     @model_validator(mode="after")
@@ -225,7 +226,7 @@ type Handler = Callable[[JsonValue], JsonValue | Generator[Suspension, list[Prox
 
 
 class _Export:
-    def __init__(self, request: int, handler: Handler, captures: list[JsonValue]):
+    def __init__(self, request: int, handler: Handler, captures: tuple[Proxy, ...]):
         self.request = request
         self.handler = handler
         self.captures = captures
@@ -249,6 +250,7 @@ class _Gateway:
         self.arguments = _json.validate_json(_json.dump_json(arguments))
         self.allowed = _references(self.arguments)
         self.exports: list[dict[str, JsonValue]] = []
+        self.live = True
 
     def admits(self, reference: JsonValue) -> bool:
         address = _reference(reference)
@@ -268,7 +270,7 @@ class _Gateway:
         return True
 
     def reference(self, value: Proxy) -> dict[str, JsonValue]:
-        if _active.get() is not self or value not in self.bindings:
+        if not self.live or _active.get() is not self or value not in self.bindings:
             raise ValueError("the proxy is expired or was not retained by this continuation")
         # Return a copy: mutating caller data cannot rewrite the retained correspondence.
         return _json.validate_json(_json.dump_json(self.bindings[value]))
@@ -291,7 +293,7 @@ _active: ContextVar[_Gateway | None] = ContextVar("cas_computation_gateway", def
 
 def _current() -> _Gateway:
     gateway = _active.get()
-    if gateway is None:
+    if gateway is None or not gateway.live:
         raise ValueError("no computational request gateway is active")
     return gateway
 
@@ -307,7 +309,7 @@ def export(handler: Handler, captures: list[Proxy]) -> dict[str, JsonValue]:
     references = [value.reference() for value in captures]
     _unique(references)
     token = gateway.session.token("export")
-    gateway.session.exports[token] = _Export(gateway.request, handler, references)
+    gateway.session.exports[token] = _Export(gateway.request, handler, tuple(captures))
     gateway.exports.append({"token": token, "captures": references})
     return {"ctor": "opaqueData", "args": [token]}
 
@@ -423,6 +425,7 @@ class _Session:
                 return self.advance(gateway, result, None)
             return self.reply(gateway, _json.validate_python(result))
         finally:
+            gateway.live = False
             _active.reset(entered)
 
     def resume(self, request: _Resume) -> dict[str, JsonValue]:
@@ -444,6 +447,7 @@ class _Session:
             try:
                 return self.advance(gateway, retained.generator, results)
             finally:
+                gateway.live = False
                 _active.reset(entered)
         except Exception:
             retained.generator.close()
@@ -474,9 +478,15 @@ class _Session:
                 retained = self.exports.get(request.token)
                 if retained is None:
                     raise ValueError("the native export is absent or was discarded")
+                if request.captures != [_scope(index) for index in range(len(retained.captures))]:
+                    raise ValueError("invocation changed the exact export capture array")
                 arguments = _json.validate_python(request.context.model_dump(mode="json"))
-                return self.run_handler(
-                    _Gateway(self, request_id, request.scope_id, arguments), retained.handler, arguments)
+                gateway = _Gateway(self, request_id, request.scope_id, arguments)
+                gateway.allowed.extend(_references(request.captures))
+                for value, reference in zip(retained.captures, request.captures, strict=True):
+                    assert isinstance(reference, dict)
+                    gateway.bindings[value] = reference
+                return self.run_handler(gateway, retained.handler, arguments)
             request = _Invoke.model_validate(frame)
             handler = self.operations.get(request.op)
             if handler is None:
@@ -495,7 +505,7 @@ def serve(backend: str, backend_version: str, operations: dict[str, Handler]) ->
         raise ValueError("ready requires backend and version diagnostics")
     session = _Session(operations)
     write_frame({"op": "ready", "protocol": 2, "contract": "cas-computation/2",
-                 "features": ["scoped-values/2", "deferred/2", "suspend-resume/2"],
+                 "features": ["scoped-values/2", "deferred/2", "suspend-resume/2", "export-capture-frames/2"],
                  "backend": backend, "backend_version": backend_version})
     _Hello.model_validate(read_frame())
     write_frame({"op": "hello", "status": "ok", "protocol": 2, "contract": "cas-computation/2"})

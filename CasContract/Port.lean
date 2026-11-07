@@ -1779,7 +1779,7 @@ opaque ReadyV2.decode (json : Json) : Except String ReadyV2 := do
       (← json.getObjValAs? String "contract") == "cas-computation/2" do
     throw "the announcement does not name protocol cas-computation/2"
   let features ← (← json.getObjVal? "features").getArr? >>= (·.mapM Json.getStr?)
-  unless #["scoped-values/2", "deferred/2", "suspend-resume/2"].all features.contains do
+  unless #["scoped-values/2", "deferred/2", "suspend-resume/2", "export-capture-frames/2"].all features.contains do
     throw "the announcement lacks a required protocol-v2 feature"
   return ⟨← json.getObjValAs? String "backend", ← json.getObjValAs? String "backend_version"⟩
 

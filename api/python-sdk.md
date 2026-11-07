@@ -20,7 +20,7 @@ The process writes this frame before it reads an invocation:
 
 ```json
 {"op":"ready","protocol":2,"contract":"cas-computation/2",
- "features":["scoped-values/2","deferred/2","suspend-resume/2"],
+ "features":["scoped-values/2","deferred/2","suspend-resume/2","export-capture-frames/2"],
  "backend":"diagnostic name","backend_version":"diagnostic version"}
 ```
 
@@ -58,7 +58,10 @@ capture references to this response's `exports` array. The kernel retains their
 actual roles and owner dependencies.
 
 `$cas.invoke_export` has exactly `protocol`, `request_id`, `op`, `scope_id`,
-`token` and `context`. The SDK calls the handler stored at that token. The
+`token`, `captures` and `context`. The capture array is exactly
+`[scopeRef(0), ..., scopeRef(c-1)]` in the export's declared capture order.
+The invocation scope starts with those retained reference/role pairs; context
+slots follow them. The SDK calls the handler stored at that token. The
 handler receives the complete current context:
 
 - `kind:"published"` has `operation`, `input` and `args`. `args` is the complete
@@ -69,9 +72,12 @@ handler receives the complete current context:
   Arguments and argument layouts have the same arity. The kernel checks all
   remaining prepared layout and role associations before dispatch.
 
-Callbacks obtain current proxies from that invocation context. Proxy access
-requires its active gateway. A later handler cannot use a proxy from an old
-request merely because Python retained the object.
+Each invocation gateway binds the original declared proxy occurrences to its
+fresh capture slots. Repeated and nested invocations have separate binding maps.
+Proxy objects hold no mutable current address. The gateway expires on return,
+error or suspension, including in a copied Python context. An undeclared retained
+proxy has no binding. A suspension explicitly captures every proxy needed after
+resume from the current frame, in its new capture order.
 
 ## Generator suspension
 
