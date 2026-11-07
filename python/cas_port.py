@@ -486,6 +486,10 @@ def validate_result_refs(bound, value):
 
 
 def _deferred_call(call):
+    if isinstance(call, dict) and call.get("op") in ("$cas.project", "$cas.apply"):
+        from cas_session import _call
+
+        return _call(call)
     _service_fields(call, ("op", "input", "args"))
     if not isinstance(call["op"], str) or not call["op"] or \
             not isinstance(call["input"], str) or not call["input"]:
