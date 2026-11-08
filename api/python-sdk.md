@@ -14,6 +14,16 @@ in `uv.lock`. A provider can start with
 the declared SDK dependencies. The public packet helpers in `cas_port` retain
 the operation-specific input and output grammar.
 
+An ordinary handler can call `cas_session.request_input()` for its exact input
+address. Native-export handlers receive that address in their published context.
+`cas_session.ComputationError(kind, message)` preserves an external computation's
+error fields. `cas_session.UnsupportedOperation(operation)` reports the consumed
+operation as unsupported. Both failure paths revoke that request's new leases.
+
+`cas_port.read_frame(source)` and `write_frame(value, target)` also accept binary
+streams. Their default streams are standard input and standard output.
+The [explicit v1 bridge](v1-bridge.md) uses the same framing and SDK lease rules.
+
 ## Connection
 
 The process writes this frame before it reads an invocation:

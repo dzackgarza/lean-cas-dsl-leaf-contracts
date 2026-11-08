@@ -53,6 +53,10 @@ program's `PYTHONPATH`. The [Python SDK](api/python-sdk.md) specifies native v2
 startup, exports, scoped proxies and captured generator suspension. Its runtime
 dependencies are declared in `pyproject.toml` and locked in `uv.lock`.
 
+The [explicit v1 bridge](api/v1-bridge.md) prepares a separate execution manifest
+for unchanged v1 processes. It preserves the original commands and registration
+triples and uses the pinned legacy helper for the child.
+
 Every `require` tracks `main`. `just test-ci` builds on Mathlib's prebuilt cache and runs the
 kernel-axiom audit of this repository's own code (`AxiomAudit.lean`); the commit and push tiers
 compile nothing.
