@@ -3,6 +3,5 @@ name = "cas-leaf-contracts"
 version = "0.2.0"
 requires-python = ">=3.12"
 dependencies = [
-    "cyclopts>=5.4.0",
     "pydantic>=2.14.3",
 ]

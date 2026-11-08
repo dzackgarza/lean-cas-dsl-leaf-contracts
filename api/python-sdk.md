@@ -22,7 +22,6 @@ operation as unsupported. Both failure paths revoke that request's new leases.
 
 `cas_port.read_frame(source)` and `write_frame(value, target)` also accept binary
 streams. Their default streams are standard input and standard output.
-The [explicit v1 bridge](v1-bridge.md) uses the same framing and SDK lease rules.
 
 ## Connection
 
