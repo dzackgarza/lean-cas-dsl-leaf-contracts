@@ -19,7 +19,24 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter, model
 
 from cas_port import point_invocation, read_frame, typed_map, write_frame
 
-__all__ = ["JsonValue", "Proxy", "Suspension", "export", "proxy", "serve", "suspend"]
+__all__ = ["ComputationError", "JsonValue", "Proxy", "Suspension", "UnsupportedOperation",
+           "export", "proxy", "request_input", "serve", "suspend"]
+
+
+class ComputationError(Exception):
+    """Preserve an external computation's diagnostic kind and message."""
+
+    def __init__(self, kind: str, message: str) -> None:
+        super().__init__(message)
+        self.kind = kind
+
+
+class UnsupportedOperation(Exception):
+    """The consumed operation has no implementation through this process."""
+
+    def __init__(self, operation: str) -> None:
+        super().__init__(operation)
+        self.operation = operation
 
 _json = TypeAdapter(JsonValue, config=ConfigDict(allow_inf_nan=False))
 type Natural = Annotated[int, Field(strict=True, ge=0)]
@@ -242,10 +259,12 @@ class _Continuation:
 
 
 class _Gateway:
-    def __init__(self, session: _Session, request: int, scope: str, arguments: JsonValue):
+    def __init__(self, session: _Session, request: int, scope: str, arguments: JsonValue,
+                 input_form: str | None):
         self.session = session
         self.request = request
         self.scope = scope
+        self.input_form = input_form
         self.bindings: dict[Proxy, dict[str, JsonValue]] = {}
         self.arguments = _json.validate_json(_json.dump_json(arguments))
         self.allowed = _references(self.arguments)
@@ -301,6 +320,14 @@ def _current() -> _Gateway:
 def proxy(reference: JsonValue) -> Proxy:
     """Retain an explicitly supplied public reference, with no foreign-token decoding."""
     return _current().proxy(reference)
+
+
+def request_input() -> str:
+    """The exact input address of the active ordinary request."""
+    input_form = _current().input_form
+    if input_form is None:
+        raise ValueError("this invocation has no ordinary request input address")
+    return input_form
 
 
 def export(handler: Handler, captures: list[Proxy]) -> dict[str, JsonValue]:
@@ -438,7 +465,7 @@ class _Session:
                     request.results != [_scope(count + index) for index in range(retained.result_count)]:
                 raise ValueError("resume changed the exact capture/result arrays")
             gateway = _Gateway(self, request.request_id, request.scope_id,
-                               request.captures + request.results)
+                               request.captures + request.results, None)
             for value, reference in zip(retained.captures, request.captures, strict=True):
                 assert isinstance(reference, dict)
                 gateway.bindings[value] = reference
@@ -481,7 +508,7 @@ class _Session:
                 if request.captures != [_scope(index) for index in range(len(retained.captures))]:
                     raise ValueError("invocation changed the exact export capture array")
                 arguments = _json.validate_python(request.context.model_dump(mode="json"))
-                gateway = _Gateway(self, request_id, request.scope_id, arguments)
+                gateway = _Gateway(self, request_id, request.scope_id, arguments, None)
                 gateway.allowed.extend(_references(request.captures))
                 for value, reference in zip(retained.captures, request.captures, strict=True):
                     assert isinstance(reference, dict)
@@ -492,7 +519,15 @@ class _Session:
             if handler is None:
                 return {"request_id": request_id, "status": "unsupported", "op": request.op}
             return self.run_handler(
-                _Gateway(self, request_id, request.scope_id, request.args), handler, request.args)
+                _Gateway(self, request_id, request.scope_id, request.args, request.input),
+                handler, request.args)
+        except UnsupportedOperation as error:
+            self.dispose(request_id)
+            return {"request_id": request_id, "status": "unsupported", "op": error.operation}
+        except ComputationError as error:
+            self.dispose(request_id)
+            return {"request_id": request_id, "status": "error", "kind": error.kind,
+                    "message": str(error)}
         except Exception as error:
             self.dispose(request_id)
             return {"request_id": request_id, "status": "error", "kind": type(error).__name__,

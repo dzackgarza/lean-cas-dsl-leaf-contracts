@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import math
 import sys
-from typing import TYPE_CHECKING
+from typing import IO, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from cas_session import Handler
@@ -798,10 +798,10 @@ def opaque_data(token):
     return {"ctor": "opaqueData", "args": [token]}
 
 
-def _read_exact(n):
+def _read_exact(n: int, source: IO[bytes]) -> bytes:
     buf = b""
     while len(buf) < n:
-        chunk = sys.stdin.buffer.read(n - len(buf))
+        chunk = source.read(n - len(buf))
         if not chunk:
             raise EOFError("EOF mid-frame (wanted %d bytes, got %d)" % (n, len(buf)))
         buf += chunk
@@ -832,11 +832,12 @@ def _json_constant(spelling: str) -> JsonValue:
     raise ValueError("a JSON frame contains a nonstandard constant: " + spelling)
 
 
-def read_frame():
+def read_frame(source: IO[bytes] | None = None) -> JsonValue:
     """One frame, or None on clean EOF at a frame boundary."""
+    source = sys.stdin.buffer if source is None else source
     line = b""
     while True:
-        ch = sys.stdin.buffer.read(1)
+        ch = source.read(1)
         if not ch:
             if line:
                 raise EOFError("EOF inside frame length %r" % line)
@@ -846,17 +847,18 @@ def read_frame():
         line += ch
     if not line or any(ch < ord("0") or ch > ord("9") for ch in line):
         raise ValueError("bad frame length %r" % line)
-    value = json.loads(_read_exact(int(line)).decode("utf-8"), object_pairs_hook=_json_object,
+    value = json.loads(_read_exact(int(line), source).decode("utf-8"), object_pairs_hook=_json_object,
                        parse_constant=_json_constant, parse_float=_json_float)
     if value is None:
         raise ValueError("a command frame cannot be null")
     return value
 
 
-def write_frame(obj):
+def write_frame(obj: JsonValue, target: IO[bytes] | None = None) -> None:
+    target = sys.stdout.buffer if target is None else target
     payload = json.dumps(obj, separators=(",", ":"), allow_nan=False).encode("utf-8")
-    sys.stdout.buffer.write(str(len(payload)).encode("ascii") + b"\n" + payload)
-    sys.stdout.buffer.flush()
+    target.write(str(len(payload)).encode("ascii") + b"\n" + payload)
+    target.flush()
 
 
 def serve(backend: str, backend_version: str, ops: dict[str, Handler]) -> None:
