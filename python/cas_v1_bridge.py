@@ -19,10 +19,12 @@ import hashlib
 import os
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import sys
 from threading import Event, Thread
-from typing import Annotated, Literal
+from types import FrameType
+from typing import Annotated, Literal, Never
 from weakref import WeakValueDictionary
 
 from cyclopts import App
@@ -374,10 +376,17 @@ class Bridge:
         return self.result(reply.value, retained)
 
 
+def terminate(signum: int, _frame: FrameType | None) -> Never:
+    # Enter the existing child cleanup on connection retirement.
+    # Reference: https://docs.python.org/3/library/signal.html#signal.signal.
+    raise SystemExit(128 + signum)
+
+
 def launch(options: Launch) -> None:
     descriptor = LaunchDescriptor.model_validate_json(options.legacy_command_json.read_bytes())
     bridge = Bridge(descriptor)
     try:
+        signal.signal(signal.SIGTERM, terminate)
         ready = Ready.model_validate(bridge.read())
         if len(ready.capabilities) != len(set(ready.capabilities)):
             raise ValueError("the original child repeats a capability")
