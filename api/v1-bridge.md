@@ -30,6 +30,7 @@ Each descriptor has format `cas-v1-command/1` and records:
 | --- | --- |
 | `backend` | Original name, executable spelling and ordered argument vector |
 | `manifest` | Original absolute manifest path and SHA-256 |
+| `launcher` | Resolved Python executable path and SHA-256 |
 | `inputs` | Executable and existing file arguments, with paths and SHA-256 |
 | `runtime` | Bridge, framing helper and native SDK source receipts |
 | `legacy` | Pinned legacy root, revision and helper receipt |
@@ -41,6 +42,19 @@ Launch checks the receipts and compares the backend with the original manifest.
 The caller records the execution manifest and descriptor hashes with its source
 repository identities. Imported backend modules and engine installations remain
 part of that caller's source/environment freeze.
+
+Verify a prepared manifest before freezing a run:
+
+```bash
+uv run --frozen --project "$CAS_CONTRACT_ROOT" python \
+  "$CAS_CONTRACT_ROOT/python/cas_v1_bridge.py" \
+  --manifest "$ORIGINAL_LEAVES" \
+  --execution-manifest "$RUN_DIRECTORY/legacy-v2/leaves.json"
+```
+
+Verification checks the ordered registrations, backend identities, wrapper
+commands and descriptor receipts. It emits a `cas-v1-execution/1` JSON receipt
+with source paths and hashes. Runners retain these guards through execution.
 
 The child receives the recorded command vector and cwd. Its environment retains
 the recorded values, with `CAS_LEAF_CONTRACT_PATH` set to the pinned legacy root

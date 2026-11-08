@@ -107,6 +107,7 @@ class LaunchDescriptor(Record):
     format: Literal["cas-v1-command/1"]
     backend: Backend
     manifest: FileReceipt
+    launcher: FileReceipt
     inputs: list[FileReceipt]
     runtime: list[FileReceipt]
     legacy: LegacyContract
@@ -115,6 +116,7 @@ class LaunchDescriptor(Record):
 
     def verify(self) -> None:
         self.manifest.verify()
+        self.launcher.verify()
         self.legacy.verify()
         for receipt in self.inputs + self.runtime:
             receipt.verify()
@@ -135,6 +137,50 @@ class Preparation(Record):
 
 class Launch(Record):
     legacy_command_json: Path
+
+
+class Verification(Record):
+    manifest: Path
+    execution_manifest: Path
+
+
+class ExecutionReceipt(Record):
+    format: Literal["cas-v1-execution/1"]
+    guards: list[FileReceipt]
+
+
+def verify_execution(options: Verification) -> None:
+    original = FileReceipt.read(options.manifest)
+    translated = FileReceipt.read(options.execution_manifest)
+    source = Manifest.model_validate_json(original.path.read_bytes())
+    execution = Manifest.model_validate_json(translated.path.read_bytes())
+    if source.registrations != execution.registrations:
+        raise ValueError("the execution manifest changed the original registrations")
+    names = [backend.name for backend in source.backends]
+    if len(names) != len(set(names)) or names != [backend.name for backend in execution.backends]:
+        raise ValueError("the execution manifest changed the original backend identities")
+    guards = [original, translated]
+    for backend, wrapper in zip(source.backends, execution.backends, strict=True):
+        if len(wrapper.args) != 3:
+            raise ValueError("the execution backend has an invalid wrapper command")
+        descriptor_path = Path(wrapper.args[2])
+        if not descriptor_path.is_absolute():
+            raise ValueError("the launch descriptor path must be absolute")
+        receipt = FileReceipt.read(descriptor_path)
+        descriptor = LaunchDescriptor.model_validate_json(receipt.path.read_bytes())
+        descriptor.verify()
+        if descriptor.manifest != original or descriptor.backend != backend:
+            raise ValueError("the execution descriptor changed its original backend")
+        if (not Path(wrapper.command).is_absolute()
+                or Path(wrapper.command).resolve(strict=True) != descriptor.launcher.path
+                or wrapper.args != [str(ROOT / "python/cas_v1_bridge.py"),
+                                    "--legacy-command-json", str(descriptor_path)]):
+            raise ValueError("the execution backend changed its exact wrapper command")
+        guards.extend([receipt, descriptor.launcher, descriptor.legacy.helper,
+                       *descriptor.inputs, *descriptor.runtime])
+    unique = {receipt.path: receipt for receipt in guards}
+    print(ExecutionReceipt(format="cas-v1-execution/1",
+                           guards=[unique[path] for path in sorted(unique)]).model_dump_json())
 
 
 def write_new(path: Path, model: BaseModel) -> None:
@@ -175,6 +221,7 @@ def prepare(options: Preparation) -> None:
         descriptor_path = output.parent / f"backend-{index}.json"
         descriptor = LaunchDescriptor(
             format="cas-v1-command/1", backend=backend, manifest=original,
+            launcher=FileReceipt.read(Path(sys.executable)),
             inputs=inputs, runtime=runtime, legacy=legacy,
             cwd=original.path.parent, environment=environment,
         )
@@ -402,17 +449,21 @@ app = App()
 
 @app.default
 def main(*, manifest: Path | None = None, legacy_contract: Path | None = None,
-         output_manifest: Path | None = None, legacy_command_json: Path | None = None) -> None:
+         output_manifest: Path | None = None, legacy_command_json: Path | None = None,
+         execution_manifest: Path | None = None) -> None:
     """Prepare an external execution manifest or launch its exact original child."""
     values = {key: value for key, value in {
         "manifest": manifest, "legacy_contract": legacy_contract,
         "output_manifest": output_manifest, "legacy_command_json": legacy_command_json,
+        "execution_manifest": execution_manifest,
     }.items() if value is not None}
-    options = TypeAdapter(Preparation | Launch).validate_python(values)
+    options = TypeAdapter(Preparation | Launch | Verification).validate_python(values)
     if isinstance(options, Preparation):
         prepare(options)
-    else:
+    elif isinstance(options, Launch):
         launch(options)
+    else:
+        verify_execution(options)
 
 
 if __name__ == "__main__":
