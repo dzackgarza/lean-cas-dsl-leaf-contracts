@@ -4,8 +4,17 @@ of UTF-8 JSON; stdout carries only frames, stderr is the program's log stream. T
 protocol, not backend programs: a leaf's program may use this module or speak the protocol in any
 language."""
 
+from __future__ import annotations
+
 import json
+import math
 import sys
+from typing import IO, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from cas_session import Handler
+
+type JsonValue = None | bool | int | float | str | list[JsonValue] | dict[str, JsonValue]
 
 
 def object_field(args):
@@ -477,6 +486,10 @@ def validate_result_refs(bound, value):
 
 
 def _deferred_call(call):
+    if isinstance(call, dict) and call.get("op") in ("$cas.project", "$cas.apply"):
+        from cas_session import _call
+
+        return _call(call)
     _service_fields(call, ("op", "input", "args"))
     if not isinstance(call["op"], str) or not call["op"] or \
             not isinstance(call["input"], str) or not call["input"]:
@@ -785,21 +798,46 @@ def opaque_data(token):
     return {"ctor": "opaqueData", "args": [token]}
 
 
-def _read_exact(n):
+def _read_exact(n: int, source: IO[bytes]) -> bytes:
     buf = b""
     while len(buf) < n:
-        chunk = sys.stdin.buffer.read(n - len(buf))
+        chunk = source.read(n - len(buf))
         if not chunk:
             raise EOFError("EOF mid-frame (wanted %d bytes, got %d)" % (n, len(buf)))
         buf += chunk
     return buf
 
 
-def read_frame():
+def _json_object(pairs: list[tuple[str, JsonValue]]) -> dict[str, JsonValue]:
+    """Reject duplicate keys before a parser can erase their control-field identity.
+
+    Reference: https://docs.python.org/3/library/json.html#json.load, object_pairs_hook.
+    """
+    fields: dict[str, JsonValue] = {}
+    for key, value in pairs:
+        if key in fields:
+            raise ValueError("a JSON object repeats a field")
+        fields[key] = value
+    return fields
+
+
+def _json_float(spelling: str) -> float:
+    value = float(spelling)
+    if not math.isfinite(value):
+        raise ValueError("a JSON number must be finite")
+    return value
+
+
+def _json_constant(spelling: str) -> JsonValue:
+    raise ValueError("a JSON frame contains a nonstandard constant: " + spelling)
+
+
+def read_frame(source: IO[bytes] | None = None) -> JsonValue:
     """One frame, or None on clean EOF at a frame boundary."""
+    source = sys.stdin.buffer if source is None else source
     line = b""
     while True:
-        ch = sys.stdin.buffer.read(1)
+        ch = source.read(1)
         if not ch:
             if line:
                 raise EOFError("EOF inside frame length %r" % line)
@@ -809,38 +847,22 @@ def read_frame():
         line += ch
     if not line or any(ch < ord("0") or ch > ord("9") for ch in line):
         raise ValueError("bad frame length %r" % line)
-    return json.loads(_read_exact(int(line)).decode("utf-8"))
+    value = json.loads(_read_exact(int(line), source).decode("utf-8"), object_pairs_hook=_json_object,
+                       parse_constant=_json_constant, parse_float=_json_float)
+    if value is None:
+        raise ValueError("a command frame cannot be null")
+    return value
 
 
-def write_frame(obj):
-    payload = json.dumps(obj, separators=(",", ":")).encode("utf-8")
-    sys.stdout.buffer.write(str(len(payload)).encode("ascii") + b"\n" + payload)
-    sys.stdout.buffer.flush()
+def write_frame(obj: JsonValue, target: IO[bytes] | None = None) -> None:
+    target = sys.stdout.buffer if target is None else target
+    payload = json.dumps(obj, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    target.write(str(len(payload)).encode("ascii") + b"\n" + payload)
+    target.flush()
 
 
-def serve(backend, backend_version, adapter_version, ops, protocol=1):
-    """Announce `ops` and answer requests until EOF.
+def serve(backend: str, backend_version: str, ops: dict[str, Handler]) -> None:
+    """Serve the native computation-v2 contract on the dedicated framed channel."""
+    from cas_session import serve as run_session
 
-    A handler may return deferred_data(...) directly. It is sent as the ordinary
-    successful reply value, then interpreted by the shared kernel service before
-    computational result decoding. There is no backend callback or local recipe
-    interpreter in this server.
-    """
-    write_frame({"op": "ready", "protocol": protocol, "backend": backend,
-                 "backend_version": backend_version, "adapter_version": adapter_version,
-                 "capabilities": sorted(ops)})
-    while True:
-        frame = read_frame()
-        if frame is None:
-            return
-        rid, op = frame.get("request_id"), frame.get("op")
-        if op not in ops:
-            write_frame({"request_id": rid, "status": "unsupported", "op": op})
-            continue
-        try:
-            if "args" not in frame:
-                raise ValueError("the request omitted its args field")
-            write_frame({"request_id": rid, "status": "ok", "value": ops[op](frame["args"])})
-        except Exception as exc:  # the caller decodes, and rejects, whatever comes back
-            write_frame({"request_id": rid, "status": "error", "kind": type(exc).__name__,
-                         "message": str(exc)})
+    run_session(backend, backend_version, ops)

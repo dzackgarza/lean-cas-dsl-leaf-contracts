@@ -1,5 +1,8 @@
 # Kernel-mediated computational services
 
+The [native Python SDK](python-sdk.md) specifies v2 negotiation, scoped graph
+calls, native exports and adaptive generator suspension.
+
 A leaf handler may compute through published constructors and operations without
 choosing their implementations. It returns a deferred program directly as the
 normal successful reply's `value`. The shared kernel service interprets that
@@ -18,6 +21,7 @@ multiplicative-monoid action:
 {
   "request_id": 70,
   "status": "ok",
+  "exports": [],
   "value": {
     "ctor": "deferredData",
     "args": [
