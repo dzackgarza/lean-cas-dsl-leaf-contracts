@@ -39,6 +39,19 @@ For example:
 | Registration | `operation` | String | Yes | Exact public operation or derived callable-port address. |
 | Registration | `input` | String | Yes | Exact public input-form address accepted by that operation. |
 | Registration | `backend` | String | Yes | `name` of a backend in this same manifest. |
+| Registration | `preferredRoutes` | Array of preferred-route objects | No; defaults to `[]` | Declared preferred routes of this registration (below). |
+| Preferred route | `name` | String | Yes | Surface name of a registered family, read on an object of `receiver`. |
+| Preferred route | `receiver` | String | Yes | Registered category id of the object the name is read on. |
+| Preferred route | `route` | Non-empty array of strings | Yes | Ordered structural edge labels from `receiver` to the category that owns the selected binding. |
+
+A preferred route (constitution C6) is registration data, not a mathematical
+claim. When the name has several surviving bindings on an object of `receiver`
+that agree by no definitional equality or accepted comparison cell, it names the
+binding reached along `route`, and the reading records it. It asserts no
+agreement between the bindings. The route must be one of the surviving routes, or
+the registration is rejected. It applies while its registration is admitted;
+two admitted preferences with the same `name` and `receiver` and different
+routes are not ranked, and the reading stays ambiguous.
 
 Only these fields carry meaning. Additional fields are ignored, including fields
 named `priority`, `capabilities`, `result`, `timeout`, `cwd` or `env`. They cannot

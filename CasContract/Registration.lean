@@ -22,8 +22,11 @@ input form it accepts and the backend that computes it:
 }
 ```
 
-A registration has exactly these three fields. Nothing else in the manifest carries meaning: any
-other field is ignored. Which registrations are admitted is the kernel's decision, against the
+A registration has these three fields and, optionally, its declared preferred routes
+(constitution C6): for a surface name read on objects of a category, the structural route of the
+binding the name denotes. A preference selects among bindings that survive the reading; it
+asserts no agreement between them. Nothing else in the manifest carries meaning: any other field
+is ignored. Which registrations are admitted is the kernel's decision, against the
 catalogue (`CasCatalogue.Admission`); this module only reads the data.
 -/
 
@@ -39,12 +42,23 @@ structure BackendProgram where
   args : Array String := #[]
   deriving Repr, Inhabited, DecidableEq
 
+/-- A declared preferred route (constitution C6): the surface name `name`, read on an object of
+the registered category `receiver`, denotes the binding reached along the structural route
+`route` (edge labels, in order). It is registration data, not a mathematical claim. -/
+structure PreferredRoute where
+  name : String
+  receiver : String
+  route : Array String
+  deriving Repr, Inhabited, DecidableEq
+
 /-- A registration: the leaf computes the catalogue operation `operation` on inputs of the form
-`input`, by the backend `backend`. It has no other field, so a leaf can express nothing else. -/
+`input`, by the backend `backend`, and declares the preferred routes `preferredRoutes`. It has no
+other field, so a leaf can express nothing else. -/
 structure Registration where
   operation : String
   input : String
   backend : String
+  preferredRoutes : Array PreferredRoute := #[]
   deriving Repr, Inhabited, DecidableEq
 
 /-- A leaf's manifest. -/
@@ -73,14 +87,24 @@ def backendOf (j : Json) : Except String BackendProgram := do
         items.mapM fun s => s.getStr?.mapError fun _ => s!"an argument of {name} is not a string"
   return { name, command, args }
 
-def registrationOf (j : Json) : Except String Registration := do
-  return { operation := ← stringField j "operation", input := ← stringField j "input"
-           backend := ← stringField j "backend" }
-
 def arrayField (j : Json) (k : String) : Except String (Array Json) :=
   match j.getObjVal? k with
   | .error _ => .ok #[]
   | .ok a => a.getArr?.mapError fun _ => s!"the field `{k}` is not an array"
+
+def preferredRouteOf (j : Json) : Except String PreferredRoute := do
+  let route ← match j.getObjVal? "route" with
+    | .error _ => throw s!"the field `route` is missing in {j.compress}"
+    | .ok a => do
+        let items ← a.getArr?.mapError fun _ => s!"the field `route` is not an array in {j.compress}"
+        items.mapM fun s => s.getStr?.mapError fun _ => s!"a route edge is not a string in {j.compress}"
+  if route.isEmpty then throw s!"a preferred route has no edge in {j.compress}"
+  return { name := ← stringField j "name", receiver := ← stringField j "receiver", route }
+
+def registrationOf (j : Json) : Except String Registration := do
+  return { operation := ← stringField j "operation", input := ← stringField j "input"
+           backend := ← stringField j "backend"
+           preferredRoutes := ← (← arrayField j "preferredRoutes").mapM preferredRouteOf }
 
 /-- Read a manifest from its JSON. Fields other than the ones above are ignored. -/
 def parse (j : Json) : Except String Manifest := do
