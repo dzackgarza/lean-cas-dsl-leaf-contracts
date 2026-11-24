@@ -1584,6 +1584,46 @@ def checkServiceFields (names : Array String) (json : Json) : Except String Unit
       fields.toList.all (fun field => names.contains field.1) do
     throw "a computation control record has unexpected or missing fields"
 
+/-- Optional, negotiated routine observations are data, not registration or
+mathematical authority. Their exact schema rejects arbitrary control fields. -/
+def checkRoutineObservations (json : Json) : Except String (Array Json) := do
+  let sha := fun (value : Json) => do
+    let digest ← value.getStr?
+    unless digest.length == 64 && digest.toList.all
+        (fun char => char.isDigit || ('a' ≤ char && char ≤ 'f')) do
+      throw "a routine observation has an invalid SHA-256"
+  let routines ← json.getArr?
+  for routine in routines do
+    checkServiceFields #["role", "module", "qualified_name", "code_sha256",
+      "source", "documentation"] routine
+    unless #["entrypoint", "delegated"].contains (← routine.getObjValAs? String "role") do
+      throw "a routine observation has an unknown role"
+    for name in #["module", "qualified_name"] do
+      unless !(← routine.getObjValAs? String name).isEmpty do
+        throw "a routine observation has an empty identity"
+    let code ← routine.getObjVal? "code_sha256"
+    if code != .null then sha code
+    let source ← routine.getObjVal? "source"
+    if source != .null then
+      checkServiceFields #["path", "first_line", "sha256", "text"] source
+      unless !(← source.getObjValAs? String "path").isEmpty &&
+          (← source.getObjValAs? Nat "first_line") > 0 &&
+          !(← source.getObjValAs? String "text").isEmpty do
+        throw "a routine observation has an incomplete source reference"
+      sha (← source.getObjVal? "sha256")
+    let documentation ← routine.getObjVal? "documentation"
+    if documentation != .null then discard <| documentation.getStr?
+  return routines
+
+/-- Remove only the negotiated, checked inert data field before applying the
+ordinary exact computation-control grammar. No other extra field is ignored. -/
+def splitRoutineObservations (enabled : Bool) (frame : Json) :
+    Except String (Json × Array Json) := do
+  if !enabled then return (frame, #[])
+  let routines ← checkRoutineObservations (← frame.getObjVal? "routines")
+  let fields ← frame.getObj?
+  return (Json.mkObj (fields.toList.filter (·.1 != "routines")), routines)
+
 /-- Reference one actual node result in the surrounding deferred computation only. -/
 def resultRef (index : Nat) : Json :=
   Json.mkObj [("ctor", toJson "resultRef"), ("args", Json.arr #[toJson index])]
@@ -1769,6 +1809,7 @@ structure ReadyV2 where
   private mk ::
   backend : String
   backendVersion : String
+  routineObservations : Bool
 
 /-- Exact public protocol-v2 announcement. Additional feature strings are diagnostic.
 Reference: cas-computation/2 negotiation; reuse the strict control-field parser above. -/
@@ -1781,7 +1822,8 @@ opaque ReadyV2.decode (json : Json) : Except String ReadyV2 := do
   let features ← (← json.getObjVal? "features").getArr? >>= (·.mapM Json.getStr?)
   unless #["scoped-values/2", "deferred/2", "suspend-resume/2", "export-capture-frames/2"].all features.contains do
     throw "the announcement lacks a required protocol-v2 feature"
-  return ⟨← json.getObjValAs? String "backend", ← json.getObjValAs? String "backend_version"⟩
+  return ⟨← json.getObjValAs? String "backend", ← json.getObjValAs? String "backend_version",
+    features.contains "routine-observations/1"⟩
 
 def helloV2 : Json := Json.mkObj [
   ("op", .str "hello"), ("protocol", toJson (2 : Nat)), ("contract", .str "cas-computation/2")]
@@ -1816,10 +1858,16 @@ def negotiateV2 (backend : String) (input output : IO.FS.Handle) : IO (Except Po
     | return .error (incompatible "no valid ready frame")
   let .ok ready := ReadyV2.decode announcement
     | return .error (incompatible "invalid protocol-v2 announcement")
-  try writeFrame input helloV2
+  let hello := if ready.routineObservations then
+      helloV2.setObjVal! "routine_observations" (toJson true) else helloV2
+  try writeFrame input hello
   catch error => return .error (incompatible s!"cannot send hello: {error}")
   let .ok acknowledgement ← readFrame output
     | return .error (incompatible "no valid hello acknowledgement")
+  if ready.routineObservations then
+    if acknowledgement == helloV2Ack.setObjVal! "routine_observations" (toJson true) then
+      return .ok ready
+    return .error (incompatible "the peer did not acknowledge the requested routine observations")
   match checkHelloV2Ack acknowledgement with
   | .error reason => return .error (incompatible reason)
   | .ok () => return .ok ready

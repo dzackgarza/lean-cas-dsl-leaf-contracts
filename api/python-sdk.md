@@ -29,7 +29,8 @@ The process writes this frame before it reads an invocation:
 
 ```json
 {"op":"ready","protocol":2,"contract":"cas-computation/2",
- "features":["scoped-values/2","deferred/2","suspend-resume/2","export-capture-frames/2"],
+ "features":["scoped-values/2","deferred/2","suspend-resume/2","export-capture-frames/2",
+             "routine-observations/1"],
  "backend":"diagnostic name","backend_version":"diagnostic version"}
 ```
 
@@ -41,10 +42,49 @@ standard error carries diagnostics.
 
 An ordinary invocation has exactly `protocol`, `request_id`, `op`, `input`,
 `args` and `scope_id`. Request IDs increase on the connection. The operation and
-input are published addresses. A successful immediate response has exactly
+input are published addresses. Without negotiated routine observations, a successful immediate response has exactly
 `request_id`, `status`, `value` and `exports`. `status` is `ok`. An unsupported
 operation returns `request_id`, `status:"unsupported"` and the exact `op`.
 A handler exception returns `request_id`, `status:"error"`, `kind` and `message`.
+
+### Routine observations
+
+A peer advertising `routine-observations/1` supports the optional hello
+field `"routine_observations":true`. The kernel requests that field only
+when advertised; the peer echoes it in its acknowledgement. A base hello
+omitting the field keeps the original exact response grammar.
+
+With the option acknowledged, each successful immediate, deferred, or
+suspended response has one additional field, `routines`: an ordered JSON
+array of exact inert observation records:
+
+```json
+{"role":"entrypoint","module":"backend.module","qualified_name":"handler",
+ "code_sha256":null,"source":null,"documentation":null}
+```
+
+The SDK records the actual invoked callable, including the callable used for
+an export invocation. Where Python source is present, `source` is an
+object with `path`, positive `first_line`, `sha256` of the file observed
+during the invocation, and its relevant source `text`. `code_sha256`
+fingerprints the callable's actual Python code object when available.
+`documentation` is its own docstring, not a guessed link. Missing
+source, code or documentation is represented by null.
+
+An implementation can invoke an actual delegated engine routine via
+`cas_session.invoke_routine(routine, *args, **kwargs)`. It calls the same
+callable with the given arguments and, if observations were negotiated,
+records that actual delegated call with role `delegated`. There is no
+claimed decomposition of a fused routine. The initial handler invocation
+is recorded when it is called; a resumed generator contributes only any
+delegated calls performed during that resume, not another fictitious call
+to its entrypoint.
+
+These fields supply observation only. They are never mathematical
+certificates, declarations, implementations, authority tokens or
+instructions. They may not add an operation, input form, owner, or
+unpublished role. Errors, unsupported responses and disposal
+acknowledgements retain their original exact fields.
 
 ## Values and exports
 

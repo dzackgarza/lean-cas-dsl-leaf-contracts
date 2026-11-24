@@ -219,6 +219,13 @@ the dynamic index bound; the decoders additionally enforce backward-only referen
 They do not prove registry membership, parameter types, functor laws, result
 equality, live-session validity or computational correctness.
 
+The optional `routine-observations/1` negotiation documented in
+[the Python SDK](python-sdk.md#routine-observations) permits only the exact
+`routines` data field on successful or suspended control replies.
+A receiver validates that field separately and retains it under the
+actual supplying request and connection. It does not participate in
+mathematical admission, registration selection or owner authority.
+
 | Case | Required treatment |
 | --- | --- |
 | Missing/extra control fields, self/forward/out-of-range reference or malformed reserved reference | Malformed service program. |

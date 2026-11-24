@@ -12,15 +12,20 @@ https://docs.pydantic.dev/latest/concepts/validators/
 from __future__ import annotations
 
 from collections.abc import Callable, Generator
+from hashlib import sha256
+from pathlib import Path
+from types import CodeType
+import inspect
+import marshal
 from contextvars import ContextVar
-from typing import Annotated, Literal
+from typing import Annotated, Literal, ParamSpec, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter, model_validator
 
 from cas_port import point_invocation, read_frame, typed_map, write_frame
 
 __all__ = ["ComputationError", "JsonValue", "Proxy", "Suspension", "UnsupportedOperation",
-           "export", "proxy", "request_input", "serve", "suspend"]
+           "export", "proxy", "request_input", "invoke_routine", "serve", "suspend"]
 
 
 class ComputationError(Exception):
@@ -51,6 +56,7 @@ class _Hello(_Control):
     op: Literal["hello"]
     protocol: Annotated[int, Field(strict=True, ge=2, le=2)]
     contract: Literal["cas-computation/2"]
+    routine_observations: Literal[True] | None = None
 
 
 class _Request(_Control):
@@ -270,6 +276,7 @@ class _Gateway:
         self.allowed = _references(self.arguments)
         self.exports: list[dict[str, JsonValue]] = []
         self.live = True
+        self.routines: list[dict[str, JsonValue]] = []
 
     def admits(self, reference: JsonValue) -> bool:
         address = _reference(reference)
@@ -315,6 +322,59 @@ def _current() -> _Gateway:
     if gateway is None or not gateway.live:
         raise ValueError("no computational request gateway is active")
     return gateway
+
+
+def _routine(handler: Callable[..., object], role: Literal["entrypoint", "delegated"]) -> dict[str, JsonValue]:
+    """Capture the actual callable, not a registration-name-to-doc guess.
+
+    Source comes from the callable's code object and file at execution time.
+    Documentation is the callable's own docstring, not a synthesized URL.
+    Missing source/documentation stays missing. None of this is proof data.
+    """
+    module = getattr(handler, "__module__", None)
+    qualname = getattr(handler, "__qualname__", None)
+    if not isinstance(module, str) or not module:
+        module = type(handler).__module__
+    if not isinstance(qualname, str) or not qualname:
+        qualname = type(handler).__qualname__ + ".__call__"
+    code = getattr(handler, "__code__", None)
+    if not isinstance(code, CodeType):
+        code = getattr(getattr(handler, "__call__", None), "__code__", None)
+    source: dict[str, JsonValue] | None = None
+    code_digest = None
+    if isinstance(code, CodeType):
+        code_digest = sha256(marshal.dumps(code)).hexdigest()
+        try:
+            path = Path(code.co_filename).resolve(strict=True)
+            before = path.read_bytes()
+            # A code object identifies the actual callable's source location;
+            # use it rather than following a decorator's __wrapped__ target.
+            lines, line = inspect.getsourcelines(code)
+            if path.read_bytes() == before:
+                source = {"path": str(path), "first_line": line,
+                          "sha256": sha256(before).hexdigest(), "text": "".join(lines)}
+        except (OSError, TypeError, UnicodeError, ValueError):
+            pass
+    doc = getattr(handler, "__doc__", None)
+    return {"role": role, "module": module, "qualified_name": qualname,
+            "code_sha256": code_digest, "source": source,
+            "documentation": doc if isinstance(doc, str) and doc else None}
+
+
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+def invoke_routine(handler: Callable[P, R], /, *args: P.args, **kwargs: P.kwargs) -> R:
+    """Invoke the exact engine routine and retain its inert source observation.
+
+    Optional explicit observation of engine calls. It neither decomposes a
+    fused handler nor makes any claim about the mathematical meaning/result.
+    """
+    gateway = _current()
+    if gateway.session.routine_observations:
+        gateway.routines.append(_routine(handler, "delegated"))
+    return handler(*args, **kwargs)
 
 
 def proxy(reference: JsonValue) -> Proxy:
@@ -390,6 +450,7 @@ class _Session:
         self.continuations: dict[str, _Continuation] = {}
         self.next_token = 0
         self.last_request = -1
+        self.routine_observations = False
 
     def token(self, kind: str) -> str:
         token = f"{kind}-{self.next_token}"
@@ -418,8 +479,11 @@ class _Session:
             _check_value(template, gateway, len(calls))
         else:
             _check_value(result, gateway, 0)
-        return {"request_id": gateway.request, "status": "ok", "value": result,
-                "exports": gateway.exports}
+        frame: dict[str, JsonValue] = {"request_id": gateway.request, "status": "ok", "value": result,
+                                     "exports": gateway.exports}
+        if self.routine_observations:
+            frame["routines"] = gateway.routines
+        return frame
 
     def advance(self, gateway: _Gateway, generator: Generator[Suspension, list[Proxy], JsonValue],
                 results: list[Proxy] | None) -> dict[str, JsonValue]:
@@ -438,8 +502,12 @@ class _Session:
             token = self.token("continuation")
             self.continuations[token] = _Continuation(
                 gateway.request, generator, suspension.captures, len(calls))
-            return {"request_id": gateway.request, "status": "suspended", "continuation": token,
-                    "captures": references, "calls": calls, "exports": gateway.exports}
+            frame: dict[str, JsonValue] = {
+                "request_id": gateway.request, "status": "suspended", "continuation": token,
+                "captures": references, "calls": calls, "exports": gateway.exports}
+            if self.routine_observations:
+                frame["routines"] = gateway.routines
+            return frame
         except Exception:
             generator.close()
             raise
@@ -447,6 +515,8 @@ class _Session:
     def run_handler(self, gateway: _Gateway, handler: Handler, arguments: JsonValue) -> dict[str, JsonValue]:
         entered = _active.set(gateway)
         try:
+            if self.routine_observations:
+                gateway.routines.append(_routine(handler, "entrypoint"))
             result = handler(arguments)
             if isinstance(result, Generator):
                 return self.advance(gateway, result, None)
@@ -540,10 +610,16 @@ def serve(backend: str, backend_version: str, operations: dict[str, Handler]) ->
         raise ValueError("ready requires backend and version diagnostics")
     session = _Session(operations)
     write_frame({"op": "ready", "protocol": 2, "contract": "cas-computation/2",
-                 "features": ["scoped-values/2", "deferred/2", "suspend-resume/2", "export-capture-frames/2"],
+                 "features": ["scoped-values/2", "deferred/2", "suspend-resume/2",
+                              "export-capture-frames/2", "routine-observations/1"],
                  "backend": backend, "backend_version": backend_version})
-    _Hello.model_validate(read_frame())
-    write_frame({"op": "hello", "status": "ok", "protocol": 2, "contract": "cas-computation/2"})
+    hello = _Hello.model_validate(read_frame())
+    session.routine_observations = hello.routine_observations is True
+    acknowledgement: dict[str, JsonValue] = {
+        "op": "hello", "status": "ok", "protocol": 2, "contract": "cas-computation/2"}
+    if session.routine_observations:
+        acknowledgement["routine_observations"] = True
+    write_frame(acknowledgement)
     try:
         while (frame := read_frame()) is not None:
             write_frame(session.dispatch(_json.validate_python(frame)))
