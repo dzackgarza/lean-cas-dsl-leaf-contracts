@@ -1,9 +1,8 @@
 # The leaf contract of lean-cas-dsl
 
-[`lean-cas-dsl/specs/architecture.md`](https://github.com/dzackgarza/lean-cas-dsl/blob/main/specs/architecture.md)
-owns the separation of concerns, and
-[`lean-cas-dsl/specs/leaf-registration.md`](https://github.com/dzackgarza/lean-cas-dsl/blob/main/specs/leaf-registration.md)
-the design of leaves. This repository is one part of the `lean-cas-dsl` kernel: the interface a
+The [kernel constitution](https://github.com/dzackgarza/lean-cas-dsl/blob/main/.specify/memory/constitution.md)
+and its [mathematical execution model](https://github.com/dzackgarza/lean-cas-dsl/blob/main/specs/architecture.md)
+own the separation of concerns and the design of leaves. This repository is one part of the `lean-cas-dsl` kernel: the interface a
 computational leaf is written against, published on its own so that a leaf depends on nothing else
 of the kernel.
 
@@ -39,8 +38,10 @@ of the kernel.
   `main`, which `lean-cas-dsl` tracks. A leaf never changes this contract to fit itself.
 * **No mathematics.** Which operations and forms exist, and what they denote, is `lean-categories`'
   catalogue. This package reads it and declares none.
-* **No tests.** The permanent acceptance suite is `lean-cas-dsl`'s. Nothing here, and so nothing a
-  leaf can reach, contains or names it.
+* **Tests of the contract, not of answers.** The tests here check this repository's product, the
+  codecs and the SDK, with a real leaf process against a real protocol peer (constitution RC12,
+  RC13). The permanent acceptance suite is `lean-cas-dsl`'s. Nothing here, and so nothing a leaf
+  can reach, contains or names it.
 
 The [declared API reference](api/README.md) publishes the complete registered declaration
 signatures, computational port addresses and generic wire-shape references.

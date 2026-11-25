@@ -1,5 +1,9 @@
 # Ground everything in INTENT.md (read before anything else)
 
+The [constitution](.specify/memory/constitution.md) of this repository governs its documents,
+including this file and `INTENT.md`; where they conflict, the constitution governs. The work order
+is the task list of the active feature under [`specs/`](specs/).
+
 Use the [shared math container](https://github.com/dzackgarza/ai-review-ci/blob/main/SAGE-CONTAINER.md#use-the-image)
 (`ghcr.io/dzackgarza/sage:develop`) for Lean/elan, Sage with mypy, GAP,
 Julia/Oscar, Macaulay2, and Singular. The guide covers image pull/run commands,
@@ -18,7 +22,8 @@ defects, never worked around or silently kept.
 
 These invariants bind every repository of the programme. They are stated here in full, not only
 by link, because they have been violated repeatedly by moves that each looked locally reasonable.
-The governing statement is `lean-cas-dsl/specs/architecture.md`, "The evidence model".
+The governing statements are articles C2, C10 and C22 of the
+[kernel constitution](https://github.com/dzackgarza/lean-cas-dsl/blob/main/.specify/memory/constitution.md).
 
 **The firewall.** The evidence model is a one-way firewall between two sides.
 - *The formal side:* `lean-categories`' formalized mathematics, the kernel's proved contracts, and
@@ -54,9 +59,10 @@ never believed. The firewall exists because leaf code will be bad; it is the shi
 5. **`lean-cas-dsl` is the sole authority on how correct an implementation is.** Nothing a leaf
    does can change, weaken, satisfy, bypass or influence that judgment, other than by answering
    correctly.
-6. **Available verified computations belong to the formal side.** A genuinely checked Lean
-   computation or proof may be used within its actual scope. The theoretical possibility of
-   implementing an algorithm in Lean does not require doing so before using an external CAS.
+6. **Available verified proofs belong to the formal side.** A proof procedure registered in
+   `lean-categories` may settle a closed proposition (kernel constitution C22); it computes no
+   value. The theoretical possibility of implementing an algorithm in Lean does not require doing
+   so before using an external CAS.
    A verified specification does not verify its backend implementation, and mathematical laws
    are not automatically runtime proof-producing obligations.
 
@@ -135,15 +141,13 @@ Consequences:
 
 > **You have no memory.** Nothing that exists only in chat survives compaction or the session.
 > Every correction, finding and decision request is committed to its owning document first
-> ([`lean-cas-dsl/AGENTS.md`](https://github.com/dzackgarza/lean-cas-dsl/blob/main/AGENTS.md),
-> "You have no memory"). The orchestrator is inside the threat model
-> (`lean-cas-dsl/specs/architecture.md`).
+> (kernel constitution C19). The orchestrator is inside the threat model (kernel constitution
+> C14).
 
 
-[`lean-cas-dsl/specs/architecture.md`](https://github.com/dzackgarza/lean-cas-dsl/blob/main/specs/architecture.md)
-owns the separation of concerns, and
-[`lean-cas-dsl/specs/leaf-registration.md`](https://github.com/dzackgarza/lean-cas-dsl/blob/main/specs/leaf-registration.md)
-the design of leaves. This repository is one part of the `lean-cas-dsl` kernel: the interface a
+The [kernel constitution](https://github.com/dzackgarza/lean-cas-dsl/blob/main/.specify/memory/constitution.md)
+and its [mathematical execution model](https://github.com/dzackgarza/lean-cas-dsl/blob/main/specs/architecture.md)
+own the separation of concerns and the design of leaves. This repository is one part of the `lean-cas-dsl` kernel: the interface a
 computational leaf is written against, published on its own so that a leaf depends on nothing else
 of the kernel.
 
@@ -161,7 +165,7 @@ of the kernel.
   relaxed into the leaf.
 * **Authors.** Only the orchestrator writes here. Leaves are written against this contract by the
   leaf subagent, which never edits it, never reads the tests, and never edits `lean-categories`
-  (`lean-cas-dsl/specs/architecture.md`, "Authors: one role per agent").
+  (kernel constitution, "Independent authorship and permitted inputs").
 * **Registration is a computational claim.** A leaf declares an implementation of a published
   obligation on supported representations. The kernel checks conformance and may invoke it;
   this does not certify correctness. Answers and callable representations are consumed as data,
@@ -185,11 +189,14 @@ of the kernel.
 * **No partial maps (LC-14), no operation without its structure (LC-16).** A registration is for a
   total operation on its domain object. No declared result form admits an optional, undefined or
   default result.
-* **Use available verified computations within their scope.** The theoretical possibility of
-  implementing an algorithm in Lean does not forbid using an external CAS. Mathematical laws
-  do not automatically become runtime proof-producing obligations.
-* **No tests.** The permanent acceptance suite is `lean-cas-dsl`'s. Nothing here, and so nothing a
-  leaf can reach, contains or names it.
+* **The kernel computes nothing (kernel constitution C22).** Every operation, method and predicate
+  is computed by a leaf. The kernel reduces no term to a value; it may settle a closed proposition
+  only through a proof procedure registered in `lean-categories`. Mathematical laws do not
+  automatically become runtime proof-producing obligations.
+* **Tests of the contract, not of answers.** The tests here check this repository's product, the
+  codecs and the SDK, with a real leaf process against a real protocol peer (constitution RC12,
+  RC13). The permanent acceptance suite is `lean-cas-dsl`'s. Nothing here, and so nothing a leaf
+  can reach, contains or names it.
 
 Module roots: `CasContract.*` (namespaces `CasCatalogue`, shared with the kernel). The Python
 reference implementation of the port protocol is `python/cas_port.py`; the kernel puts it on every
