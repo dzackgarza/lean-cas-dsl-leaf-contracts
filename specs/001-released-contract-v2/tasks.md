@@ -194,7 +194,7 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   **Acceptance**: for each of the ten kinds, `test_value_forms.py` sends one accepted and one
   malformed frame through `cas-peer`, and the accepted frame is built by `cas_interfaces` from the
   generated layout; `git grep -n "leaf-chosen\|leaf's choice" api/` returns nothing.
-  **Consumer**: kernel T028, kernel T185; lean-cas-dsl-leaves T034. **After**: T014;
+  **Consumer**: kernel T028, kernel T185; the rows of the lean-cas-dsl-leaves category specs whose plans name contract T021 (column "Inputs before it"). **After**: T014;
   lean-categories T005 (#193), T013 (#191), T027 (#190), T031 (#187).
 - [ ] T015 [US1] SDK category helpers (FR-016, FR-024; D12). Complete `cas_interfaces.load_interfaces`
   with category, constructor, call and result access, explicit dependent descriptors and a
@@ -207,15 +207,15 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   inside a route carries the receiver, the residual descriptors and the method functor (FR-017);
   a map request carries both image endpoints (FR-018); loading the interface takes under 0.5 s
   and builds no category entry before the first query (timing record). **Consumer**: kernel T028,
-  kernel T200–T224. **After**: T021.
+  the kernel category tasks. **After**: T021.
 - [ ] T016 [US1] Author guidance (FR-021; D16). Index in `api/README.md` every document, generated
   file, SDK module and setup command that a leaf author needs; state in `README.md` and
   `AGENTS.md` the category implementation as the unit, registrations as ports, the leaf's control
   logic (kernel C22), permitted private reuse, and the absence of leaf mathematical, proof and
   acceptance authority; set the ownership row of `lean-cas-dsl-leaves` to depend on this contract.
   **Files**: `api/README.md`, `README.md`, `AGENTS.md`. **Acceptance**: every file that a test
-  leaf imports or reads is linked from `api/README.md`. **Consumer**: kernel T028, kernel
-  T200–T224.
+  leaf imports or reads is linked from `api/README.md`. **Consumer**: kernel T028, the
+  kernel category tasks.
   **After**: T015.
 - [ ] T017 [US1] Language interface and help (research R10). Extend `tools/export_api.py` to run
   `#cas_export_interface` of the kernel and write `api/language-interface.json` and
@@ -224,12 +224,12 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   **Files**: `tools/export_api.py`, `api/kernel-service.md`, `api/README.md`; generated
   `api/language-interface.json`, `api/language-help.md`. **Acceptance**: the two files are produced
   by one `just export-api` run and contain no path outside the public catalogue and contract.
-  **Consumer**: kernel T101. **After**: T016; kernel T097–T100.
+  **Consumer**: kernel T101. **After**: T016; kernel T101.
 - [ ] T018 [US1] Public-only run (SC-003). In a fresh clone of the integration branch at the T017
   commit, on a host path with no lean-cas-dsl checkout, run the quickstart.
   **Files**: `specs/001-released-contract-v2/quickstart.md` when a command differs.
   **Acceptance**: every quickstart command passes; the run log and timing records are committed.
-  **Consumer**: kernel T200–T224. **After**: T017.
+  **Consumer**: the kernel category tasks. **After**: T017.
 
 ## Phase 5: Releases
 
@@ -238,7 +238,7 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   tier 1, tag `v2.0.0` and push the branch and tag.
   **Files**: generated `api/*.json`, `api/language-help.md`, `pyproject.toml`, `uv.lock`.
   **Acceptance**: the kernel branch's lake manifest names the tagged commit (SC-006, first part).
-  **Consumer**: kernel T028 (closure at F), kernel T200–T224. **After**: T018; kernel T100, T101.
+  **Consumer**: kernel T028 (closure at F), the kernel category tasks. **After**: T018; kernel T100, T101.
 - [ ] T020 Merge into `main` and release `v2.0.1` at kernel T105 (FR-022). Merge the integration
   branch into `main`; keep `lean-toolchain` and the lean-categories requirement of `main`; run
   `lake update`; build every module and `cas-peer`; run tier 1; run `just export-api` against the
@@ -260,7 +260,7 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
 | T021 | T014; lean-categories T005, T013, T027, T031 |
 | T015 | T021 |
 | T016 | T015 |
-| T017 | T016; kernel T097–T100 |
+| T017 | T016; kernel T101 |
 | T018 | T017 |
 | T019 | T018; kernel T100, T101 |
 | T020 | T019; kernel #90 port in kernel T105 |
@@ -277,10 +277,10 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
 | T023 | T010 |
 | T027 | T008 |
 | T028 | T005, T013, T014, T021, T015, T016, T019 |
-| T042, T061 | T013, T015 |
+| T042, T061 | T013 |
 | T100 | T012 |
 | T101 | T017 |
-| T200–T224 | T015, T016, T018, T019 |
+| the category tasks (V1 and V2) | T015, T016, T018, T019 |
 | T105 | T020 |
 | T113, T027 | T011 |
 | T185 | T013, T021 |

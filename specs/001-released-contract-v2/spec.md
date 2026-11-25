@@ -9,7 +9,7 @@ kernel-side design of this contract and governs where an `api/` document disagre
 
 **Input**: everything that the kernel tasks T017, T018, T020, T021, T022, T023, T027, T028,
 T100, T101 and T113 of lean-cas-dsl require of this repository, and what a leaf author needs
-for the computational milestones (kernel T200 to T224), released as `v2.0.0` at kernel F and on
+for the computational milestones (the kernel category tasks, one for each category version), released as `v2.0.0` at kernel F and on
 `main` as `v2.0.1` at kernel T105.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -233,12 +233,12 @@ both admitted; a manifest with both registrations is admitted and the selection 
 - **FR-021 — Public-only completeness.** `api/README.md` MUST index every document, generated
   file and SDK module that a leaf author needs, with the setup command of the SDK environment.
   No published file names kernel internals, the acceptance corpus or expected answers. *T028,
-  T200–T224.*
+  the kernel category tasks.*
 - **FR-022 — Releases.** At kernel F the integration branch commit with regenerated catalogue
   MUST be tagged `v2.0.0`, which the kernel branch pins and leaf work consumes. At kernel T105 the
   protocol-2 material MUST be merged into `main`, build on the toolchain and Mathlib of `main`,
   have its catalogue regenerated from that locked state, and be tagged `v2.0.1`, which kernel
-  `main` pins. *T028 (at F), T200–T224, T105.*
+  `main` pins. *T028 (at F), the kernel category tasks, T105.*
 - **FR-023 — SDK logging.** The SDK MUST log to standard error each received and sent frame (by
   request ID, `op` and status), each handler start and end, and each export, suspension, resume and
   disposal (constitution RC17).
@@ -265,7 +265,7 @@ both admitted; a manifest with both registrations is admitted and the selection 
     arrow position of `apply` uses the operation owners of lean-categories #193;
   - a closed point $1 \to X$ in a morphism position is a morphism packet, and the `compose`
     envelope carries the selected intermediate object of the composite.
-  No form is a leaf-chosen encoding (constitution RC1, RC8). *T028, T185; leaves T034.*
+  No form is a leaf-chosen encoding (constitution RC1, RC8). *T028, T185; the lean-cas-dsl-leaves category specs.*
 
 ### Key Entities
 

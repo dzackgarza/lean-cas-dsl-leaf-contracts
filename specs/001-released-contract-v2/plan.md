@@ -66,7 +66,7 @@ Decision: the contract work of tasks T003–T018 and T021 is committed on
 governing documents (constitution, `AGENTS.md`, `README.md`, `CONTRIBUTING.md`, `specs/`) are
 the same on both branches; an edit to one is committed on both. Task T019 releases `v2.0.0` on
 that branch at kernel F, for kernel T028, T101 and the leaf work of the computational
-milestones, kernel T200 to T224. Task T020 merges
+milestones, the kernel category tasks. Task T020 merges
 the branch into `main` on the toolchain of `main` with the kernel port of #90 (kernel T105) and
 releases `v2.0.1` on `main`, the delivery release. Source: the kernel rule that both kernel branches carry the same governing
 documents; the delivery-inputs policy (latest main at delivery).
