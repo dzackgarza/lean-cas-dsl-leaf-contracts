@@ -22,7 +22,7 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
 ## Phase 1: Setup
 
 - [ ] T001 Publish the protocol-2 state that the kernel branch locks. In the checkout
-  `/home/dzack/.local/share/docker/volumes/sage-repos/_data/v1-integration-20261106/lean-cas-dsl-leaf-contracts`
+  `~/.local/share/docker/volumes/sage-repos/_data/v1-integration-20261106/lean-cas-dsl-leaf-contracts`
   (head `a0417b0`), read the diff of its 14 modified paths and the untracked
   `python/cas_interfaces.py` against this plan; commit them on `integration/kernel-v1-20261106`
   with a body that names what each path does; trash `.tmp/` (copies of the same paths and
