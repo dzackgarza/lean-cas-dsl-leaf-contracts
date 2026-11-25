@@ -18,7 +18,7 @@ the owning document records defects, even outside the task at hand.
 
 ## The owner's question
 
-The owner asked whether `lean-cas-dsl` is consuming `lean-categories` together with the lessons learned in `sage-categories` and `research`, and whether the intended final product of `lean-cas-dsl` is understood.
+The owner asked whether the kernel consumes the formal library with the lessons of the two earlier repositories, and whether the final product of the kernel is understood.
 
 ## Response
 
@@ -138,7 +138,7 @@ That is also why the current enormous foundational sweep in `lean-categories` is
 
 ## The owner's question
 
-The owner said that important details had been missed. Examples: the role of isofibrations in `sage-categories`, and the specific mistakes and problems in the `research` repository that justify forcing this strict separation, with black-box, strongly typed wiring in place of inheritance and class binding.
+The owner said that the analysis missed the role of isofibrations and the defects of the research repository that justify typed black-box wiring in place of class inheritance.
 
 ## Response
 
@@ -340,7 +340,7 @@ That black-box boundary is one of the main products of the failures in `research
 
 ## The owner's question
 
-The owner said that the extent of the `research` preamble's thrash was still underestimated. The commit history, the complaints, the new policies, and the reasons new guards and gates were added tell a whole story: how agents behave and write, their myopic tendencies, the uncontrollable debt they introduce, and the holes that constantly need patching. The owner asked how `sage-categories`, and now `lean-cas-dsl`, propose to remediate this.
+The owner asked how the successor repositories remedy the agent behaviour and the debt that the history of the research repository records.
 
 ## Response
 
@@ -605,7 +605,7 @@ That, I think, is the actual lesson tying all four repositories together.
 
 ## The owner's question
 
-The owner stated that playing cat-and-mouse against these agent behaviours is fundamentally hopeless. The correct moves always require intelligent semantic analysis, and there is always a cheap way to avoid doing it. Expressing the intended research interface in raw Sage/Python is therefore flawed, because history shows that a positive gradient cannot be maintained, even for a hierarchy that is comparatively simple next to what serious research experiments need. The growth mechanism is also flawed, because constant growth is expected: new research needs new methods, extensions of old categories, or entirely new ones, and each must be integrated correctly and inherit every expected API. Otherwise nothing improves on raw Sage, where for example a lattice cannot answer its own cardinality, inherited from an underlying module projection that ultimately produces a set. The owner added that the behavioural problems of reward-hacking stochastic tools will not simply disappear.
+The owner said that guards against agent behaviour cannot succeed, that a research interface in Sage or Python cannot keep its quality as it grows, and that every extension must inherit every expected method (for example the cardinality of a lattice).
 
 ## Response
 
@@ -761,10 +761,7 @@ The architectural wager behind the successor stack is that the only sustainable 
 
 ## The owner's question
 
-The owner asked for confirmation that `lean-cas-dsl` and `lean-categories` must make these problems simply impossible. This is to be done by understanding the agent behaviours rather than guarding against them: forcing mathematical definitions into formalization that can be mathematically audited and checked; forcing all wiring, inheritance and propagation into a deterministic kernel; and forcing every extension to fit a precise contract. Then arbitrarily bad, miswired or reward-hacked code behind the leaf interfaces cannot perturb the main language. The owner's examples:
-- it must be impossible to define O(L) so that it is not a group, because the contract demands enough precise mathematical data for the kernel to deduce this and equip it with every group method;
-- it must be impossible to define a bespoke "subgroup of O(L)" interface that fails to inherit what every subgroup of every group gets;
-- it must be impossible to define a bespoke "stabilizer of v in O(L)" that fails to inherit the interfaces of all stabilizers of all subgroups, including ones introduced later, however bad the leaf code is.
+The owner asked for confirmation that the kernel and the formal library make these defects impossible by construction: audited formal definitions, a deterministic kernel for wiring and inheritance, and a precise contract for each extension, so that group, subgroup and stabilizer interfaces cannot fail to be inherited whatever the leaf code does.
 
 ## Response
 
@@ -974,7 +971,7 @@ And conversely:
 
 If adding some exotic lattice construction requires teaching it `.cardinality()`, `.one()`, subgroup intersection, kernels, or whatever else already follows from its formal structure, then the architecture has failed.
 
-There is also one necessary qualification to “regardless of how bad the leaf code is.”
+There is also one necessary qualification to the requirement that the quality of leaf code does not matter.
 
 The desired guarantee is that bad leaf code cannot corrupt the **semantic language**. It can still fail its own computational responsibility:
 
@@ -1042,14 +1039,7 @@ That is the actual remediation of the `research` experience: not teaching future
 
 ## The owner's question
 
-The owner corrected a confusion:
-- **Leaves ship no Lean code.** A new leaf does not ship Lean code at all. Someone who wants to add, say, `MyVerySpecialLattices` must formalize it entirely in `lean-categories`.
-- **Who holds mathematical knowledge.** Neither the CAS nor the leaves hold any real mathematical knowledge; `lean-categories` does. It can be audited completely as mathematics: agreement with other formalizations and textbook definitions, no sorries or axioms.
-- **The kernel's audit.** The kernel can be audited in relative isolation for its own concerns: functorial propagation, placement, and the like.
-- **What an implementation leaf is.** It can do whatever it wants and is ultimately irrelevant: a registration mechanism that fulfils computational requirements. The desired methods and API can themselves be formalized completely (cardinality as an honest functor, for instance), and a leaf claiming to provide one may run any computation whatsoever that takes a set and returns a cardinal.
-- **No correctness guarantee.** There is no guarantee such a computation is correct, because a CAS does not prove anything. A separate quality check establishes that leaves wire into trusted existing systems (Sage, Julia, Macaulay2, Singular, GAP, custom research code) rather than reinventing algorithms. A leaf may hold whatever internal tests it wants.
-- **Where the true tests live.** They live in `lean-cas-dsl`. Every predicate or method one could want can be formalized mathematically, so tests can assert mathematical truths in a completely leaf-agnostic way: that an implementation exists, and that it agrees on collections of known, cited objects or provable computations.
-- **What those tests guarantee.** They are written once, are true forever, and never change. They can never test internals or circular logic. No implementation can make them wrong or change their assertions. Correctness is then an unmodifiable black box for leaf implementers.
+The owner stated the division of roles: leaves ship no Lean and hold no mathematics; the formal library holds all mathematics and is audited as mathematics; the kernel is audited for wiring; a leaf is a computational registration over trusted engines with no correctness guarantee; the leaf-agnostic mathematical tests live in the kernel repository and do not change.
 
 ## Response
 
@@ -1203,7 +1193,7 @@ $$
 }
 $$
 
-That gives the “written once, true forever” property you are describing.
+That gives the property you are describing: a statement written once stays true.
 
 A correct test such as
 
@@ -1352,10 +1342,7 @@ And that is exactly what makes the approach plausibly robust to the behavior see
 
 ## The owner's question
 
-The owner asked whether the entire separation of concerns is understood:
-- what each repository owns: `lean-categories`, `lean-cas-dsl`, and `research`, which may define leaves in the new system;
-- the intended multi-step workflow in which each step is blind to the others. First comes formalization of categories and of the desired methods as well-defined n-morphisms, fully typed. That yields implementation-agnostic tests, written once, forever true and never changed, which `lean-cas-dsl` ships to expose implementation gaps. Last come leaf implementations meeting the contracts;
-- the contracts between these silos, the invariants that must hold, the literal intended workflows, the trust boundaries, and what must never be allowed.
+The owner asked whether the separation of concerns is understood: what each repository owns, the workflow in which formalization, implementation-agnostic tests and leaf implementations are separate blind steps, and the contracts, invariants and trust boundaries between them.
 
 ## Response
 
