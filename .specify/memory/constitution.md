@@ -91,7 +91,7 @@ ambiguity. A well-shaped wrong answer is not a stratum; independent assessment j
 An `unknown` answer to a decision (a predicate or a property) is an inability to establish the
 result, not a third truth value (K:C6). On the wire it is the value `none` of the decision reply,
 whose value is an `Option Bool` packet. The kernel reports it as the outcome `unknown`, which is
-distinct from every stratum and from every other outcome (K:C13; kernel T027, T113).
+distinct from every stratum and from every other outcome (K:C13; kernel T302, T113).
 
 ### RC8. One exact protocol
 
@@ -219,6 +219,6 @@ additions, patch for editorial corrections. Article identifiers are never renumb
 Work order is the task list of the active feature under `specs/`. Its unchecked tasks are
 executed in document order. Work records and evidence stay in the owning GitHub issues.
 
-**Version**: 2.0.0 | **Ratified**: 2026-11-25 | **Last Amended**: 2026-11-25
+**Version**: 2.0.1 | **Ratified**: 2026-11-25 | **Last Amended**: 2026-11-25
 
 [K]: https://github.com/dzackgarza/lean-cas-dsl/blob/main/.specify/memory/constitution.md

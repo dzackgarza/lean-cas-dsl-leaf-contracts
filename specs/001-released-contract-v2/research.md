@@ -54,11 +54,11 @@ outcome `unknown`, distinct from every stratum; `assert P = unknown` holds on it
 value is added. In Python a handler returns `cas_session.decision(True)`, `decision(False)` or
 `decision(None)`.
 **Source**: kernel C6 (unknown is an inability, not a third truth value) and C13 (outcomes stay
-distinct); kernel `tasks.md`, rows T113 and T027 of "Fallbacks and merged outcomes" ("A decision
-with three values, for predicates and properties, with its own outcome and its source form"), the
-public-path test of T113 ("`assert P = unknown` holds when the provider answers that it cannot
-decide") and the note under "Upstream inputs recorded as missing" ("The three-valued reply of a
-decision is a shape of the reply in the contract and the kernel"); kernel runtime contract §8
+distinct); kernel `tasks.md`, T302 (a predicate or property reply is true, false or unknown;
+`unknown` is an outcome of its own; `assert P = unknown` holds when the provider answers that it
+cannot decide), T113 (equality of retained values is a demand of a published predicate) and the
+section "Upstream tasks" ("The three-valued reply of a decision is a shape of the reply in the
+contract and the kernel (T302)"); kernel runtime contract §8
 (the leaf statuses are `ok`, `suspended`, `unsupported` and `error`; an unknown status is
 malformed); the kernel branch at `6808bc0` admits a property reply as the `Option Bool` packet
 (`CasRuntime/Literal.lean:156-177`, `CasRuntime/PreparedRequest.lean:709-714`).
@@ -163,8 +163,9 @@ kernel engineers; they are not a precondition of a kernel task other than throug
 T003–T013.
 **Source**: the kernel branch at `6808bc0` holds protocol peers in `scripts/probes/`
 (`protocol_v2_peer.py`, `kernel_session_peer.py`, `kernel_predicate_peer.py`,
-`kernel_suspension_peer.py` and others); kernel `tasks.md`, "Public-path tests to add" (the peers
-in `scripts/probes/` have no fault mode yet) and T127 (the test peers write their own logs);
+`kernel_suspension_peer.py` and others); kernel `tasks.md`, T027 (no peer of `scripts/probes/`
+has a fault mode, and T027 ports the fault peer) and T127 (a kernel check with
+`kernel_session_peer.py` and with the empty manifest);
 kernel C22 ("a protocol peer or an empty set of registrations").
 
 ## R17. Value forms of category data
@@ -178,4 +179,19 @@ binders (#190, T027), product legs (#187, T031) and element operations (#193, T0
 a lean-categories declaration without an issue.
 **Source**: issue #14 (evidence with the lean-categories rows at `3bc32d03`); constitution RC1,
 RC3, RC8; kernel spec FR-125; lean-cas-dsl-leaves `DEFECTS.md`, last three sections.
+
+## R18. `main` on the Mathlib of the research image
+
+**Decision**: `main` follows the research image (FR-026, task T022). `lean-toolchain` names the
+toolchain that the image records. Mathlib reaches the workspace through `require lean_categories
+... @ "main"`, whose lakefile requires `mathlib` at `master`; `lake update lean_categories` moves
+`lake-manifest.json` to the Mathlib revision that lean-categories `main` locks, which follows the
+image (lean-categories #142, closed 2026-11-13). The lakefile gets no direct `require mathlib`:
+`CasContract` imports Lean core only (R15), and the exporter adapters import Mathlib through
+lean-categories.
+**Source**: issue #12 and its comment of 2026-11-12 (`import Mathlib` elaborates in the image;
+the manifest of `521bc14` names `5d0d3c0c77`, not the head); commits `521bc14` and `ef3771d` (the
+manifest follows the lean-categories lock); kernel issue #90 (the Lean repositories of the
+programme follow the one Mathlib of the image; a checkout whose pin disagrees fails the image's
+check).
 

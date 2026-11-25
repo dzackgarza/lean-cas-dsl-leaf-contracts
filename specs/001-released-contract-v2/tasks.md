@@ -38,6 +38,14 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   .specify/memory AGENTS.md CONTRIBUTING.md specs` shows only lines that the branch's protocol-2
   material requires in `AGENTS.md` and `README.md`. **Consumer**: every later task.
   **After**: T001.
+- [ ] T022 Move `main` to the Mathlib revision and the toolchain that the research image records
+  (FR-026; research R18; issue #12). On `main`, set `lean-toolchain` to the toolchain of the image
+  and run `lake update lean_categories`; repair in this repository each module that the new
+  Mathlib breaks, with its statement unchanged; close #12 with a comment that names the commit.
+  **Files**: `lean-toolchain`, `lake-manifest.json`, the modules that the update breaks.
+  **Acceptance**: SC-007 in a container made from the image; `lake-manifest.json` names the
+  Mathlib revision that the image records. **Consumer**: the checkout check of the image
+  (dzackgarza/sage#13); kernel T105, which pins `main`. **After**: none.
 
 ## Phase 2: Foundational
 
@@ -82,7 +90,8 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   `tests/contract/test_manifest.py`, `tests/scenarios/manifest-*.json`.
   **Acceptance**: `cas-peer manifest` accepts the example of `api/manifest.md`; it rejects a
   field `priority`, a missing `registrations`, an empty `route`, and a manifest whose second
-  registration is invalid, naming the field or row. **Consumer**: kernel T017, kernel T028.
+  registration is invalid, naming the field or row and admitting none of its registrations
+  (issue #1). **Consumer**: kernel T017, kernel T028.
   **After**: T004.
 - [ ] T006 [US2] Exact references and graph controls (FR-005). Complete the decoders of
   `inputRef`, `resultRef`, `scopeRef`, `$cas.project` and `$cas.apply` and the SDK `Proxy` and
@@ -144,7 +153,7 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   `tests/scenarios/decision-*.json`.
   **Acceptance**: tests show the packets `some true`, `some false` and `none` decoded to two truth
   values and the outcome `unknown`; a JSON boolean, a string and a reply with `status:"unknown"`
-  are malformed. **Consumer**: kernel T113, kernel T027. **After**: T010.
+  are malformed. **Consumer**: kernel T302, kernel T113. **After**: T010.
 - [ ] T012 [US1] Routine observations and SDK logging (FR-013, FR-023). Keep
   `routine-observations/1` and `invoke_routine`; add the standard-error logger of every frame,
   handler, export, suspension, resume and disposal.
@@ -161,7 +170,7 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   **Files**: `api/kernel-service.md`, `api/README.md`, `api/wire-examples.md`, `api/manifest.md`.
   **Acceptance**: SC-004 holds; each example frame in these documents is accepted by `cas-peer`
   when a scenario replays it (`tests/contract/test_document_examples.py`).
-  **Consumer**: kernel T028, kernel T061, kernel T042. **After**: T012.
+  **Consumer**: kernel T028, kernel T042, kernel T061, kernel T322. **After**: T012.
 
 ## Phase 4: User Story 1 — the generated category interface
 
@@ -207,7 +216,7 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   inside a route carries the receiver, the residual descriptors and the method functor (FR-017);
   a map request carries both image endpoints (FR-018); loading the interface takes under 0.5 s
   and builds no category entry before the first query (timing record). **Consumer**: kernel T028,
-  the kernel category tasks. **After**: T021.
+  kernel T042, kernel T061, kernel T322, the kernel category tasks. **After**: T021.
 - [ ] T016 [US1] Author guidance (FR-021; D16). Index in `api/README.md` every document, generated
   file, SDK module and setup command that a leaf author needs; state in `README.md` and
   `AGENTS.md` the category implementation as the unit, registrations as ports, the leaf's control
@@ -254,6 +263,7 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
 | --- | --- |
 | T001 | — |
 | T002 | T001 |
+| T022 | — |
 | T003 | T002 |
 | T004–T013 | each the previous task |
 | T014 | T013 |
@@ -277,10 +287,10 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
 | T023 | T010 |
 | T027 | T008 |
 | T028 | T005, T013, T014, T021, T015, T016, T019 |
-| T042, T061 | T013 |
+| T042, T061, T322 | T013, T015 |
 | T100 | T012 |
 | T101 | T017 |
 | the category tasks (V1 and V2) | T015, T016, T018, T019 |
-| T105 | T020 |
-| T113, T027 | T011 |
+| T105 | T022, T020 |
+| T302, T113 | T011 |
 | T185 | T013, T021 |

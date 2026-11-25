@@ -1,7 +1,8 @@
 # Data Model: Released contract, protocol 2
 
-Wire grammar is in [contracts/protocol-2.md](contracts/protocol-2.md). This file states the
-entities, their fields, their validation and their states.
+The frames are indexed in [contracts/protocol-2.md](contracts/protocol-2.md), and the
+requirements of the specification state their exact fields. This file states the entities, their
+fields, their validation and their states.
 
 ## Manifest (`leaves.json`)
 
@@ -47,10 +48,7 @@ never reissued in its process.
 
 ## Strata
 
-`invalid`, `semanticAmbiguity`, `noImplementation`, `ambiguousRealization`, `unavailable`,
-`malformed`, `internal`.
-
-The outcome `unknown` of a decision is not a stratum (FR-012).
+The seven strata of FR-011. The outcome `unknown` of a decision is not a stratum (FR-012).
 
 ## Test records
 

@@ -8,9 +8,9 @@
 kernel-side design of this contract and governs where an `api/` document disagrees.
 
 **Input**: everything that the kernel tasks T017, T018, T020, T021, T022, T023, T027, T028,
-T100, T101 and T113 of lean-cas-dsl require of this repository, and what a leaf author needs
+T042, T061, T100, T101, T113, T185, T302 and T322 of lean-cas-dsl require of this repository, and what a leaf author needs
 for the computational milestones (the kernel category tasks, one for each category version), released as `v2.0.0` at kernel F and on
-`main` as `v2.0.1` at kernel T105.
+`main` as `v2.0.1` at kernel T105; and the build of `main` in the research image (issue #12).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -143,7 +143,9 @@ both admitted; a manifest with both registrations is admitted and the selection 
   `input`, `backend` and `preferredRoutes`. Every field is required; an unknown field is
   malformed. A preferred route has `name`, `receiver` and a nonempty `route` of structural edge
   labels; a route that is not a surviving route rejects the registration; conflicting admitted
-  preferences are not ranked (constitution RC6). *T017, T028.*
+  preferences are not ranked (constitution RC6). A manifest is admitted all or none: one invalid
+  registration rejects the manifest, the decoder names that registration, and no registration of
+  the manifest is admitted (issue #1). *T017, T028.*
 - **FR-005 — Exact references.** `inputRef(path)` addresses the original request at a complete
   prepared role by string fields and nonnegative indices. `resultRef(index)` addresses an earlier
   completed node of the same deferred group, never itself, a later node or an out-of-range node.
@@ -195,7 +197,7 @@ both admitted; a manifest with both registrations is admitted and the selection 
   leaf cannot establish the answer. The kernel maps `none` to the outcome `unknown`, which is not a
   third truth value (kernel C6) and is distinct from every stratum (kernel C13), so that
   `assert P = unknown` holds on it. No `status` value is added. Any other value of a decision
-  reply is `malformed`. *T113, T027.*
+  reply is `malformed`. *T302, T113.*
 - **FR-013 — Routine observations.** The optional feature `routine-observations/1` MUST keep the
   exact grammar of `api/python-sdk.md`: the kernel requests it in `hello` only when advertised,
   and each successful, deferred or suspended reply then carries `routines`. Observations are
@@ -221,7 +223,7 @@ both admitted; a manifest with both registrations is admitted and the selection 
   rules with no implementation").*
 - **FR-018 — Functor map requests.** The request of a functor's map action MUST carry the complete
   source arrow, every ordered functor parameter and both already computed image endpoints; the
-  reply is admitted at those images (`api/manifest.md`). *Kernel consumers: T042, T061.*
+  reply is admitted at those images (`api/manifest.md`). *Kernel consumers: T042, T061, T322.*
 - **FR-019 — Public documents without legacy or route rules.** The `api/` documents MUST state
   only the protocol-2 forms; they MUST hold no legacy recipe framing, no raw-receiver permission,
   no nearest-binding or route-length rule, no admission condition that needs a computation, no
@@ -266,6 +268,13 @@ both admitted; a manifest with both registrations is admitted and the selection 
   - a closed point $1 \to X$ in a morphism position is a morphism packet, and the `compose`
     envelope carries the selected intermediate object of the composite.
   No form is a leaf-chosen encoding (constitution RC1, RC8). *T028, T185; the lean-cas-dsl-leaves category specs.*
+- **FR-026 — `main` builds in the research image.** `main` MUST build inside the research image
+  (`ghcr.io/dzackgarza/sage:develop`) on the Mathlib revision and the toolchain that the image
+  records: `lean-toolchain` names that toolchain, `lake-manifest.json` names that Mathlib revision,
+  `lake build` passes, and `import Mathlib` elaborates through `lake env lean`. Mathlib reaches the
+  workspace through the `lean_categories` requirement at `main`, whose lakefile requires `mathlib`
+  at `master` (research R18). When a new image moves Mathlib, `main` moves with it. *Issue #12;
+  kernel T105, which pins `main` of this repository.*
 
 ### Key Entities
 
@@ -298,6 +307,9 @@ both admitted; a manifest with both registrations is admitted and the selection 
   equals the lean-categories row at the pinned revision.
 - **SC-006**: The kernel branch's lake manifest names the `v2.0.0` commit, kernel `main` names the
   `v2.0.1` commit, and both commits exist on GitHub.
+- **SC-007**: In a container made from the research image, `lake build` and `lake env lean` with
+  `import Mathlib` pass on `main`, and `lake-manifest.json` of `main` names the Mathlib revision
+  that the image records.
 
 ## Assumptions
 

@@ -19,7 +19,8 @@ real protocol peer, releases `v2.0.0` at kernel F, and merges the result into `m
 **Language/Version**: Lean 4 (`CasContract`, `peer/Driver.lean`); Python 3.12 or later (SDK).
 **Toolchain pins**: the integration branch builds on Lean `v4.33.0` and the Mathlib of the
 kernel branch; `main` builds on the toolchain of the research image (`lean-toolchain` at
-`ef3771d`: `leanprover/lean4:v4.36.0-rc2`, lean-categories main lock).
+`ef3771d`: `leanprover/lean4:v4.36.0-rc2`, lean-categories main lock), and follows the image
+(FR-026).
 **Primary Dependencies**: lean-categories (catalogue rows read by the exporter); `pydantic`
 (SDK frame models, locked in `uv.lock`); `pytest` (contract tests, dev dependency).
 **Storage**: committed files only: generated `api/*.json`, `tests/logs/`, `tests/timing/`.
@@ -45,7 +46,7 @@ revision.
 | RC7 | FR-011 fixes seven strata; FR-012 makes `unknown` the `none` value of a decision reply, an outcome of its own. |
 | RC8 | Disagreements D1–D3 remove the v1 and legacy forms. |
 | RC9 | FR-021 and SC-003 check the public-only path. |
-| RC10 | Source location and release follow the locked-state rule; SC-006 checks the pin exists. |
+| RC10 | Source location and release follow the locked-state rule; SC-006 checks the pin exists; FR-026 keeps `main` on the latest Mathlib of the image. |
 | RC12–RC13 | Contract tests run real processes over real pipes; no mock. |
 | RC14 | `CONTRIBUTING.md` holds the lessons of the disagreements below. |
 | RC17–RC18 | `tests/conftest.py` writes logs and timing records; FR-023 adds SDK logs. |
@@ -57,7 +58,7 @@ Gate result: pass. No violation needs a justification.
 
 The kernel branch `integration/kernel-v1-20261106` of lean-cas-dsl builds on Lean `v4.33.0` and
 locks this repository at `a0417b0` of the branch of the same name. The kernel tasks that consume
-this feature (T017–T023, T027, T028, T100, T101, T113) run on that kernel branch before its port
+this feature (T017–T023, T027, T028, T042, T061, T100, T101, T113, T302, T322) run on that kernel branch before its port
 to the research image (kernel issue #90, completed at kernel T105). Source: kernel `AGENTS.md`,
 "Source location"; kernel `tasks.md`, T105.
 
@@ -95,6 +96,7 @@ Each row names the files that change and the generator of each generated file.
 | FR-021 | `api/README.md`, `README.md` | — |
 | FR-022 | `lean-toolchain`, `lake-manifest.json`, `lakefile.lean`, `pyproject.toml`, `uv.lock` | `lake-manifest.json`: `lake update` at the merge only |
 | FR-023 | `python/cas_session.py` (logger to standard error) | — |
+| FR-026 | `lean-toolchain`, `lake-manifest.json` on `main` | `lake-manifest.json`: `lake update lean_categories` |
 | FR-025 | `tools/export_declared_ports.lean` (layout of each declared object from its declaration), `api/wire-examples.md`, `api/kernel-service.md`, `python/cas_interfaces.py` (value builders from the generated layouts) | `api/declared-ports.json`: `just export-api KERNEL` |
 | Tests (RC12–RC18) | `tests/contract/*.py`, `tests/leaves/*.py`, `tests/scenarios/*.json`, `tests/conftest.py`, `justfile`, `.github/workflows/ci.yml`, `pyproject.toml` | `tests/logs/*.log`, `tests/timing/records.jsonl`: each test run |
 
@@ -142,14 +144,15 @@ task that makes it.
 | D11 | Restated catalogue mathematics pinned to two lean-categories revisions (`api/wire-examples.md:949`, `:1007`) | The interface is generated (kernel C23) | Replace with links to generated rows | T013 |
 | D12 | The unit is the port (`README.md:19`; `AGENTS.md:89`); no category view on either published branch | Generated category-indexed interface (kernel C23, T028) | Publish the category view and its SDK helpers | T014, T015 |
 | D13 | `structural` only inside `entries[*].registeredMetadata` (research record, scaffolding) | Structural flag needed to order the milestones (kernel plan) | Export `structural` as a field of each functor row | T014 |
-| D14 | No decision reply grammar for predicates | T113 needs a three-valued decision for predicates and properties, with its own outcome (kernel C6, C13, T027, T113); the kernel admits a property reply as an `Option Bool` packet | State the `Option Bool` packet for every decision reply (FR-012) | T011 |
+| D14 | No decision reply grammar for predicates | Kernel T302 gives a predicate or property reply three values, with `unknown` an outcome of its own, and T113 decides equality by a published predicate (kernel C6, C13); the kernel admits a property reply as an `Option Bool` packet | State the `Option Bool` packet for every decision reply (FR-012) | T011 |
 | D15 | The kernel branch pins `a0417b0`, which GitHub does not have | A consumer pin must exist (RC10) | Publish the branch | T001 |
 | D16 | Ownership table: `lean-cas-dsl-leaves` depends on "nothing" (`AGENTS.md`, table) | A leaf's software dependency on the SDK is actual (kernel C23) | Table row: depends on this contract | T016 |
 | D17 | Ten kinds of request and result data have no declared form; the leaf chose encodings (issue #14) | The interface is generated from accepted declarations and the protocol grammar (RC3; kernel C23, FR-125) | Declare each form (FR-025) | T021 |
 
 ## Merge and release
 
-1. T001 publishes `a0417b0` and the local worktree changes on the integration branch.
+1. T001 publishes `a0417b0` and the local worktree changes on the integration branch; T022
+   moves `main` to the Mathlib revision and toolchain of the research image (FR-026).
 2. T003–T018 and T021 land on the integration branch; the kernel branch consumes each revision.
 3. T019, at kernel F: `just export-api` against the built kernel branch, the unchanged output
    committed, `pyproject.toml` version `2.0.0`, tag `v2.0.0`. The kernel branch pins it.
