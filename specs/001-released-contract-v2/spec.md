@@ -4,13 +4,13 @@
 **Created**: 2026-11-25
 **Status**: Planned
 **Governing text**: [constitution](../../.specify/memory/constitution.md) (RC1–RC20); the
-[kernel constitution][KC] v4.0.0; the kernel's [runtime contract][KR], which is the
+[kernel constitution][KC] v4.0.1; the kernel's [runtime contract][KR], which is the
 kernel-side design of this contract and governs where an `api/` document disagrees.
 
 **Input**: everything that the kernel tasks T017, T018, T020, T021, T022, T023, T027, T028,
 T100, T101 and T113 of lean-cas-dsl require of this repository, and what a leaf author needs
-for the computational milestones (kernel T104), released as `v2.0.0` at kernel F and on `main`
-as `v2.0.1` at kernel T105.
+for the computational milestones (kernel T200 to T224), released as `v2.0.0` at kernel F and on
+`main` as `v2.0.1` at kernel T105.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -77,9 +77,10 @@ and every frame that the kernel sends is compared with the frame that the scenar
    child order, and a child with no eligible realization holds the `noImplementation` slot.
 3. **Given** a scenario reply that omits a mandatory field, **When** the kernel admits it,
    **Then** the outcome is `malformed` and nothing of the reply is staged.
-4. **Given** a predicate request, **When** the peer replies `true`, `false` or `status:"unknown"`,
-   **Then** the kernel retains a truth value for the first two and the `unavailable` outcome with
-   reason `unknown` for the third.
+4. **Given** a decision request (a predicate or a property), **When** the peer replies with the
+   value `some true`, `some false` or `none` of an `Option Bool` packet, **Then** the kernel
+   retains a truth value for the first two and the outcome `unknown` for the third, and no stratum
+   for any of the three.
 
 ---
 
@@ -114,7 +115,8 @@ both admitted; a manifest with both registrations is admitted and the selection 
 | A `resultRef` to itself or a later node | `malformed` | `api/kernel-service.md` |
 | A child of a `deferredData` program with no realization | The parent request has `noImplementation` naming the child operation | Runtime contract §6; kernel T022 |
 | A child failure other than no implementation, or child loss | The suspension chain retires; no substitute result | Runtime contract §6 |
-| `status:"unknown"` on an operation whose result is not $\Omega$ | `malformed` | FR-012 |
+| A decision request answered by a value that is not an `Option Bool` packet | `malformed` | FR-012 |
+| A `status` other than `ok`, `suspended`, `unsupported` or `error` | `malformed` | Runtime contract §8 |
 | A lost reply after a resume is sent | The resume right is consumed; no resend | Runtime contract §6, §7 |
 
 ## Requirements *(mandatory)*
@@ -184,12 +186,16 @@ both admitted; a manifest with both registrations is admitted and the selection 
   `status:"unsupported"` with the exact `op` maps to `noImplementation` for that operation; an
   untagged defect of an implementation is `internal`; unknown or mismatched statuses, fields,
   scopes or captures are `malformed`. *T027.*
-- **FR-012 — Decision replies.** For an operation whose result role is the truth-value object
-  $\Omega$ (`obj.sets.truth_values`), a successful reply's `value` MUST be the JSON boolean
-  `true` or `false`. Inability to establish the answer is the reply
-  `{"request_id":…,"status":"unknown","op":"<op>","reason":"<text>"}`, which maps to
-  `unavailable` with reason `unknown`. `unknown` on another result role is `malformed`. It is not
-  a third truth value (kernel C6). *T113.*
+- **FR-012 — Decision replies.** A decision request is a property request, or a request of a
+  morphism whose target is the truth-value object $\Omega$ (`obj.sets.truth_values`). The value
+  that its reply supplies (directly, or through a deferred program or a resumed suspension) MUST
+  be an `Option Bool` packet:
+  `{"ctor":"some","args":[{"ctor":"true","args":[]}]}`,
+  `{"ctor":"some","args":[{"ctor":"false","args":[]}]}`, or `{"ctor":"none","args":[]}` when the
+  leaf cannot establish the answer. The kernel maps `none` to the outcome `unknown`, which is not a
+  third truth value (kernel C6) and is distinct from every stratum (kernel C13), so that
+  `assert P = unknown` holds on it. No `status` value is added. Any other value of a decision
+  reply is `malformed`. *T113, T027.*
 - **FR-013 — Routine observations.** The optional feature `routine-observations/1` MUST keep the
   exact grammar of `api/python-sdk.md`: the kernel requests it in `hello` only when advertised,
   and each successful, deferred or suspended reply then carries `routines`. Observations are
@@ -226,17 +232,40 @@ both admitted; a manifest with both registrations is admitted and the selection 
   Neither computes a mathematical value. *Kernel checks of T017–T023, T027.*
 - **FR-021 — Public-only completeness.** `api/README.md` MUST index every document, generated
   file and SDK module that a leaf author needs, with the setup command of the SDK environment.
-  No published file names kernel internals, the acceptance corpus or expected answers. *T028, T104.*
+  No published file names kernel internals, the acceptance corpus or expected answers. *T028,
+  T200–T224.*
 - **FR-022 — Releases.** At kernel F the integration branch commit with regenerated catalogue
   MUST be tagged `v2.0.0`, which the kernel branch pins and leaf work consumes. At kernel T105 the
   protocol-2 material MUST be merged into `main`, build on the toolchain and Mathlib of `main`,
   have its catalogue regenerated from that locked state, and be tagged `v2.0.1`, which kernel
-  `main` pins. *T028 (at F), T104, T105.*
+  `main` pins. *T028 (at F), T200–T224, T105.*
 - **FR-023 — SDK logging.** The SDK MUST log to standard error each received and sent frame (by
   request ID, `op` and status), each handler start and end, and each export, suspension, resume and
   disposal (constitution RC17).
 - **FR-024 — Construction cost.** Creating a session, a proxy or a loaded interface MUST do no
   per-row work; the category index is built on first query (constitution RC20).
+- **FR-025 — Value forms of category data.** The contract MUST declare, in the `api/` documents
+  and the generated interface, the complete form, the validators (layout, dependent roles, scope
+  and owner, and no condition that needs a computation), one worked example and one malformed
+  example of each data kind of issue #14, generated from the accepted declarations of
+  lean-categories and the protocol grammar (constitution RC3):
+  - a value of a declared object whose declaration is a native inductive type uses the native
+    constructor packets of its layout: $\mathbb{N} \cup \{-\infty\}$ (`obj.sets.degrees`,
+    `WithBot ℕ`) is `{"ctor":"some","args":[k]}` or `{"ctor":"none","args":[]}`;
+  - a value with no native constructor layout is a registered morphism or inclusion row applied to
+    registered points: $p/q$ through `mor.sets.divide` with $q$ admitted to the units, $\sqrt{a}$
+    through `mor.sets.real_sqrt`, $\pi$ and $i$ as the points `mor.sets.real_pi` and
+    `mor.sets.complex_i`, a real at $\mathbb{C}$ through `incl.sets.reals_complexes`, a Kähler
+    differential through `mor.sets.kaehler_from_coordinate`, a matrix through
+    `mor.sets.matrix_rows` at the rows built by `mor.sets.tuple_cons` and `mor.sets.tuple_empty`;
+  - an infinite subset uses the power-object rows of lean-categories #191; a binder request and
+    its bound map use the binder operation of lean-categories #190; the apex and the legs of a
+    product with an infinite factor are the registered limit `lim.sets.product` at its parameters,
+    with legs named by the shape objects of lean-categories #187; an element operation in the
+    arrow position of `apply` uses the operation owners of lean-categories #193;
+  - a closed point $1 \to X$ in a morphism position is a morphism packet, and the `compose`
+    envelope carries the selected intermediate object of the composite.
+  No form is a leaf-chosen encoding (constitution RC1, RC8). *T028, T185; leaves T034.*
 
 ### Key Entities
 
@@ -249,6 +278,8 @@ both admitted; a manifest with both registrations is admitted and the selection 
 - **Continuation**: a one-use token of a suspended generator.
 - **No-implementation slot**: the reserved resume entry that names a child without realization.
 - **Stratum**: one of the seven failure outcomes.
+- **Decision packet**: the `Option Bool` value of a decision reply; `none` is the outcome
+  `unknown`.
 - **Protocol peer**: the scenario-driven counterpart of a leaf or kernel in a contract test.
 
 ## Success Criteria *(mandatory)*

@@ -5,7 +5,7 @@ the port protocol, the failure strata, the generated catalogue under `api/` and 
 (`cas_port`, `cas_session`, `cas_interfaces`). A leaf is written against this contract and
 nothing else of the kernel (`AGENTS.md`, `README.md`).
 
-The [kernel constitution][K] (lean-cas-dsl, v4.0.0) governs the whole programme. This file
+The [kernel constitution][K] (lean-cas-dsl, v4.0.1) governs the whole programme. This file
 states the obligations of that constitution that bind a contract, and the rules of this
 repository's own governing documents. Article identifiers `RC1` to `RC20` are stable. A kernel
 article is cited as `K:C<n>`.
@@ -88,8 +88,10 @@ The strata are `invalid`, `semanticAmbiguity`, `noImplementation`, `ambiguousRea
 fallback, restart or cache hit merges them. A leaf reply cannot declare semantic invalidity or
 ambiguity. A well-shaped wrong answer is not a stratum; independent assessment judges it.
 
-An `unknown` answer to a predicate is an inability to establish the result, not a third truth
-value (K:C6). It is a procedural outcome on the wire and maps to `unavailable`.
+An `unknown` answer to a decision (a predicate or a property) is an inability to establish the
+result, not a third truth value (K:C6). On the wire it is the value `none` of the decision reply,
+whose value is an `Option Bool` packet. The kernel reports it as the outcome `unknown`, which is
+distinct from every stratum and from every other outcome (K:C13; kernel T027, T113).
 
 ### RC8. One exact protocol
 
@@ -217,6 +219,6 @@ additions, patch for editorial corrections. Article identifiers are never renumb
 Work order is the task list of the active feature under `specs/`. Its unchecked tasks are
 executed in document order. Work records and evidence stay in the owning GitHub issues.
 
-**Version**: 1.0.0 | **Ratified**: 2026-11-25 | **Last Amended**: 2026-11-25
+**Version**: 2.0.0 | **Ratified**: 2026-11-25 | **Last Amended**: 2026-11-25
 
 [K]: https://github.com/dzackgarza/lean-cas-dsl/blob/main/.specify/memory/constitution.md

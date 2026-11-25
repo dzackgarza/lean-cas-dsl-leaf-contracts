@@ -39,10 +39,10 @@ revision.
 | --- | --- |
 | RC1 | No requirement adds a mathematical field; FR-019 removes the route and computation rules that the documents state now. |
 | RC2 | FR-014 and FR-016 publish the category as the unit; registrations stay ports. |
-| RC3 | Generated files come from `just export-api`; FR-015 changes the exporter, not the JSON. |
+| RC3 | Generated files come from `just export-api`; FR-015 changes the exporter, not the JSON; FR-025 generates each value form from accepted declarations and the protocol grammar. |
 | RC4 | FR-009, FR-010 give the no-implementation answer in both services by which a leaf asks. |
 | RC5, RC6 | FR-004 keeps equal standing and the C6 preferred route; no priority field. |
-| RC7 | FR-011 and FR-012 fix seven strata and map `unknown` to `unavailable`. |
+| RC7 | FR-011 fixes seven strata; FR-012 makes `unknown` the `none` value of a decision reply, an outcome of its own. |
 | RC8 | Disagreements D1–D3 remove the v1 and legacy forms. |
 | RC9 | FR-021 and SC-003 check the public-only path. |
 | RC10 | Source location and release follow the locked-state rule; SC-006 checks the pin exists. |
@@ -61,11 +61,12 @@ this feature (T017–T023, T027, T028, T100, T101, T113) run on that kernel bran
 to the research image (kernel issue #90, completed at kernel T105). Source: kernel `AGENTS.md`,
 "Source location"; kernel `tasks.md`, T105.
 
-Decision: the contract work of tasks T003–T018 is committed on
+Decision: the contract work of tasks T003–T018 and T021 is committed on
 `integration/kernel-v1-20261106` of this repository, which the kernel branch consumes. The
 governing documents (constitution, `AGENTS.md`, `README.md`, `CONTRIBUTING.md`, `specs/`) are
 the same on both branches; an edit to one is committed on both. Task T019 releases `v2.0.0` on
-that branch at kernel F, for kernel T028, T101 and the leaf work of kernel T104. Task T020 merges
+that branch at kernel F, for kernel T028, T101 and the leaf work of the computational
+milestones, kernel T200 to T224. Task T020 merges
 the branch into `main` on the toolchain of `main` with the kernel port of #90 (kernel T105) and
 releases `v2.0.1` on `main`, the delivery release. Source: the kernel rule that both kernel branches carry the same governing
 documents; the delivery-inputs policy (latest main at delivery).
@@ -84,7 +85,7 @@ Each row names the files that change and the generator of each generated file.
 | FR-009 | `CasContract/Port.lean` (`DeferredData.decode`), `python/cas_port.py` (`deferred_data`), `api/deferred.schema.json`, `api/kernel-service.md` | — |
 | FR-010 | `CasContract/Port.lean` (suspended and resume grammar, reserved `noImplementation`), `python/cas_session.py` (`NoImplementation`, `advance`, reserved-constructor check), `api/python-sdk.md` | — |
 | FR-011 | `CasContract/Failure.lean` (add `internal`), `api/kernel-service.md` (failure table) | — |
-| FR-012 | `CasContract/Port.lean` (decision reply), `python/cas_session.py` (`Unknown` reply), `api/python-sdk.md`, `api/kernel-service.md` | — |
+| FR-012 | `CasContract/Port.lean` (`Option Bool` decision packet), `python/cas_session.py` (decision packet helper), `api/python-sdk.md`, `api/kernel-service.md` | — |
 | FR-013 | `python/cas_session.py` (`invoke_routine`), `api/python-sdk.md` | — |
 | FR-014, FR-015 | `tools/export_declared_ports.lean`, `tools/export_admission_addresses.lean`, `tools/export_api.py`, `api/README.md` | `api/declared-ports.json`, `api/extension-ports.json`: `just export-api KERNEL` |
 | FR-016, FR-024 | `python/cas_interfaces.py`, `api/python-sdk.md` | — (derives its view from the generated JSON at load time) |
@@ -94,6 +95,7 @@ Each row names the files that change and the generator of each generated file.
 | FR-021 | `api/README.md`, `README.md` | — |
 | FR-022 | `lean-toolchain`, `lake-manifest.json`, `lakefile.lean`, `pyproject.toml`, `uv.lock` | `lake-manifest.json`: `lake update` at the merge only |
 | FR-023 | `python/cas_session.py` (logger to standard error) | — |
+| FR-025 | `tools/export_declared_ports.lean` (layout of each declared object from its declaration), `api/wire-examples.md`, `api/kernel-service.md`, `python/cas_interfaces.py` (value builders from the generated layouts) | `api/declared-ports.json`: `just export-api KERNEL` |
 | Tests (RC12–RC18) | `tests/contract/*.py`, `tests/leaves/*.py`, `tests/scenarios/*.json`, `tests/conftest.py`, `justfile`, `.github/workflows/ci.yml`, `pyproject.toml` | `tests/logs/*.log`, `tests/timing/records.jsonl`: each test run |
 
 ## Contract tests
@@ -109,7 +111,8 @@ Each test starts real processes and exchanges real frames over pipes (constituti
 | `test_deferred.py` | `tests/leaves/deferred.py` | `cas-peer` | FR-009 frame grammar and backward references |
 | `test_suspension.py` | `tests/leaves/suspending.py` | `cas-peer` | FR-010, including the `noImplementation` slot and the reserved-constructor rejection |
 | `test_failures.py` | `tests/leaves/failing.py` | `cas-peer` | FR-011 mapping of `error`, `unsupported` and malformed replies |
-| `test_decision.py` | `tests/leaves/predicate.py` | `cas-peer` | FR-012 |
+| `test_decision.py` | `tests/leaves/predicate.py` | `cas-peer` | FR-012: the three `Option Bool` packets; a Boolean, a string or an unknown `status` is malformed |
+| `test_value_forms.py` | `tests/leaves/value_forms.py` | `cas-peer` | FR-025: one accepted and one malformed frame for each data kind of issue #14 |
 | `test_routines.py` | `tests/leaves/immediate.py` | `cas-peer` | FR-013 |
 | `test_interfaces.py` | `tests/leaves/sets_category.py` | `cas-peer` | FR-014–FR-018 through generated packets of `cat.sets` |
 | `test_peer.py` | `peer/protocol_peer.py` | `cas-peer` | FR-020: the leaf-side peer replays its scenario exactly |
@@ -139,14 +142,15 @@ task that makes it.
 | D11 | Restated catalogue mathematics pinned to two lean-categories revisions (`api/wire-examples.md:949`, `:1007`) | The interface is generated (kernel C23) | Replace with links to generated rows | T013 |
 | D12 | The unit is the port (`README.md:19`; `AGENTS.md:89`); no category view on either published branch | Generated category-indexed interface (kernel C23, T028) | Publish the category view and its SDK helpers | T014, T015 |
 | D13 | `structural` only inside `entries[*].registeredMetadata` (research record, scaffolding) | Structural flag needed to order the milestones (kernel plan) | Export `structural` as a field of each functor row | T014 |
-| D14 | No decision reply; no `unknown` status | T113 needs true, false and inability to establish (kernel C6, T113) | Add FR-012 grammar | T011 |
+| D14 | No decision reply grammar for predicates | T113 needs a three-valued decision for predicates and properties, with its own outcome (kernel C6, C13, T027, T113); the kernel admits a property reply as an `Option Bool` packet | State the `Option Bool` packet for every decision reply (FR-012) | T011 |
 | D15 | The kernel branch pins `a0417b0`, which GitHub does not have | A consumer pin must exist (RC10) | Publish the branch | T001 |
 | D16 | Ownership table: `lean-cas-dsl-leaves` depends on "nothing" (`AGENTS.md`, table) | A leaf's software dependency on the SDK is actual (kernel C23) | Table row: depends on this contract | T016 |
+| D17 | Ten kinds of request and result data have no declared form; the leaf chose encodings (issue #14) | The interface is generated from accepted declarations and the protocol grammar (RC3; kernel C23, FR-125) | Declare each form (FR-025) | T021 |
 
 ## Merge and release
 
 1. T001 publishes `a0417b0` and the local worktree changes on the integration branch.
-2. T003–T018 land on the integration branch; the kernel branch consumes each revision.
+2. T003–T018 and T021 land on the integration branch; the kernel branch consumes each revision.
 3. T019, at kernel F: `just export-api` against the built kernel branch, the unchanged output
    committed, `pyproject.toml` version `2.0.0`, tag `v2.0.0`. The kernel branch pins it.
 4. T020, at kernel T105: merge into `main`; `lean-toolchain` and lean-categories take the values

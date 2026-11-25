@@ -11,7 +11,7 @@ active task. `After` names the inputs that a task needs. `Consumer` names the le
 that uses the result ("kernel T0nn"). A wait on an unavailable input blocks only its task; work
 continues with the next task whose inputs are present, and the waiting task keeps its position.
 
-Tasks T003–T018 are committed on `integration/kernel-v1-20261106` ([plan, source
+Tasks T003–T018 and T021 are committed on `integration/kernel-v1-20261106` ([plan, source
 location](plan.md#source-location)). Each frame task changes the Lean codec, the SDK, the public
 document, both protocol peers and the contract test of that frame in one change; a codec without
 its test is not complete (constitution RC13).
@@ -41,7 +41,7 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
 
 ## Phase 2: Foundational
 
-- [ ] T003 Build the tier 1 harness and both protocol peers at negotiation. Add `pytest` as a dev
+- [ ] T003 Build the tier 1 harness and both protocol peers at negotiation (FR-020; research R11, R16). Add `pytest` as a dev
   dependency (`uv add --dev pytest`); add recipes `setup` (`uv sync --frozen`, `lake build
   cas-peer`) and `test` (`uv run --frozen pytest tests/contract`) to `justfile`, and run `test`
   in `test-push` and in CI after `setup`. Write `peer/Driver.lean` (executable `cas-peer` in
@@ -135,15 +135,16 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   resume of a consumed token is malformed; an empty child group is malformed; a reply containing
   `noImplementation` raises in the SDK and no frame is written. **Consumer**: kernel T023.
   **After**: T009.
-- [ ] T011 [US2] Decision replies (FR-012; D14; research R6). Add the `unknown` status, the
-  `cas_session.Unknown` exception and its mapping to `unavailable` with reason `unknown`; state that
-  a predicate's value at $\Omega$ is a JSON boolean.
+- [ ] T011 [US2] Decision replies (FR-012; D14; research R6). Decode and encode the `Option Bool`
+  decision packet as the value of every decision reply (property requests and morphisms into
+  $\Omega$), map `none` to the outcome `unknown` with no stratum, add the SDK helper
+  `cas_session.decision`, and keep the leaf statuses `ok`, `suspended`, `unsupported` and `error`.
   **Files**: `CasContract/Port.lean`, `python/cas_session.py`, `api/python-sdk.md`,
   `api/kernel-service.md`, `tests/contract/test_decision.py`, `tests/leaves/predicate.py`,
   `tests/scenarios/decision-*.json`.
-  **Acceptance**: tests show `true`, `false` and `unknown` replies decoded to two values and one
-  `unavailable`; `unknown` on a request whose scenario result role is not $\Omega$ is malformed.
-  **Consumer**: kernel T113. **After**: T010.
+  **Acceptance**: tests show the packets `some true`, `some false` and `none` decoded to two truth
+  values and the outcome `unknown`; a JSON boolean, a string and a reply with `status:"unknown"`
+  are malformed. **Consumer**: kernel T113, kernel T027. **After**: T010.
 - [ ] T012 [US1] Routine observations and SDK logging (FR-013, FR-023). Keep
   `routine-observations/1` and `invoke_routine`; add the standard-error logger of every frame,
   handler, export, suspension, resume and disposal.
@@ -176,6 +177,25 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   `obj.sets.fin`, `mor.sets.fin_rev` and `mor.sets.equality`; the provenance names the locked
   revisions. **Consumer**: kernel T028; computational milestone order (kernel plan).
   **After**: T013.
+- [ ] T021 [US1] Value forms of category data (FR-025; D17; research R17; issue #14). Declare in
+  `api/wire-examples.md` and `api/kernel-service.md`, and generate in `api/declared-ports.json`, the
+  form, validators, one worked example and one malformed example of each data kind of #14: native
+  constructor packets for `obj.sets.degrees`; registered rows applied to registered points for
+  non-integral rationals, irrational reals, complex numbers, Kähler differentials and matrices;
+  the power-object rows of lean-categories #191 for infinite subsets; the binder operation of
+  #190 for binder requests; the registered limit with shape-object legs of #187 for a product with
+  an infinite factor; the operation owners of #193 for an element operation in `apply`; a morphism
+  packet for a closed point in a morphism position; the selected intermediate object in `compose`.
+  Close #14 with a comment that names the commit.
+  **Files**: `tools/export_declared_ports.lean`, `tools/export_api.py`, `api/wire-examples.md`,
+  `api/kernel-service.md`, `api/README.md`, `python/cas_interfaces.py`,
+  `tests/contract/test_value_forms.py`, `tests/leaves/value_forms.py`,
+  `tests/scenarios/value-forms-*.json`; generated `api/declared-ports.json`.
+  **Acceptance**: for each of the ten kinds, `test_value_forms.py` sends one accepted and one
+  malformed frame through `cas-peer`, and the accepted frame is built by `cas_interfaces` from the
+  generated layout; `git grep -n "leaf-chosen\|leaf's choice" api/` returns nothing.
+  **Consumer**: kernel T028, kernel T185; lean-cas-dsl-leaves T034. **After**: T014;
+  lean-categories T005 (#193), T013 (#191), T027 (#190), T031 (#187).
 - [ ] T015 [US1] SDK category helpers (FR-016, FR-024; D12). Complete `cas_interfaces.load_interfaces`
   with category, constructor, call and result access, explicit dependent descriptors and a
   category index built on first query; write `tests/leaves/sets_category.py`, an implementation of
@@ -187,14 +207,15 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   inside a route carries the receiver, the residual descriptors and the method functor (FR-017);
   a map request carries both image endpoints (FR-018); loading the interface takes under 0.5 s
   and builds no category entry before the first query (timing record). **Consumer**: kernel T028,
-  kernel T104. **After**: T014.
+  kernel T200–T224. **After**: T021.
 - [ ] T016 [US1] Author guidance (FR-021; D16). Index in `api/README.md` every document, generated
   file, SDK module and setup command that a leaf author needs; state in `README.md` and
   `AGENTS.md` the category implementation as the unit, registrations as ports, the leaf's control
   logic (kernel C22), permitted private reuse, and the absence of leaf mathematical, proof and
   acceptance authority; set the ownership row of `lean-cas-dsl-leaves` to depend on this contract.
   **Files**: `api/README.md`, `README.md`, `AGENTS.md`. **Acceptance**: every file that a test
-  leaf imports or reads is linked from `api/README.md`. **Consumer**: kernel T028, kernel T104.
+  leaf imports or reads is linked from `api/README.md`. **Consumer**: kernel T028, kernel
+  T200–T224.
   **After**: T015.
 - [ ] T017 [US1] Language interface and help (research R10). Extend `tools/export_api.py` to run
   `#cas_export_interface` of the kernel and write `api/language-interface.json` and
@@ -208,7 +229,7 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   commit, on a host path with no lean-cas-dsl checkout, run the quickstart.
   **Files**: `specs/001-released-contract-v2/quickstart.md` when a command differs.
   **Acceptance**: every quickstart command passes; the run log and timing records are committed.
-  **Consumer**: kernel T104. **After**: T017.
+  **Consumer**: kernel T200–T224. **After**: T017.
 
 ## Phase 5: Releases
 
@@ -217,7 +238,7 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   tier 1, tag `v2.0.0` and push the branch and tag.
   **Files**: generated `api/*.json`, `api/language-help.md`, `pyproject.toml`, `uv.lock`.
   **Acceptance**: the kernel branch's lake manifest names the tagged commit (SC-006, first part).
-  **Consumer**: kernel T028 (closure at F), kernel T104. **After**: T018; kernel T100, T101.
+  **Consumer**: kernel T028 (closure at F), kernel T200–T224. **After**: T018; kernel T100, T101.
 - [ ] T020 Merge into `main` and release `v2.0.1` at kernel T105 (FR-022). Merge the integration
   branch into `main`; keep `lean-toolchain` and the lean-categories requirement of `main`; run
   `lake update`; build every module and `cas-peer`; run tier 1; run `just export-api` against the
@@ -236,7 +257,8 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
 | T003 | T002 |
 | T004–T013 | each the previous task |
 | T014 | T013 |
-| T015 | T014 |
+| T021 | T014; lean-categories T005, T013, T027, T031 |
+| T015 | T021 |
 | T016 | T015 |
 | T017 | T016; kernel T097–T100 |
 | T018 | T017 |
@@ -254,10 +276,11 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
 | T022 | T009 |
 | T023 | T010 |
 | T027 | T008 |
-| T028 | T005, T013, T014, T015, T016, T019 |
+| T028 | T005, T013, T014, T021, T015, T016, T019 |
 | T042, T061 | T013, T015 |
 | T100 | T012 |
 | T101 | T017 |
-| T104 | T015, T016, T018, T019 |
+| T200–T224 | T015, T016, T018, T019 |
 | T105 | T020 |
-| T113 | T011 |
+| T113, T027 | T011 |
+| T185 | T013, T021 |

@@ -38,7 +38,7 @@ owner) are separate keys.
 | Export | token, handler, ordered captures | Until `$cas.discard` of its request or EOF |
 | Continuation | token, generator, ordered captures | One resume |
 | NoImplementation | `operation`, `input` | Value sent to a generator |
-| Unknown | `reason` | Raised by a predicate handler |
+| Decision packet | `Option Bool`: `some true`, `some false`, `none` | Value of a decision reply; `none` is the outcome `unknown` |
 
 ## Continuation states
 
@@ -49,6 +49,8 @@ never reissued in its process.
 
 `invalid`, `semanticAmbiguity`, `noImplementation`, `ambiguousRealization`, `unavailable`,
 `malformed`, `internal`.
+
+The outcome `unknown` of a decision is not a stratum (FR-012).
 
 ## Test records
 

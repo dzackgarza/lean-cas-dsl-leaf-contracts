@@ -15,7 +15,6 @@ malformed. The kernel's [runtime contract][KR] governs.
 | discard | kernel → leaf | `protocol`, `request_id`, `op:"$cas.discard"`, `discard_request_id` | FR-008 |
 | ok | leaf → kernel | `request_id`, `status:"ok"`, `value`, `exports` (+ `routines`) | FR-006 |
 | suspended | leaf → kernel | `request_id`, `status:"suspended"`, `continuation`, `captures`, `calls`, `exports` (+ `routines`) | FR-010 |
-| unknown | leaf → kernel | `request_id`, `status:"unknown"`, `op`, `reason` | FR-012 |
 | unsupported | leaf → kernel | `request_id`, `status:"unsupported"`, `op` | FR-011 |
 | error | leaf → kernel | `request_id`, `status:"error"`, `kind`, `message` | FR-011 |
 | disposed | leaf → kernel | `request_id`, `status:"ok"`, `disposed:true` | FR-008 |
@@ -30,6 +29,8 @@ malformed. The kernel's [runtime contract][KR] governs.
 | `opaqueData(token)` | leaf | Provider-local exported value |
 | `deferredData(calls, template)` | leaf | Deferred program as an `ok` value |
 | `noImplementation(op, input)` | kernel only | Resume slot of a child with no realization |
+| `some(true)`, `some(false)`, `none` | leaf | `Option Bool` value of a decision reply (FR-012) |
+| value forms of issue #14 | leaf and kernel | Generated from the declarations (FR-025) |
 
 ## Resume slots
 
