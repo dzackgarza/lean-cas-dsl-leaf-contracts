@@ -111,8 +111,10 @@ leaf (`AGENTS.md`, "A leaf is glue").
 
 ### RC10. Releases are exact source states
 
-A release is a commit of `main` whose Lake manifest locks its dependency revisions and whose
-generated files were produced from that locked state (`README.md`; `api/README.md`). A snapshot
+A release is a tagged commit whose Lake manifest locks its dependency revisions and whose
+generated files were produced from that locked state (`README.md`; `api/README.md`). A release
+is cut on the branch whose toolchain its kernel consumer builds on; the delivery release is on
+`main`. A snapshot
 is never relabelled as a new export. A failed export leaves the previous snapshot intact.
 Delivery consumes latest-main dependencies and records the actual revisions (K: delivery-inputs
 policy). A revision that a consumer pins MUST exist on GitHub.
