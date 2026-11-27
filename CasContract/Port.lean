@@ -1,7 +1,7 @@
-/-
-Copyright (c) 2026 Dzack Garza. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
--/
+  
+                                                    
+                                                                   
+  
 module
 
 public import CasContract.Failure
@@ -9,882 +9,882 @@ public import Lean.Data.Json
 
 @[expose] public section
 
-/-!
-# The backend port (`specs/leaf-registration.md`, "A registration is data")
-
-The kernel owns this protocol; a leaf owns the program behind its port, in whatever language its
-engine needs. Only data crosses it: the kernel's encoding of an input goes out, and JSON comes
-back, which the kernel decodes in the operation's declared result form or rejects. No Lean crosses
-it in either direction.
-
-A backend is a child process speaking length-prefixed JSON frames (the ASCII decimal byte length,
-a newline, the UTF-8 payload; a Python reference implementation is this package's
-`python/cas_port.py`, on the `PYTHONPATH` of every program the kernel starts). It first announces
-itself (`{op: "ready", backend, backend_version, capabilities}`; nothing in the announcement is
-believed or consulted), then answers requests `{request_id, op, args}` with
-`{request_id, status, value}`, where `op` is a registration's operation id and `args` the encoded
-input. Which operations are called on it is the admitted registrations' (`CasCatalogue.Admission`).
-
-`status: "ok"` carries `value`. `status: "error"` carries string `kind` and `message`
-and reports an unavailable computation. `status: "unsupported"` carries the exact dispatched
-`op` and reports `noImplementation`. Unknown statuses and mismatched request identities are
-malformed. The frame length contains only nonempty ASCII decimal digits. Request data such as
-zero, false and an empty array are preserved verbatim. Complete worked request/reply forms and
-malformed examples are published in `api/wire-examples.md`.
-Loss of the connection before a complete reply, including an interrupted frame or a broken
-request pipe, is unavailable. A complete invalid frame or reply remains malformed.
-
-## Kernel-mediated computations requested by a leaf
-
-A handler may return a successful reply whose value is
-`{"ctor":"deferredData","args":[[<calls in dependency order>],<result template>]}`.
-Each call is exactly `{"op":<published operation address>,"input":<published input form>,
-"args":<that operation's existing complete request template>}`. A template can contain
-`{"ctor":"resultRef","args":[<zero-based earlier call index>]}` in a typed data slot.
-Call arguments may refer only to prior calls; the final template may refer to any call in
-that program. The kernel resolves each reference to the actual typed result and retained
-dependencies, checks its exact role, parameters and endpoints, and dispatches through the
-ordinary published interface. It derives the result interface from the registered declaration
-and selected request. Neither `op` nor `input` selects a backend or supplies result-type authority.
-
-These are computational control forms, interpreted only within a service reply. They are not
-mathematical constructors and do not reach a target consumer as recipes. A called implementation
-may itself return a deferred reply; the same shared service interprets it in its own reference
-scope before completing that node. A literal nested `deferredData` in a template is malformed.
-Templates contain ordinary published data constructors, scoped `resultRef`, and
-`inputRef` paths to complete typed input occurrences retained by the original caller.
-An input reference uses string field names and natural array indices; it never
-chooses an occurrence by comparing packets or occupies a result index.
-
-The service permits published constructors and operations across the existing operation families,
-not merely replay of the current functor action. Every family retains its existing full request
-and result contract, including complete diagrams, callable endpoints, selected actions, evidence
-parameters and structured defining maps where required. The public guide lists these families.
-An object/category/data-constructor descriptor is an input or result form; it is not an executable
-operation address unless the published interface gives it one. A missing required generic
-declaration-to-request implementation remains kernel work; this grammar does not establish that
-such coverage is complete.
-
-Each node result retains its actual supplier and all nested computational dependencies. A final
-result from another backend is not restamped as owned by the leaf that returned the program.
-References preserve separate owners; resolving a template does not flatten or erase mixed opaque
-dependencies. The kernel must arrange an admitted computation or representation bridge before
-such dependencies can be consumed together. Portable data remain portable. New opaque literals
-supplied by the returning leaf retain that leaf's live session; no field in a program chooses an
-owner. A missing implementation or bridge is a computational gap, an unavailable owner remains
-unavailable, and malformed control/type/parameter/endpoint framing is rejected. A well-framed
-wrong result remains computational data; it neither changes the original formal question nor
-establishes equality to the requested object or correctness of its construction.
-
-A leaf may implement a published functor by requesting existing constructors of its target and
-retaining the corresponding maps and selected comparisons. The kernel owns their interpretation
-and composition. Native adaptations and optional imports of other implementations are permitted;
-they have no semantic standing and do not replace a missing generic kernel service. Source
-isolation is a diagnostic choice, not a restriction on leaf internals.
-
-## The wire encoding of inputs and answers
-
-The kernel's codec (`CasCatalogue.Codec`) fixes one structural encoding, derived from each form's
-inductive type; a leaf reads and writes exactly this, and nothing else:
-
-* a named input object of the catalogue is sent at its parameters,
-  `{"ctor": <object id>, "args": [<parameters>]}`; a parameter that is itself a named object is
-  encoded the same way;
-* a natural number or an integer is a JSON number; a list is a JSON array; a `Multiset` or a
-  `Finset` is a list of its elements;
-* a record (one constructor, no indices: a pair, a point of `Fin n`, a subtype) is the JSON array
-  of its data fields, or that field alone when it has exactly one (a point of `Fin n` is its
-  number, a pair is `[x, y]`);
-  a wholly inline scalar literal must also satisfy its declared representation constraints.
-  In particular a rational is `[<integer numerator>,<natural denominator>]`, with a strictly
-  positive denominator and relatively prime numerator and denominator; zero uses `[0,1]`.
-  A zero denominator or a nonreduced pair is malformed representation. These literal checks
-  discard the checked value and do not certify the answer to the requested computation.
-  Records containing callable, type-valued or opaque fields retain their data-only interface;
-  no law-bearing structured output is reconstructed through this scalar rule;
-* a finite callable may be a graph, a list of pairs `[x, f x]`, including every
-  point of its actual computational domain exactly once. A primitive finite
-  codec may supply this inventory from its declared data parameters. Otherwise
-  `{"ctor":"finiteGraph","args":[<actual domain point inventory>,<graph>]}`
-  supplies the inventory explicitly. Inventory points have the declared public
-  point-data shape, are distinct, and are untrusted computational data; their
-  inclusion does not prove that the carrier is the mathematical one requested.
-  The graph must contain exactly those keys once, with outputs in its declared
-  codomain representation where an actual codomain inventory is supplied.
-  An infinite callable uses its owning opaque-session representation.
-  This encoding recurses through all public constructor data fields, including
-  both function fields of an equivalence. Direct literal decoding establishes
-  its declared constraints; structured computational answers instead frame all
-  data slots without reconstructing mathematical values, laws or proof fields.
-  Function encoding preserves the complete independently selected public types.
-* the set of members of a subset, where a set is expected, is
-  `{"ctor":"extent","args":[<power object id>,<ambient set descriptor>,<subset data>]}`; for a
-  finite-subset literal the subset data is the literal's list of elements, so `{1, 2, 3} ⊆ ℕ`
-  as a set is `{"ctor":"extent","args":["pow.sets",{"ctor":"obj.sets.naturals","args":[]},[1,2,3]]}`;
-* the apex of a limit the kernel has already had computed is
-  `{"ctor":"constructionApex","args":[<limit id>,<diagram>,<the computed cone>]}`, the diagram in
-  the encoding above and the cone as the backend returned it; it may be used wherever an object
-  descriptor is required;
-* `{"ctor":"finiteData","args":[<complete object descriptor>,<actual point inventory>]}`
-  retains an object's complete descriptor and supplies its finite computational
-  carrier inventory. It may be used wherever an actual object descriptor is
-  required, including either endpoint of a `typedMap`. For a finite graph at a
-  symbolic apex, a domain inventory is required; the kernel never enumerates the
-  authoritative requested construction's carrier to replace or certify an answer.
-  The inventory's mathematical correctness remains an independent acceptance
-  question. Opaque objects and callables retain their owning live sessions.
-
-* any other constructor application is `{"ctor": <constructor>, "args": [<data fields>]}`, the
-  constructor spelled by its short name within its type (`finite`, `aleph0`, `some`, `true`);
-* a proof field is never on the wire;
-* a morphism of a concrete category is its graph, a list of pairs `[x, f x]` of points;
-  a registered named morphism may instead be encoded as
-  `{"ctor": <morphism id>, "args": [<explicit parameters>]}`. Its declaration fixes the
-  parameter types and endpoints; this permits named arrows on infinite carriers without
-  enumerating a graph. The kernel checks the instantiated endpoints against the requested arrow;
-* a registered inclusion uses `{"ctor": <inclusion id>, "args": [<explicit parameters>]}`.
-  Its public declaration fixes its complete source, target and dependent parameter order.
-  The id does not assert a carrier identification or omit the actual inclusion map;
-* a released callable operation uses the same declaration-application form
-  `{"ctor": <callable address>, "args": [<all explicit declaration parameters>]}`.
-  This includes an element-operation id, a binder id, and `<object id>#application`.
-  It denotes the arrow before application: operands belong in the common `apply` request's
-  argument field, never in this arrow descriptor. For example, `op.rings.pow` has the selected
-  ring and natural exponent as its ordered parameters. `operationExpression` additionally
-  supplies operands and therefore describes an element expression instead of this arrow;
-* a map a registered object row declares as a field, its admission `inclusion` `D ↪ B`
-  (`Mˣ ↪ M`), its `constants` `R → R[[t]]`, or either direction of its accepted
-  `functorPresentation` or named `refines` comparison, is
-  `{"ctor":"objectField","args":[<object id>,<field>,[<explicit parameters>]]}`; its endpoints are
-  the ones the field's declaration gives at those parameters. The field `presentation`
-  selects `functorPresentation.identification.hom`; `inversePresentation` selects its `inv`.
-  The fields `refinement` and `inverseRefinement` select `refines.identification.hom` and
-  `refines.identification.inv`, respectively. If the named object is `X(p)`, its accepted
-  refinement route is `U`, and its registered base is `B(p)`, these maps have directions
-  `U(X(p)) → B(p)` and `B(p) → U(X(p))` in the route's target category.
-  Each identification is instantiated at the object's complete ordered declaration parameters,
-  retaining the registered functor, selected argument and structural route. These descriptors
-  retain the selected callable; forming one does not execute it or establish a backend law.
-  The semantic object remains `U(X(p))` when a computation uses the representation `B(p)`;
-* the mediator `⟨f, g⟩ : X → A × B` of two maps out of a domain other than `1` is
-  `{"ctor":"mediator","args":[<f>,<g>]}`, each map in its morphism encoding; a mediator of two
-  closed points may retain those two complete point arrows in the same mediator descriptor.
-  When only its point value is required by an application, the ordered point data are `[x, y]`;
-* a map of a registered power object (`pow.sets`) named by its field: `member` (`X × 𝒫 X → Ω`),
-  `terminal` (`X → 1`), `transpose` (the subset `1 → 𝒫 X` a predicate `X → Ω` classifies, the
-  predicate given as its map encoding), `image` (the subset `1 → 𝒫 Y` that is the image of a
-  map `X → Y`, the map given as its encoding), or `truth` (`1 → Ω`), is
-  `{"ctor":"powerObjectMap","args":[<power object id>,<field>,[<explicit parameters>]]}`;
-* the action of a registered functor on an arrow may be represented as
-  `{"ctor":"map","args":[{"ctor":<functor id>,"args":[<explicit parameters>]},<arrow>]}`.
-  Structural classifier-forget edges use
-  `{"ctor":"classifierForget","args":[<registered classifier id>,
-  [<ordered actual classifier declaration arguments>]]}`; a registered
-  constructor's derived action uses
-  `{"ctor":"constructorMap","args":[<registered constructor id>,<inner edge descriptor>]}`.
-  These descriptors name the actual registered edge; they do not invent a functor row.
-  The arrow uses its source-category encoding. The registered functor and its exact parameters
-  determine the resulting arrow and endpoints. Composition is
-  `{"ctor":"compose","args":[<first arrow>,<second arrow>]}` in categorical order
-  (first, then second); both arrows are checked at their shared endpoint. Accepted presentation
-  changes retain their actual comparison arrows in this composition, never an endpoint rename;
-* a diagram, the input of a registered limit or colimit, is registered on the form of its
-  category (`"input": "cat.sets"`) and sent using its registered diagram constructor with
-  the complete ordered explicit arguments. For the corresponding declared constructors these
-  are `{"ctor": "pair", "args": [X, Y]}` or `{"ctor": "cospan", "args": [f, g]}`,
-  objects and arrows in their own encodings. The registered declaration supplies the
-  constructor; a shape label does not select a hardcoded Mathlib construction.
-  A retained parallel-arrow diagram is `{"ctor":"parallelPair","args":[f,g]}`.
-  Its cone or cocone has one defining arrow, so the reply is respectively
-  `{"ctor":"cone","args":[<apex>,<inclusion>]}` or
-  `{"ctor":"cocone","args":[<apex>,<projection>]}`. The two arrows in the request
-  are retained exactly, including a registered trivial or zero arrow where the
-  mathematical declaration specifies one; a shape label does not replace an arrow.
-
-A registered method uses the same construction-invocation envelope, with its own
-method id as the dispatched `op` and `ctor`:
-`{"ctor":<method id>,"args":[<residual action descriptor>,...,
-<selected method-functor descriptor>],"receiver":<chosen input data>}`.
-The final argument is always the complete descriptor
-`{"ctor":<method's registered functor id>,"args":[<ordered explicit parameters>]}`,
-including when there are no residual actions or explicit parameters. Earlier arguments
-are the selected residual structural actions, in composition order from the chosen receiver
-toward the method owner. They use the existing functor, `classifierForget` and
-`constructorMap` descriptor grammar, retaining every nested parameter at its declared
-position. This is one ordered list of complete descriptors, not a flattened parameter list.
-
-The receiver is the complete actual input at the chosen registration boundary. An
-explicitly admitted source-composite implementation may receive that source receiver and
-its residual action descriptors. A registration at the method owner's category receives
-the actual transported receiver after the shared actions have executed; its residual list
-is empty. Category-wide registration does not make a target consumer responsible for
-unexecuted source actions. The published `MethodEntry.shape` fixes the final formal argument.
-For an iso-invariant method it applies the formal Core wrapping to that receiver; it does
-not introduce another registration input or an extra `coreObject` wire wrapper. Thus
-`meth.cardinality` at a set input retains the actual set data. An independently selected
-receiver whose own declared form is Core still keeps that form's complete data.
-
-The kernel fixes and checks the method, the complete residual action applications, their
-ordered parameter occurrences, the final functor application, source and target dictionaries,
-and result interface before using a reply. Every computational dependency of the receiver
-and every descriptor parameter belongs to this whole request and retains its original live
-owner. Equal carriers, recoverable-looking formal parameters or private runtime handles do
-not justify omitting data from the request. The reply uses the method's independently
-declared complete result interface; it supplies no route, parameter replacement or law.
-
-`ConstructionInvocation.decodeMethod` and Python `method_invocation` check the envelope,
-nonempty descriptor sequence, existing descriptor grammar and the final independently
-supplied functor id. They return the unchanged complete request; they do not establish
-registry membership, parameter types, route order, formal applicability or live ownership.
-
-The uniform complete request is the primary method interface. A raw receiver-only request
-is permitted solely by an explicit kernel compatibility rule that has checked both an empty
-residual route and zero explicit computational parameters of the selected method functor.
-This subset carries no omitted selected data. A generic decoder never infers that rule from
-receiver bytes or falls back to raw data after a malformed complete request. This method
-convention does not change property requests or direct functor/construction action requests.
-
-A registered functor's object action receives
-`{"ctor": <functor id>, "args": [<ordered explicit declaration arguments>],
-"receiver": <source object data>}`. The registered declaration determines the argument
-types, source and target, including dependent parameters. The kernel checks those types and
-endpoints; a backend cannot choose the functor or its parameters. The result is decoded in
-the declared target form.
-
-A `FunctorEntry` additionally exposes its morphism action at `<functor id>#map` and
-the complete-request input `<functor id>#input` for either action. Existing object-action
-registrations on admitted source-object or source-category forms remain peers of that
-complete-request registration; overlap is ambiguous. The two action addresses project the
-already registered functor, not new mathematical rows. Supplying its object action does not
-advertise its morphism action or any subsequent operation on the target category.
-
-The morphism action uses the existing seven-field `PointInvocation`:
-`{"ctor":"apply","args":["<functor id>#map",[<ordered explicit parameters>],
-{"ctor":"map","args":[{"ctor":<functor id>,"args":[<the same parameters>]},
-{"ctor":"typedMap","args":[<actual X>,<actual Y>,<actual f>]}]},
-<original domain>,<actual F(X)>,<actual F(Y)>,<original argument>]}`.
-The kernel first executes or reuses the selected object actions at `X` and `Y`. Their
-actual returned images, including every retained dependency, are the outer source and
-target. Both are required even if the functor preserves the underlying carrier. The inner
-map retains the complete source-category endpoints and the original callable `f`.
-Core comparisons and Arrow-valued endpoints retain their existing complete data forms.
-The invocation id and action id must select this same functor, and both ordered parameter
-arrays must agree exactly. The formal caller independently checks their full declaration
-signature and the actual source and target categories; parsing supplies none of these laws.
-
-To obtain the whole map `F(f)`, the original domain is the actual `F(X)` and the argument
-is `{"ctor":"identity","args":[<actual F(X)>,<actual F(X)>]}`. The same request form
-also applies the map to an already selected generalized point, retaining its actual domain
-and argument. For the whole-domain request a reply is ordinary callable data at the fixed
-`F(X)` and `F(Y)`: a `typedMap` retaining both exact image descriptors, or an owning opaque
-callable under the existing result rules. For a point request the reply instead has the
-declared point-data interface at `F(Y)`. A result cannot choose replacement endpoints.
-
-The shared executor interprets composed object and morphism actions through these registered
-primitives and retains their actual returned data. A later target-category operation receives
-that data in its admitted input form; it need not interpret the source functor's recipe or
-private representation. A complete self-contained reply with no nested opaque dependency
-is portable to another admitted consumer. Retained input/action provenance alone does not
-make such a reply session-owned. Conversely, `valueData` does not make nested opaque data
-portable: every such dependency keeps its supplying live connection, as do any actual
-parameters required by the subsequent request. A descriptor never transfers an opaque owner.
-An absent implementation or representation bridge is a computational gap; a foreign or
-expired owner remains unavailable. Neither changes the formal functor or its laws.
-
-Classifier forgetting and registered category-constructor actions use the same executable
-boundary. Their stable identity is one of `{"classifierForget":<classifier id>}` or
-`{"constructorMap":[<constructor id>,<inner identity>]}`; an inner identity may also be
-`{"functor":<functor id>}`. Each constructor must publish its actual `functorialAction`,
-and every nested classifier/functor id must be registered. Their object-operation address is
-`action:` followed by the compact JSON of that complete identity. The map and complete-input
-addresses append `#map` and `#input`. Only this canonical spelling is admitted. A bare
-`{"functor":...}` root is rejected because a `FunctorEntry` already has its own addresses.
-These are computational projections of existing edges, not new mathematical rows or tags.
-
-The identity omits parameters only for registration. The actual object invocation is the
-existing construction frame `{"ctor":<object address>,"args":[<complete action descriptor>],
-"receiver":<actual source object>}`. Its one argument is the existing `classifierForget`
-or `constructorMap` wire descriptor, retaining every actual parameter at its original nested
-position. The map invocation uses `apply(<map address>,[<complete action descriptor>],
-map(<that same descriptor>,typedMap(X,Y,f)),domain,F(X),F(Y),argument)`. The selected image
-packets, original typed source arrow and generalized argument obey the same rules as a
-registered functor's map action above. Address identity, both occurrences of the complete
-descriptor and the full independently selected formal action must agree. The derived action
-accepts only its own complete-input address. Constructor nesting is an address family, so a
-finite exported inventory is not an exhaustive enumeration of its possible applications.
-
-A directly applied `ConstructionEntry` exports the object operation `<construction id>`,
-the map point operation `<construction id>#map`, and the complete request input
-`<construction id>#input`. The image form uses `<construction id>` in the construction's
-registered target category. These addresses project the one registered dependent functor;
-they are not per-category mathematical rows. Its full signature fixes the selected
-parameters, complete source category and target. Direct constructions are not inherited
-along a receiver's structural routes.
-
-The object request is the same complete object-action frame:
-`{"ctor":<construction id>,"args":[<ordered explicit parameters>],
-"receiver":<complete source object data>}`. A retained action descriptor omits `receiver`,
-`{"ctor":<construction id>,"args":[<ordered explicit parameters>]}`, and its formal image is
-`{"ctor":"functorAction","args":[<action descriptor>,<complete source object data>]}`.
-Every explicit data parameter remains in declaration order. A selected category parameter is
-`{"ctor":"category","args":[<registered category id>,[<ordered parameters>]]}` and a
-selected functor parameter is
-`{"ctor":"functor","args":[<registered functor id>,[<ordered parameters>]]}`.
-An accepted category-constructor application, including one with no separate named
-category row, is `{"ctor":"constructedCategory","args":[<constructor id>,
-[<ordered constructor argument descriptors>]]}`. Its argument kinds and order are
-the published `ConstructorEntry.signature`; its complete category is the application
-of the published `semantics`. Category arguments recursively use `category` or
-`constructedCategory`; object and functor arguments use their existing complete forms.
-The kernel checks each full declared dictionary, including chosen category structures and
-functor source and target, before dispatch. Equal carriers do not identify those selections.
-
-When that declared source is a core category, its object data is
-`{"ctor":"coreObject","args":[<complete underlying object data>]}`. A selected source
-isomorphism retains both complete underlying endpoints and both directed maps:
-`{"ctor":"coreIso","args":[<source object data>,<target object data>,
-<forward morphism data>,<backward morphism data>]}`. The forward map runs from source to
-target and the backward map in the opposite direction. A registered comparison uses its
-ordinary `presentation(id,parameters,false)` and `presentation(id,parameters,true)` arrow
-descriptors in those slots. The formal caller already fixes and checks the isomorphism;
-these packets provide data and do not ask a backend to supply an inverse law or a proof.
-`Core` is preserved as the actual declared source; it is not replaced by the underlying
-category or by a carrier set.
-
-Applying the construction's actual map to a supplied point uses `PointInvocation` under
-`<construction id>#map`. Its `parameters` are the same complete ordered construction
-parameters; its `arrow` is `{"ctor":"map","args":[<action descriptor>,
-<complete source arrow data>]}`. Its `source` and `target` are the corresponding complete
-constructed images, and its `domain` and `argument` retain the original generalized point.
-The operation in the packet equals the dispatched `<construction id>#map`. Both directions
-of a core comparison remain in the source arrow even when only the forward mapped arrow is
-being applied. Replies use the ordinary declared computational point-data interface at the
-fixed constructed target. No reply determines that target or changes the selected comparison.
-
-The constructed image inherits operations solely from its registered target and selected
-structural maps. Those operations receive the complete constructed descriptor and every
-actual computed dependency, including opaque session ownership. An object action, map point
-action, and later target operation are distinct computations. Providing one does not advertise
-implementations of the others. Ordinary declared morphism families may take constructed images
-as their typed parameters or endpoints, using these same descriptors and full parameter order.
-
-An object whose independently declared type is an Arrow or a full subcategory of
-Arrow uses the complete record
-`{"ctor":"arrow","args":[<source object>,<target object>,<defining map>]}`.
-The selected result type, including its full parameters, fixes the record interface.
-All three computational fields are retained; the map runs from the first endpoint
-to the second and is checked at those exact computational endpoint descriptors.
-The record does not change which category's operations apply to the value.
-
-For a subobject or a kernel presented as a subobject, the fields are the kernel
-object `K`, its ambient object `X`, and the inclusion `K → X`. For a quotient or a
-cokernel presented as a quotient, they are the ambient object `Y`, the quotient
-object `Q`, and the projection `Y → Q`. The computed object is therefore the first
-slot for a kernel and the second slot for a cokernel; endpoint order always follows
-the defining map. A reply never supplies monicity, epicity or a universal-property
-proof. Those properties belong to the independently fixed formal construction.
-
-The existing `{"ctor":"subobject","args":[<source>,<target>,<defining map>]}`
-spelling remains supported for a declared full subcategory of Arrow, with exactly
-the same three data slots. Its historical name supplies no assertion of monicity
-and does not reverse quotient endpoints. It is not a representation of an
-incompatible ordinary object or a plain Arrow without that declared refinement.
-Neither spelling can choose the predicate defining the formal full subcategory.
-
-The stored map of a complete Arrow record may be described by
-`{"ctor":"arrowHom","args":[<complete arrow object data>]}`. The receiver must
-have the independently fixed Arrow record interface. The result is that object's
-actual stored defining map, at its exact full source and target. This does not
-permit an arbitrary field projection, a new operation, or a different choice of
-endpoints. The stored defining map is the third argument of the complete record.
-
-A returned refined Arrow record may additionally supply a source-side presentation
-`"presentation":{"hom":<morphism data>,"inv":<morphism data>}`. As for cones below,
-`hom` runs from the independently fixed requested source to the returned source,
-and `inv` runs in reverse. For a subobject, the source is its apex and the target
-is its ambient object. This existing field does not instead compare a quotient's
-second endpoint. The full other endpoint must remain the independently requested
-one. Inverse equations and commutation squares are correctness obligations for
-acceptance; the computational boundary does not prove them to identify returned
-data with mathematics. These fields contain ordinary morphism data, no proof or
-assertion of equality. Required missing fields or maps with incompatible declared
-endpoints are malformed. A complete well-formed wrong answer remains computational
-data and reaches acceptance.
-
-For subsequent computations the complete context may be encoded as
-`{"ctor":"objectPresentation","args":[<complete requested functorAction descriptor>,
-<complete returned Arrow record>]}`. The first argument is independently reconstructed
-from the exact registered functor, ordered parameters and original receiver. The second retains
-all returned data and any presentation maps above. The first argument fixes formal meaning;
-the second remains opaque computational data. This envelope establishes no isomorphism or
-universal property. Further functor actions and defining-map projections carry complete context
-without using the answer to determine formal structure or operations.
-
-Every lift request additionally has a top-level `"parameters":[...]` field containing
-all explicit non-proof data arguments of the selected `LiftEntry.evidence` declaration,
-in its declaration order. This list is independent of the action descriptor's parameters:
-a selected family `L p : MonoLift U` can depend on `p` even when `U` does not. The public
-`lifts[].selection` metadata publishes that declaration and complete signature. Computed
-parameters retain their actual data and session owner. The four returned fields and the
-ordered `args` below are unchanged; the parameter list contains no proof or certificate.
-Historical `liftInput` packets without this member decode as an empty parameter list;
-new requests always include it, and explicit `monoLiftInput` and `liftFactorInput`
-packets require it even when empty. A leaf checks the list against its declared selection.
-
-A registered subobject lift's public `MonoLiftComputation` has four callable fields:
-`obj`, `hom`, `forward`, and `backward`. Their concrete port addresses are
-`<lift id>#obj`, `<lift id>#hom`, `<lift id>#forward`, and `<lift id>#backward`, each
-registered on `<lift id>#input`. These addresses expose only the published fields of
-`LiftEntry.computation`; they create no mathematical operations or laws. A request is
-`{"ctor":"liftInput","parameters":[<ordered selected evidence arguments>],
-"args":[<exact lift id>,<selected inner action descriptor>,
-<complete source Arrow>,<current complete base subobject>,[<earlier actual outputs>]]}`.
-An explicitly selected lift at `X` and `i : K → U(X)` uses the same addresses
-and the variant
-`{"ctor":"monoLiftInput","parameters":[<ordered selected evidence arguments>],
-"args":[<exact lift id>,<selected inner action descriptor>,
-<actual source object X>,<current complete base subobject>,[<earlier actual outputs>]]}`.
-This request retains exactly the declared inputs; it does not invent an Arrow out
-of `X`. Both variants have the same four result types and ordered data dependency.
-
-The field order is fixed. `obj` sees an empty output prefix; `hom`, `forward`, and
-`backward` see respectively one, two, and three actual preceding outputs. The full
-selected action parameters, original Arrow endpoints and map, actual base apex and
-inclusion, and session ownership survive every request. No reply chooses the lift.
-
-New executions additionally retain top-level complete image interfaces; the five ordered
-arguments above are unchanged. `"sourceImage":<data>` is present in every field
-request. For `liftInput` it retains the complete selected Arrow-image interface,
-including both image endpoints and its mapped callable. For `monoLiftInput` it
-retains the object-image interface `U(X)` fixed by the base inclusion's target.
-These positions may hold actual retained data or a typed deferred plan under the
-complete public interface. Only an actual producer receipt establishes execution
-history; a well-framed image descriptor alone does not assert a separate action call.
-`"comparisonImage":<data>` is absent for `obj` and `hom` requests, optional for
-`forward` (preceding output prefix length two), and required for `backward`.
-When supplied to `forward`, it fixes the actual image endpoint `U(O)`. When
-omitted, the forward reply's complete typed map supplies that endpoint at the
-independently fixed formal object `U(O)`; its target must still match the retained
-base object `K`. The exact returned source then supplies `comparisonImage` for
-the backward request and completed step. This is a field-produced endpoint, not
-evidence that a separate object-action operation ran.
-These fields retain their own session ownership. A supplied `null`, a comparison
-image without a source image, or image metadata at the wrong stage is malformed.
-
-Packets omitting both image fields retain the legacy recipe format: image
-endpoints are the declared `functorAction(action, object)` descriptors, and a
-transported Arrow uses those descriptors with `map(action, callable)`. This
-compatibility mode is chosen by field absence, never by comparing token bytes or
-guessing whether an action was executed. A metadata-bearing packet is checked at
-the independently selected full interfaces. During execution its fields must also
-match the exact retained request and image occurrences; a standalone framing decode
-does not establish any execution history or mathematical equality.
-
-The object reply is ordinary object data. Each map reply is
-`{"ctor":"typedMap","args":[<actual domain data>,<actual codomain data>,<callable data>]}`.
-For object output `O`, source Arrow `X → Y`, and base subobject `K → U(X)`, the map
-endpoints are `O → X`, `U(O) → K`, and `K → U(O)`, in that order. `U(O)` uses the
-preselected `comparisonImage` or the forward reply's source endpoint in the new
-form, or the complete selected inner action descriptor applied to the actual
-object output in the legacy form. In the new
-form the base's ambient retains the actual `sourceImage` source object. Callable
-data may be opaque on infinite carriers; it is not enumerated or converted to a Lean
-morphism. Finite graphs use their actual domain and codomain descriptors. Missing fields
-or incompatible declared endpoints are malformed. Well-framed mathematically wrong
-objects or maps remain wrong data, to be tested by the independent permanent assertions;
-no inverse, monicity, factorization or universal-property proof is requested from a leaf.
-
-The separate canonical `MonoLiftFactorComputation` supplies the universal factor
-at `<lift id>#factor`, also registered on `<lift id>#input`. It has the request
-`{"ctor":"liftFactorInput","parameters":[<ordered selected evidence arguments>],
-"args":[<exact lift id>,<selected inner action descriptor>,
-<actual source object X>,<complete base subobject K → U(X)>,
-[<object output>,<typed inclusion output>,<typed forward output>,<typed backward output>],
-<typed base map g : U(Y) → K>,<typed cone f : Y → X>]}`.
-The result is a `typedMap` from the cone's actual domain `Y` to the actual object
-output `O`. The formal caller supplies and checks `Mono i` and
-`U.map f = g ≫ i` before dispatch; neither proof is wire data. The factor must
-satisfy both `U.map factor ≫ forward = g` and `factor ≫ hom = f`, as tested by
-independent acceptance. A framed wrong factor remains computational data.
-This is a separate computation, with no fifth field added to the four lift
-outputs and no permission to substitute a comparison isomorphism for the factor.
-The factor request may carry the same top-level `sourceImage` and
-`comparisonImage` together, retaining the actual `U(X)` and `U(O)` used by its
-completed four-field computation. Its seven ordered arguments are unchanged;
-omitting both image fields selects the same legacy recipe framing.
-Internally derived cone and action inputs may be typed deferred plans. A complete
-factor implementation need not install or invoke every internal `U#obj` or
-`U#map` through the kernel: it may use the public kernel service or private
-implementation reuse. The selected full interfaces and seven ordered arguments
-remain the same.
-
-For a composed lift, the kernel factors through the inner action and then the
-outer action. The actual returned first factor is the next request's base map;
-its formal source equation supplies that request's compatibility proof. The
-canonical public `MonoLift.factor_comp` identifies this staged computation with
-the composite factor. All selected parameters, complete four-field outputs and
-opaque ownership remain attached to the subsequent request. No kernel extension
-or extra composite registration is needed for another prescribed stage.
-
-The kernel encodes a completed prescribed lift for subsequent computations as
-`{"ctor":"liftedSubobject","args":[<original complete base subobject reply>,
-<complete original source Arrow>,[<prescribed lift ids in route order>],
-[<completed steps in route order>]]}`. Each step is
-`{"ctor":"liftStep","parameters":[<ordered selected evidence arguments>],
-"args":[<exact lift id>,<selected inner action descriptor>,
-<complete source Arrow for this step>,<actual base subobject for this step>,
-[<object output>,<typed inclusion output>,<typed forward output>,<typed backward output>]]}`.
-Each step retains the same evidence-family parameters as its four field requests;
-they are not inferred from the inner action or reconstructed from the returned object.
-Each new completed step also retains both top-level `sourceImage` and
-`comparisonImage`, with the complete transported Arrow as `sourceImage`. The next
-forward-route source is exactly that actual Arrow; the comparison maps use the
-actual `comparisonImage` endpoint. Historical steps without both fields retain
-their recipe framing. The selected formal plan fixes every interface independently
-of these data, and runtime validation compares each field with its retained stage.
-Execution runs in reverse route order. Its next base is the subobject formed from the
-preceding step's actual object and inclusion outputs, with its actual source ambient;
-it never repeats the initial base packet for later steps. All four actual fields are
-retained, including both comparison directions. A three-field `liftedSubobject` packet
-without component outputs is incomplete and cannot claim completed execution. Formal
-meaning, the selected route, and the complete source/base types remain independently fixed.
-
-A named object's registered generator arrow is
-`{"ctor":"generator","args":[<registered named set object id>,
-[<ordered explicit generator declaration arguments>]]}`. The declaration and its full
-signature own the endpoint and any index; this descriptor does not introduce a new arrow row.
-A selected structured object's carrier reaches that set only along its registered structure.
-
-Closed points at selected named objects use
-`{"ctor":"element","args":[<exact selected object descriptor>,<arithmetic data>]}`.
-The descriptor includes every ordered parameter and must equal the independently selected
-endpoint. Arithmetic data has only `ctor` and ordered `args`: `numeral` takes one natural
-number, `generator` takes no argument or one natural index, `add` and `mul` take two data
-expressions, and `neg` takes one. These tags invoke existing registered language operations;
-they do not contain Lean source or choose an object by its carrier.
-
-The general published operation expression is
-`{"ctor":"operationExpression","args":[<registered operation id>,
-[<full ordered selected declaration parameters>],[<ordered operand expressions>]]}`
-inside that same exact selected-object envelope. The public operation signature fixes
-operand types, arity, chosen structure and result. These fields come from the retained
-formal construction, not a guessed arithmetic name. Existing short arithmetic tags remain
-portable input encodings; operations such as power use this general encoding. The kernel
-serializes the expression and checks its formal trace and types without reimplementing
-the operation or requiring an input-expression roundtrip through law-bearing Lean values.
-The leaf lowers the declared operation to its native engine at those selected parameters.
-Transport retains its actual registered action; nonidentity maps cannot be discarded.
-An operand that is a closed point `1 ⟶ X` formed some other way (a registered named
-morphism such as a constant, a composite of a point with a map, a product mediator, an
-admitted point) is `{"ctor":"point","args":[<that point's morphism encoding>]}`, the encoding
-this section gives morphisms. Its endpoints are the operand's declared ones.
-
-A closed point forwarded through an accepted carrier-preserving structural view uses
-`{"ctor":"pointView","args":[<complete target functorAction object descriptor>,
-<complete source element envelope>,<exact generalized-point domain descriptor>]}`.
-The kernel checks the complete registered source-object action, its selected target and the
-independently retained formal point's carrier identification. It forwards the actual original
-computational data and every nested opaque owner without reconstructing the backend answer
-as a formal point. The domain must equal the independently fixed source
-of the original and requested generalized point. This describes only an admitted forward
-carrier identification; it cannot recover a structure from its carrier or choose a new
-domain. Nonidentity point maps retain their actual morphism action and composition instead.
-
-A nullary registered operation's point, with its actual terminal-source comparison, uses
-`{"ctor":"operationPoint","args":[<registered operation id>,
-[<ordered explicit declaration parameters>],<complete accepted presentation-arrow data>,
-<exact original generalized-domain descriptor>,<complete selected target object descriptor>]}`.
-The kernel instantiates that same operation at the complete parameters, checks the actual
-registered comparison from its global-point source to the operation's declared source, and
-reconstructs its point at the independently fixed target and original generalized domain.
-Any supported raw-map reconstruction must be checked against the actual instantiated operation;
-an unsupported reconstruction is a computational gap. This envelope supplies no proof, chooses
-no structure from a carrier, and cannot replace the operation's source with another terminal.
-
-A registered comparison's point application is requested under that comparison id, with
-`{"ctor":"presentationApply","args":[<ordered parameters>,<inverse boolean>,
-<exact source descriptor>,<exact target descriptor>,<input point data>]}`. The reply uses the
-ordinary `valueData` or `opaqueData` alternatives at the exact target. Inline data have the
-declared computational result interface; opaque data retain their owning live connection.
-The kernel checks the public framing against the independently selected target and retains
-the actual computational data for subsequent operations. This structural check does not
-establish the mathematical correctness of the returned value; independent acceptance compares
-the observed computation with its meaning.
-
-Every released morphism or callable operation may instead use the common point-invocation
-envelope under its original registered operation id:
-`{"ctor":"apply","args":[<operation id>,[<ordered full parameters>],
-<actual arrow descriptor>,<generalized-point domain>,<complete source object>,
-<complete target object>,<input point data>]}`. The kernel fixes these fields from the
-published signature and retained composition before dispatch; the first field must equal
-the outer request's `op`. A point has its original generalized domain, rather than an
-assumed singleton. The arrow may include registered actions, compositions or selected
-comparison maps; none is replaced by an endpoint rename. This invokes the declared map
-on the supplied computational point, without first obtaining its graph on an infinite carrier.
-
-The same envelope requests an entire callable `f : X → Y` by taking the original
-generalized domain to be `X` and the argument to be
-`{"ctor":"identity","args":[<complete X>,<complete X>]}`. The source is the same
-complete `X`, the target is the complete `Y`, and the actual arrow field remains `f`.
-This is the ordinary composition `id_X ≫ f`, with all of `X` retained; it is not a
-request to evaluate at a representative point. The reply supplies complete `X → Y`
-callable data: a total finite graph at its actual domain, a complete supported
-symbolic callable, or an owned opaque callable. A scalar cannot replace a
-callable on a non-singleton domain.
-The operation ID and full parameters remain those of the declared callable;
-identity is the argument descriptor, not a new operation or registration address.
-
-A published `BinderEntry.operation` is addressed by its existing binder id. A published
-`ObjectEntry.application` is addressed by `<object id>#application`. These are concrete
-addresses of existing callable metadata, not new semantic rows. An application address is
-admitted only when that exact object exports the field. Its complete ordered declaration
-parameters, source and target are fixed from that field's actual signature. Binder inputs
-retain the actual admitted map and the selected bound/range parameters; the caller does not
-substitute another formally equivalent sum or product. For these binder and object-application
-fields, a registration may use the exported complete-request address itself as its input form,
-or a supported declared source-object form. An operation address is not automatically an input
-form: for example, `op.rings.pow` registers on a compatible published ring-object form or
-`cat.rings`, not on an invented input form `op.rings.pow`. The generated `inputForms` inventory
-lists these concrete registration addresses. Constructor-induced component addresses additionally
-follow the declared finite-path grammar below.
-
-An independently admitted point retains its original computational data as
-`{"ctor":"admittedPoint","args":[<published object id>,[<full ordered parameters>],
-<original generalized domain>,<original target object>,<selected admitted target>,
-<actual original point data>]}`. The kernel fixes the category and the actual public
-admission declaration, checks the original and admitted formal endpoints, and keeps the
-formal admission evidence on the interpretation side. The wrapper supplies no proof.
-Computations consume the original point data under the selected target's interface;
-they do not substitute the canonical admitted formal value or certify backend membership.
-Opaque data keep their original owning connection through the wrapper.
-
-A point of an independently fixed constrained structure may retain its original data as
-`{"ctor":"constrainedPoint","args":[<actual constructor name>,
-<original generalized domain>,<original data-field type descriptor>,
-<complete selected target object>,<actual original point data>]}`.
-The kernel requires a fixed closed nonrecursive structure with one constructor and no
-indices, exactly one data field, and only proposition-valued remaining fields. It checks
-the actual constructor, the original data-field type, the complete selected target and
-the original generalized domain against the retained checked semantic term. The actual
-formal proof stays in that term; no proof, predicate claim or certificate is sent on the wire.
-The request passes through the original point data with every nested opaque value's actual
-owner. It does not substitute a canonical formal representative, reconstruct the backend
-data as a proof-bearing value, or establish that a computational answer satisfies a predicate.
-This is input framing for an existing checked construction, not a new admission or operation.
-
-The reply is `{"ctor":"valueData","args":[<declared computational result data>]}` or
-`{"ctor":"opaqueData","args":[<nonempty connection-local token>]}`. Its mathematical
-result and interface remain the independently fixed target at the same generalized domain.
-Inline data retain every component required by the published result contract. An opaque
-token refers to computational data or a callable implementation, never a Lean term or proof.
-The kernel retains the actual connection identity and supplying backend with the token;
-the reply cannot choose that owner. Later declared operations consume the same returned
-data. An opaque token is usable only on its original live connection and only through an
-admitted registration for the requested operation and form. A lost connection is unavailable;
-it is not restarted to reinterpret the token. Another implementation cannot be sent an
-unknown token, and a token cannot add operations or change their formal meaning. Portable
-inline data remain available to other admitted implementations under their declared contracts.
-
-This common encoding applies equally to subsequent operations on returned values and to
-callable components of complete structured results. It does not require eagerly enumerating
-an infinite carrier, proving algebraic laws, or treating a returned value as the canonical
-mathematical answer. Well-framed but wrong data remain possible and are observed by acceptance.
-
-When a published callable's actual declared source is the public binary product
-`Prod X Y`, its full source descriptor may use
-`{"ctor":"objectProduct","args":[<full X descriptor>,<full Y descriptor>]}`.
-The caller establishes the selected product and ordered endpoints before dispatch;
-this concrete descriptor adds no semantic row and requires no named-source lookup.
-A generalized point of that source carries the two ordered component data in a
-JSON array. An observation such as the published equality characteristic map has
-`X = Y`, but this framing does not identify or replace either component's data.
-The existing complete callable form may admit that request without a separately
-registered named product object. Product or equality laws are not certified by
-the descriptor or the returned data. A complete symbolic product descriptor may also be
-used as a returned cone or cocone apex under its declared object-data interface; that
-apex needs no separate named-object registration.
-
-A computational observation of a truth value (the published target `obj.sets.truth_values`)
-uses `valueData` containing a JSON boolean. This is an implementation's answer, not a term
-inhabiting the proposition, a decidability proof, or a certificate. A characteristic map,
-including the published equality map, is invoked on the supplied computational arguments
-through the same `apply` envelope. The consumer compares its observed boolean with the
-independently fixed expected boolean. A non-singleton generalized domain still requires
-its declared pointwise data or callable representation; one boolean cannot stand for an
-arbitrary truth-valued function. No observation changes the formal proposition.
-
-A complete accepted structural functor action may be carried as
-`{"ctor":"functorAction","args":[<exact edge descriptor>,<complete selected source object>]}`.
-The complete selected functor and formal source are established independently of backend
-data. The computational source is retained alongside that context; it is not reconstructed
-as a law-bearing mathematical object. For a registered constructive
-functor whose result is in the registered subobjects category, its apex or inclusion
-is described by `{"ctor":"subobjectApex","args":[<complete constructed subobject data>]}` or
-`{"ctor":"subobjectInclusion","args":[<complete constructed subobject data>]}`. The receiver
-may be complete `functorAction`, `objectPresentation`, or `liftedSubobject` data. Its full
-subobjects category and formal selected structure remain fixed independently, while complete
-computational ambient, apex and inclusion fields are retained and validated in their declared
-forms. A presented receiver retains its full computational context; a lifted receiver retains
-the complete source construction, prescribed registered lifts in order, and their full selected
-structure and defining maps. Computational projections read those returned fields; formal
-projections derive from the independent construction. These are
-categorical data descriptions, with exact expected types checked independently; they do not
-name a new limit, supply a proof or choose a lift.
-
-Formal reference descriptors for a registered limit or colimit use
-`{"ctor":"limitApex","args":[<registered limit id>,<complete diagram>]}` or
-`{"ctor":"limitLeg","args":[<registered limit id>,<complete diagram>,<index>]}`.
-Their formal interpretation instantiates the registered mathematical presentation and
-projects its apex or leg. These descriptors contain no proof and assert no comparison with
-another apex. They do not establish that required external computation ran, and cannot
-replace an actual returned computational apex or defining map during result reuse.
-
-The defining leg of a complete returned construction may instead use
-`{"ctor":"constructionLeg","args":[<registered limit id>,<complete diagram>,
-<complete returned cone or cocone envelope>,<exact typed index>]}`. The index is data at
-the actual diagram's declared object type. Computational projection reads the returned leg;
-formal projection derives its map from the authoritative construction independently. Complete
-defining-map data is retained, without requiring a proof that the backend's cone is universal.
-A different apex's leg cannot be replaced by the canonical leg or identified by cardinality. This is the existing registered
-universal construction's defining-map projection, not a new mathematical operation.
-
-A projection of an ordered data port uses
-`{"ctor":"constructionField","args":[<registered limit id>,<complete source diagram>,
-<complete returned cone, cocone or createdCone packet>,<natural-number data-port index>]}`.
-The index counts the registered `dataConstructor`'s non-Prop ports in declaration order,
-including object ports. It is not a diagram-object index and is not interchangeable with
-`constructionLeg`'s typed leg index. The full fixed source diagram and returned packet remain
-present through creation lifts and subsequent computations. The formal caller determines the
-exact field and its complete expected type; the packet cannot choose another field or prove a law.
-This is a data projection, with no new operation or registration address. The helpers
-`Backend.ConstructionField` and `construction_field` validate its four-field framing only.
-
-`constructionLeg` is arrow data, not an operation address. In subsequent computations it
-may occur inside `compose`, `point`, `map`, a mediator, or a complete argument supplied to
-an already declared operation (including equality). That invocation keeps the consuming
-operation's original registered id and full input form; the creating limit id does not
-become an arbitrary-map `apply` operation. If a declared callable supplies an `apply`
-request, its original address also remains the outer `op` and the first `apply` field.
-No standalone generic Hom-set application address is declared by this protocol. A leaf
-may evaluate the retained leg as part of consuming these ordinary public data without
-creating or registering an additional operation.
-
-For a returned construction carried through an accepted creation lift, the complete cone
-envelope inside `constructionLeg` is
-`{"ctor":"createdCone","args":[<registered lift id>,<complete source diagram>,
-<complete returned target cone envelope>]}`.
-The formal source construction is derived from accepted creation independently of the returned
-target data. The computational envelope retains the exact lift, diagram and all target fields;
-it supplies no universal-property proof, guessed identification or named source-apex recovery.
-It cannot select a different formal lift, diagram or source structure.
-
-`{"ctor":"zero","args":[<source object>,<target object>]}` requires the category's
-actual zero-morphism structure. `identity` has the same endpoints syntax and requires equal
-endpoints. Every constructed value is checked at its exact expected type.
-
-A registered natural transformation component is
-`{"ctor":"cellComponent","args":[<cell id>,[<ordered declaration parameters>],
-<complete selected receiver>,<inverse boolean>]}`. The component is exactly `NatTrans.app`
-at that receiver. False selects the forward component; true requires an invertible cell and
-selects its inverse. All source and target parameters come from that full declaration.
-A point application uses the common seven-field `apply` request, with operation
-`<cell id>#component`, parameters `[<ordered declaration parameters>,<receiver>,<inverse>]`,
-and the complete `cellComponent` arrow. Its own operation address is also its complete input
-address. The public API exports the exact component type and both oriented routes. A cell's
-id, an equal carrier, or its role in resolution is not permission to replace its action by
-an identity. Wrong but well-framed point data remains a possible answer.
-
-A constructor-induced component retains its entire accepted constructor path as
-`{"ctor":"constructedCellComponent","args":[[<constructor ids>],<cellComponent>]}`.
-The nonempty constructor list is ordered outermost to innermost. In this enclosing form,
-the nested component's receiver is the complete constructed receiver; its type is the one
-obtained by the registered constructors' `comparisonAction` declarations. It is not an
-argument of the base cell's unconstructed port. The operation and input address are both
-`component:` followed by compact JSON `[<cell id>,[<constructor ids>]]`. An empty path uses
-the existing `<cell id>#component` address and four-field `cellComponent` form. Parameters,
-orientation, seven-field point application and ordinary result/ownership rules are unchanged.
-The constructor comparison actions require an invertible registered cell in either orientation.
-Only registered comparison actions determine the derived source, target and actual map.
-
-An arrow of a registered presentation comparison is
-`{"ctor":"presentation","args":[<comparison id>,[<ordered explicit parameters>],
-<inverse boolean>]}`. False selects its forward arrow; true selects its inverse.
-The registered comparison fixes both endpoints and the actual isomorphism. A structural
-functor's action on this arrow uses the same `map` envelope as any other arrow.
-
-Computational application of that comparison uses its original registered id as the
-outer request's `op`, with
-`{"ctor":"presentationApply","args":[[<ordered explicit parameters>],
-<inverse boolean>,<actual source descriptor>,<actual target descriptor>,<point data>]}`.
-All five fields are required. False applies the forward comparison; true applies
-its inverse, and the ordered endpoint descriptors follow that selected direction.
-The point data and any nested opaque ownership are retained. This is an invocation
-of the registered comparison, not a new operation or a claim that it is the identity.
-A registration may use that comparison's own exported input address for the complete
-request, or an admitted endpoint form. Both are peers when applicable; overlap is
-ambiguous. The complete-request address does not authorize a different comparison.
-
-A callable component may always include its complete actual endpoints as
-`{"ctor":"typedMap","args":[<source descriptor>,<target descriptor>,<callable data>]}`.
-Consumers compare both complete descriptors with the already selected computational endpoints,
-then validate the callable at those endpoints. This form applies to defining maps in ordinary
-Arrow objects and (co)limits as well as the four prescribed-lift ports. Opaque callable fields
-may be nested inside public records; the owning live connection is retained recursively.
-
-An endpoint whose full object is fixed by a declared arrow need not have a separate named
-object registration. Its public data is
-`{"ctor":"morphismEndpoint","args":[<actual callable data>,"source"]}` or the same
-two-field record with `"target"`. The complete independently selected arrow signature fixes
-the endpoint and its category parameters. The callable retains all its ordered parameters and
-any opaque owner. An already framed `typedMap` retains its actual endpoint fields instead of
-replacing them with this wrapper. The wrapper is object data, supplies no point inventory,
-and is not itself callable. Reuse is checked against the retained complete descriptor and
-formal context; parsing it does not reconstruct an arrow or choose a mathematical object.
-`finiteData` may supply an actual inventory for this exact descriptor under the usual rules.
-
-A category-wide registration uses its registered category id as `input` and accepts the same
-complete public representation of values in that exact category. For a limit this is its
-diagram. A method keeps its complete invocation envelope above, including the actual receiver
-and final method-functor descriptor; the category input describes that receiver, not permission
-to omit selected parameters. Other applicable operations retain their own complete request
-grammar. Structural transport is fixed before dispatch. Exact-form and category-wide
-registrations have equal standing: overlapping applicable registrations are ambiguous, with
-no implicit specialization order.
-
-An answer is a value of the operation's declared result form in this encoding. The answer of a
-limit is its cone, `{"ctor": "cone", "args": [<apex>, <leg>, ...]}`, and of a colimit its cocone,
-`{"ctor": "cocone", "args": [<apex>, <leg>, ...]}`: the apex is complete object data in the
-declared category, and each leg is a morphism. The apex may be unnamed, including a complete
-symbolic product when its declared interface supports that form; it need not be a named
-object row. The kernel decodes every answer against its declared computational data form,
-retaining every required field and exact map endpoint, or rejects it as malformed.
-It does not build a formal cone from the returned data:
-formal commutation and universal-property proofs remain with the independent construction.
-Correctness of the returned legs is judged by acceptance.
-
-The registered limit's `dataConstructor` publishes the complete dependent constructor whose
-ordered non-propositional fields are these result ports. Its `standardization`, when supplied,
-publishes the comparison from a general diagram to that declared presentation. The kernel
-consumes those typed declarations, including for creation-lift transport. A shape name alone
-neither chooses a result constructor nor supplies a comparison. Both signatures are included
-in `api/declared-ports.json` alongside the operation's full original signature.
-
-A structured reply may additionally carry map data relating the independently declared
-presentation of the requested diagram to the returned presentation:
-
-```json
-{"ctor":"cone","args":["<apex>","<legs>"],
- "presentation":{"hom":"<graph>","inv":"<graph>"}}
-```
-
-The same envelope is permitted for a cocone. `hom` runs from the independent presentation's
-apex to the returned apex; `inv` runs in the reverse direction. Both use the declared
-category's morphism encoding. These are computations, never proofs or a certificate. The
-kernel checks their declared forms and endpoints without proving their inverse equations,
-compatibility with defining legs or universality. Those are correctness questions for acceptance.
-Missing required defining maps or ill-formed data are malformed. A well-formed wrong computation
-does not change the formal construction, requested diagram or mathematical question.
--/
+   
+                                                                           
+
+                                                                                                
+                                                                                              
+                                                                                                  
+                       
+
+                                                                                                 
+                                                                                 
+                                                                                                 
+                                                                                               
+                                                                           
+                                                                                                 
+                                                                                                   
+
+                                                                                     
+                                                                                            
+                                                                                           
+                                                                                             
+                                                                                              
+                                                           
+                                                                                          
+                                                                                  
+
+                                                   
+
+                                                      
+                                                                                   
+                                                                                         
+                                                                                      
+                                                                                     
+                                                                                         
+                                                                                        
+                                                                                         
+                                                                                             
+                                                                                                   
+
+                                                                                            
+                                                                                                
+                                                                                              
+                                                                                              
+                                                                               
+                                                                                     
+                                                                              
+                                                                      
+
+                                                                                                 
+                                                                                               
+                                                                                                
+                                                                                              
+                                                                                                  
+                                                                                         
+                                                                                               
+                          
+
+                                                                                               
+                                                                                            
+                                                                                                
+                                                                                             
+                                                                                              
+                                                                                                
+                                                                                              
+                                                                                             
+                                                                                            
+                                                                                
+
+                                                                                              
+                                                                                               
+                                                                                                
+                                                                                          
+                                                                      
+
+                                          
+
+                                                                                                 
+                                                                       
+
+                                                                  
+                                                                                               
+                       
+                                                                                            
+                                     
+                                                                                                 
+                                                                                            
+                              
+                                                                                           
+                                                                                            
+                                                                                         
+                                                                                           
+                                                                                       
+                                                                                             
+                                                                             
+                                                                               
+                                                                           
+                                                                              
+                                                                           
+                                                                              
+                                                                             
+                                                                              
+                                                                              
+                                                                         
+                                                                     
+                                                                              
+                                                                             
+                                                                              
+                                                                              
+                                                                               
+                                                             
+                                                                                              
+                                                                                                 
+                                                                                                     
+                                                            
+                                                                                                 
+                                                                                               
+                         
+                                                                                        
+                                                                               
+                                                                           
+                                                                              
+                                                                                
+                                                                                 
+                                                                            
+                                                                           
+
+                                                                                              
+                                                                                             
+                                     
+                                                                                       
+                                                       
+                                                                                       
+                                                                                       
+                                                                                                
+                                                                                          
+                                                                                         
+                                                                                   
+                                                                          
+                                                                                  
+                                                                                    
+                                                                                          
+                                                                                              
+                                                                                         
+                                                                                        
+                                                                                        
+                                                                                    
+                                                         
+                                                                                                  
+                                                                                      
+                                                                                            
+                                                                                         
+                                                                                         
+                                                                                        
+                                                                           
+                                                                                              
+                                                                                             
+                                                                                           
+                                                                                          
+                                                                                        
+                                                                                              
+                                                                                           
+                                                                                               
+                                                                                                      
+                                                                                                       
+                                                                                                 
+                                                                            
+                                                                                         
+                                                                      
+                                                                                         
+                                        
+                                                                 
+                                                                      
+                                   
+                                                                                           
+                                                                                      
+                                                                                              
+                                                             
+                                                                                 
+                                                                                               
+                                                                                              
+                                                                                         
+                                                                                         
+                                                                                            
+                                                                                 
+                                                                                    
+                                                                              
+                                                                              
+                                                                         
+                                                  
+                                                                                 
+                                                                              
+                                                                                  
+
+                                                                                
+                                            
+                                                              
+                                                                       
+                                                    
+                                                                                   
+                                                                                      
+                                                                                           
+                                                                              
+                                                                                     
+                                                                                           
+
+                                                                                 
+                                                                                        
+                                                                                       
+                                                                                         
+                                                                                    
+                                                                                             
+                                                                                         
+                                                                                    
+                                                                                        
+                                                                               
+
+                                                                                        
+                                                                                             
+                                                                                         
+                                                                                          
+                                                                                          
+                                                                                     
+                                                                                       
+
+                                                                                        
+                                                                                     
+                                                                                      
+                                                                                          
+
+                                                                                         
+                                                                                           
+                                                                                         
+                                                                                           
+                                                                                        
+                                                                                            
+
+                                             
+                                                                           
+                                                                                      
+                                                                                           
+                                                                                          
+                         
+
+                                                                                   
+                                                                                         
+                                                                                     
+                                                                                         
+                                                                                           
+                                                                                 
+
+                                                                    
+                                                                            
+                                                                           
+                                                                
+                                                                     
+                                                                                     
+                                                                                     
+                                                                                         
+                                                                                 
+                                                                                      
+                                                                                         
+                                                                                        
+                                                                                           
+
+                                                                                         
+                                                                                    
+                                                                                          
+                                                                                         
+                                                                                           
+                                                                                       
+                                                                                      
+
+                                                                                            
+                                                                                             
+                                                                                          
+                                                                                        
+                                                                                         
+                                                                                         
+                                                                                     
+                                                                                            
+                                                                                      
+                                                                                  
+
+                                                                                         
+                                                                                   
+                                                                                       
+                                                                                        
+                                                                                            
+                                                                                            
+                                                                                      
+                                                                                          
+                                                                                         
+
+                                                                                        
+                                                                                            
+                                                                                        
+                                                                                            
+                                                                                      
+                                                                                           
+                                                                                      
+                                                                                         
+                                                                                           
+                                                                                           
+                                                                                        
+
+                                                                                        
+                                                                               
+                                                                                        
+                                                                                         
+                                                                                  
+                                                                                       
+                                     
+
+                                                            
+                                                                  
+                                                                                          
+                                                                                            
+                                                                                      
+                                                                                            
+                                                                                    
+                             
+                                                                             
+                                                                                  
+                                                                         
+                                                                                 
+                                                                                    
+                                                                              
+                                                                                      
+                                                                                         
+                                                                                            
+
+                                                                
+                                                                                     
+                                                                              
+                                                                     
+                                                                                        
+                                                                                       
+                                                                                         
+                                                                                       
+                                                                                        
+                                                                                       
+                             
+
+                                                                                       
+                                                                                    
+                                                                      
+                                                                                         
+                                                                                          
+                                                                                          
+                                                                                          
+                                                                                          
+                                                                                             
+
+                                                                                        
+                                                                                       
+                                                                                           
+                                                                                              
+                                                                                              
+                                                                                              
+
+                                                                                
+                              
+                                                                           
+                                                                                    
+                                                                                 
+                                                                               
+                                                                          
+
+                                                                               
+                                                                                    
+                                                                               
+                                                                                    
+                                                                                   
+                                                                                  
+                                                                              
+
+                                                                             
+                                                                                 
+                                                                                
+                                                                         
+                                                                               
+                                                                               
+
+                                                             
+                                                                              
+                                                                                
+                                                                              
+                                                                               
+                                                                                
+
+                                                                                  
+                                                                                   
+                                                                                
+                                                                                 
+                                                                                
+                                                                                
+                                                                              
+                                                                               
+                                                                               
+                                                                                 
+                                                                                  
+                            
+
+                                                                  
+                                                                                    
+                                                                                      
+                                                                                               
+                                                                                           
+                                                                                         
+                                                                                               
+                                                                     
+
+                                                                                     
+                                                                                       
+                                                                                         
+                                                                                         
+                                                                                        
+                                                                                       
+                                                                                        
+                                                                                     
+                                                                                  
+                                                                                          
+
+                                                                                    
+                                                                          
+                                                                                     
+                                                                                    
+                                                                                     
+                                                                          
+                                                           
+                                                                                        
+                                                                               
+               
+                                                                              
+                                                           
+                                                                                         
+                                                                                 
+                                                                                  
+
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+
+                                                                                        
+                                                                               
+                                                                                
+                                                                              
+                                                                               
+                                                                                
+                                                                                
+                                                                                     
+                                                                               
+                                                                            
+                                                                           
+                                                                             
+                                                                                  
+                                                                              
+                                                                               
+                                                     
+                                                                                
+                                                                                
+
+                                                                         
+                                                                             
+                                                                           
+                                                                                
+                                                                                
+                                                                                 
+                                                                                   
+                                                                  
+
+                                                           
+                                                                                           
+                                                                                       
+                                                                                       
+                                                                               
+                                                                            
+                                            
+                                                                                
+                                                                                    
+                                                                                        
+                                                                                  
+                                                                                        
+                                                                                         
+
+                                                                                
+                                                                               
+                                                                                
+                                                           
+                                                              
+                                                                                          
+                                                            
+                                                                                 
+                                                              
+                                                                                
+                                                                                  
+                                                                         
+                                                                          
+                                                                                
+                                                                 
+                                                                              
+                                                                            
+                                                                  
+                                                                                 
+                                                                          
+                                                                           
+                                                                              
+                
+
+                                                                             
+                                                                              
+                                                                           
+                                                                               
+                                                                              
+                                                                               
+                                                                       
+
+                                                                             
+                                                                            
+                                                                        
+                                                   
+                                                                         
+                                                           
+                                                                            
+                                                                                             
+                                                                                 
+                                                                                      
+                                                                     
+                                                                                 
+                                                                              
+                                                                              
+                                                                                  
+                                                                                  
+                                                                                     
+                                                                                     
+                                                                                    
+                                                                                      
+                                                                                    
+                                                                                           
+
+                                              
+                                                              
+                                                                                     
+                                                                                             
+                                                                                            
+
+                                           
+                                                                                   
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                            
+                                                                   
+
+                                             
+                                                                 
+                                                                                   
+                                                                                     
+                                                                                      
+                                                                                         
+                                                                                        
+                                                                                      
+                                                                                         
+                                                                                         
+                                                                                     
+                                                                                     
+                                                                                      
+                                                                                             
+                                                                            
+
+                                                                                    
+                                                                               
+                                                                                  
+                                                                                           
+                                                                                             
+                                                                                          
+                                                                       
+                                                                                        
+                                                                                      
+                                                                                           
+
+                                                                                        
+                                                            
+                                                                                        
+                                                                                               
+                                                                                         
+                                                                                          
+                                                                                         
+                                                                                               
+                                                                                              
+                                                                                             
+
+                                                                                       
+                                                                            
+                                                                                             
+                                                                                           
+                                                                                         
+                                                                                          
+                                                                                       
+                                                                                             
+                                          
+
+                                                                                         
+                                                    
+                                                                    
+                                                                              
+                                                                                      
+                                                                                        
+                                                                                     
+                                                                                     
+                                                                                      
+                                                                                              
+
+                                                                                  
+                                                   
+                                                                                
+                                                                                     
+                                                                                    
+                                                                                    
+                                                                              
+                                                                         
+                                   
+                                                                           
+                                                                                 
+
+                                                                                       
+                                                                                       
+                                                                                         
+                                                                                        
+                                                                                         
+                                                                                           
+                                                                                              
+                                                                                              
+                                                                                              
+                                                                                         
+                                                                                               
+                                                                                                 
+                                              
+
+                                                                          
+                                                                                   
+                                                                                  
+                                                                                    
+                                                                                       
+                                                                                    
+                                                                                   
+                                                                                         
+                                                                      
+
+                                                                                       
+                                                              
+                                                                    
+                                                                  
+                                                                                     
+                                                                                        
+                                                                                      
+                                                                                      
+                                                                                              
+                                                                                          
+                                                                                        
+                                                                                              
+                                                                                             
+
+                                                                                    
+                                                                                    
+                                                                                          
+                                                                                       
+                                                                                            
+                                                                                       
+                                                                                       
+                                                                                        
+                                                                                             
+                                                                                      
+                                                                                         
+                                                                                              
+
+                                                                                       
+                                                                                           
+                                                                                          
+                                                                                               
+
+                                                                               
+                                              
+                                                                            
+                                                                                  
+                                                                                  
+                                                                              
+                                                                                
+                                                                               
+                                                                               
+                                                                              
+                                                                                       
+                                                                                     
+                                                 
+
+                                                                                           
+                                                                                          
+                                                                                         
+                                                                                        
+                                                                                      
+                                                                                       
+                                                                                       
+                                                                               
+
+                                                               
+                                                                                              
+                                                                                        
+                                                                                          
+                                                                   
+                                                                                    
+                                                                                            
+                                                                                            
+                                                                                          
+                                                                                            
+                                                                                             
+                                                                                             
+                                                                                               
+                                                                                         
+                                                               
+                                                                                           
+                                                  
+
+                                                                  
+                                                                           
+                                                                                
+                                                                                     
+                                                                                          
+                                                                                      
+                                                                                  
+
+                                                                    
+                                                                            
+                                                                                        
+                                                                                           
+                                                                                             
+                                                                                              
+                                                                                                                            
+                                                                                   
+
+                                         
+                                                                                     
+                                                                                           
+                                                                                        
+                                                                                        
+                                                                                             
+                                                                                            
+                                                                                                  
+                                                                                     
+                                                                                          
+
+                                                                                        
+                                                                                          
+                                                                                       
+                                                                                      
+                                                                                     
+                                                                                      
+                                                                                      
+                                                                                     
+                                                
+
+                                                                                        
+                                    
+                                                                              
+                                            
+                                                                                              
+                                                                                              
+                                                                                              
+                                                                      
+
+                                                                                  
+                                                                                           
+                                                                         
+
+                                                
+                                                                              
+                                                                                          
+                                                                                           
+                                                                                      
+                                                                               
+                                                                                            
+                                                                                            
+                                                                                           
+                                                                                          
+                                                                        
+
+                                                                               
+                                                                                   
+                                                                                        
+                                                                                         
+                                                                                      
+                                                                                        
+                                                                                           
+                                                                                           
+                                                                                             
+                                                                                               
+                                                                                       
+
+                                                   
+                                                                                
+                                                                                
+                                                                                       
+                                                                               
+
+                                                                                   
+                          
+                                                                     
+                                                                                        
+                                                                                
+                                                                                 
+                                                                                  
+                                                                                     
+                                                                                    
+                                                                                 
+                                                                                  
+
+                                                                        
+                                                                                       
+                                                                                              
+                                                                                             
+                                                                                              
+                                                                                        
+
+                                                                                         
+                                       
+                                                                                  
+                                                                                           
+                                                                                             
+                                                                                            
+                                                                                          
+                                                                                         
+                                                                                         
+                                                                                            
+
+                                                                                            
+                                                                                        
+                                                                                             
+                                                                                               
+                                                                                          
+                                                                                    
+                                                                                           
+                                 
+
+                                                                                              
+                                                                                                 
+                                                                                           
+                                                                                            
+                                                                                       
+                                                                                         
+                                                                                  
+                                                       
+                                                                                          
+                                                         
+
+                                                                                           
+                                                                                              
+                                                                                         
+                                                                                            
+                                                                                            
+                                                                               
+
+                                                                                      
+                                                                   
+
+       
+                                          
+                                                  
+   
+
+                                                                                           
+                                                                                     
+                                                                                        
+                                                                                         
+                                                                                                 
+                                                                                                
+                                                                                    
+  
 
 open Lean
 
@@ -1481,6 +1481,16 @@ def PointInvocation.decode (json : Json) : Except String PointInvocation := do
   let parameters ← parameters.getArr?
   return { operation, parameters, arrow, domain, source, target, argument }
 
+/-- Recognize an actual returned complete map without replacing its callable packet.
+The selected runtime continuation separately retains its original provider and source family. -/
+def PointInvocation.returnedMap? (request : PointInvocation) : Except String Bool := do
+  unless (request.arrow.getObjValAs? String "ctor").toOption == some "typedMap" do
+    return false
+  let actual ← TypedMap.decode request.arrow
+  unless actual.source == request.source && actual.target == request.target do
+    throw "the retained callable changed its complete invocation endpoints"
+  return true
+
 /-- Frame the morphism action of one registered functor using the existing `apply`,
 `map` and `typedMap` records. Preserve the complete invocation, including both actual
 image endpoints and the original generalized argument. The caller separately checks
@@ -1491,6 +1501,7 @@ def PointInvocation.decodeFunctorMap (functorId : String) (json : Json) :
   let request ← PointInvocation.decode json
   unless request.operation == functorId ++ "#map" do
     throw "the functor map invocation differs from the dispatched operation"
+  if ← request.returnedMap? then return request
   unless (← request.arrow.getObjValAs? String "ctor") == "map" do
     throw "a functor map invocation requires its selected map action"
   let #[action, arrow] ← (← request.arrow.getObjVal? "args").getArr?
@@ -1503,14 +1514,19 @@ def PointInvocation.decodeFunctorMap (functorId : String) (json : Json) :
   discard <| TypedMap.decode arrow
   return request
 
-/-- Frame the morphism action of a non-FunctorEntry edge. The two action
-occurrences are exact data, including every ordered nested parameter packet. -/
+/-- Frame the morphism action of a non-FunctorEntry edge. The source recipe and a later
+actual returned map keep the same complete invocation action descriptor and parameter data. -/
 def PointInvocation.decodeActionMap (address : String) (json : Json) :
     Except String PointInvocation := do
   let identity ← actionIdentity address
   let request ← PointInvocation.decode json
   unless request.operation == address ++ "#map" do
     throw "the derived map invocation differs from the dispatched operation"
+  let #[selected] := request.parameters
+    | throw "the derived map invocation requires its one complete selected action"
+  unless (← descriptorActionIdentity selected) == identity do
+    throw "the complete action descriptor differs from the registered address"
+  if ← request.returnedMap? then return request
   unless (← request.arrow.getObjValAs? String "ctor") == "map" do
     throw "a derived map invocation requires its selected map action"
   let #[action, arrow] ← (← request.arrow.getObjVal? "args").getArr?
