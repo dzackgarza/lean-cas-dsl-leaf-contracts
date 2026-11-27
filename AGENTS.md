@@ -2,7 +2,8 @@
 
 The [constitution](.specify/memory/constitution.md) of this repository governs its documents,
 including this file and `INTENT.md`; where they conflict, the constitution governs. The work order
-is the task list of the active feature under [`specs/`](specs/).
+is the task list of the active feature under [`specs/`](specs/). `.specify/feature.json` names the
+feature whose first unchecked task comes first in that execution order; set it with `jq`.
 
 Use the [shared math container](https://github.com/dzackgarza/ai-review-ci/blob/main/SAGE-CONTAINER.md#use-the-image)
 (`ghcr.io/dzackgarza/sage:develop`) for Lean/elan, Sage with mypy, GAP,

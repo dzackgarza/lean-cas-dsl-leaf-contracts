@@ -275,6 +275,18 @@ both admitted; a manifest with both registrations is admitted and the selection 
   workspace through the `lean_categories` requirement at `main`, whose lakefile requires `mathlib`
   at `master` (research R18). When a new image moves Mathlib, `main` moves with it. *Issue #12;
   kernel T105, which pins `main` of this repository.*
+- **FR-027 — Published locks.** Every revision of this repository that a lean-cas-dsl branch locks
+  MUST exist on GitHub (constitution RC10). *Kernel T017.*
+- **FR-028 — Governing documents on both branches.** The constitution, `AGENTS.md`, `README.md`,
+  `CONTRIBUTING.md`, `.specify/` and `specs/` MUST be the same on `main` and on
+  `integration/kernel-v1-20261106`, apart from the lines that the protocol-2 material of the
+  branch requires in `AGENTS.md` and `README.md` (plan, "Source location"). *Every task of the
+  integration branch.*
+- **FR-029 — Language interface and help.** The exporter MUST write `api/language-interface.json`
+  and `api/language-help.md` from the kernel command `#cas_export_interface`, with the data-only
+  and preferred-route interfaces, and `api/kernel-service.md` and `api/README.md` MUST link them.
+  Neither file names a path outside the public catalogue and contract (constitution RC3, RC9;
+  research R10). *Kernel T101.*
 
 ### Key Entities
 

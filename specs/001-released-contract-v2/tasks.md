@@ -7,71 +7,79 @@
 ## Execution order
 
 The unchecked tasks are executed in the order of this file. The first unchecked task is the
-active task. `After` names the inputs that a task needs. `Consumer` names the lean-cas-dsl task
-that uses the result ("kernel T0nn"). An input is the result of a named task: a task of this file,
-a kernel task ("kernel T0nn") or a lean-categories task by its ID and issue. The workstream that
-needs the input does that task first, in its repository and in the role that it names (a
-lean-categories task as a formalization author, kernel constitution C16 and C21), and then returns.
-When no task produces an input, the change that finds the need adds the task and its issue in the
-owning repository. A task of this file that the kernel or a leaf needs is done by that workstream
-in the contract role of this repository.
+active task. `After` names the inputs that a task needs: tasks of this file, kernel tasks
+("kernel T0nn", and "kernel F" for the kernel readiness milestone) and lean-categories tasks by
+feature, ID and issue. `Consumer` names the lean-cas-dsl task that uses the result. The
+execution-order rule of the kernel task list governs these inputs (kernel constitution C16, C21):
+the workstream that needs an input does its task first, in the role that the task names, and
+returns. A task of this file that the kernel or a leaf needs is done by that workstream in the
+contract role of this repository. A task is done when its check passes; the check follows the
+check-route rule of lean-cas-dsl `CONTRIBUTING.md` (SPEC004).
 
 Tasks T003–T018 and T021 are committed on `integration/kernel-v1-20261106` ([plan, source
 location](plan.md#source-location)). Each frame task changes the Lean codec, the SDK, the public
 document, both protocol peers and the contract test of that frame in one change; a codec without
-its test is not complete (constitution RC13).
+its test is not complete (constitution RC13). The contract tests run after `just setup`.
 
-Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consumer** and
-**After** follow each task.
+Format: `- [ ] ID [P?] [Story] description`. **Files**, **Check**, **Acceptance**, **Consumer**
+and **After** follow each task.
 
 ## Phase 1: Setup
 
-- [ ] T001 Publish the protocol-2 state that the kernel branch locks. In the checkout
+- [ ] T001 Publish the protocol-2 state that the kernel branch locks (FR-027). In the checkout
   `~/.local/share/docker/volumes/sage-repos/_data/v1-integration-20261106/lean-cas-dsl-leaf-contracts`
   (head `a0417b0`), read the diff of its 14 modified paths and the untracked
   `python/cas_interfaces.py` against this plan; commit them on `integration/kernel-v1-20261106`
   with a body that names what each path does; trash `.tmp/` (copies of the same paths and
   bytecode) after its files are compared with the committed paths; push the branch.
   **Files**: the 14 paths listed by `git status` there, `python/cas_interfaces.py`.
-  **Acceptance**: `git ls-remote` shows the branch at a descendant of `a0417b0`; GitHub resolves
-  `a0417b0`; the checkout has a clean tree. **Consumer**: kernel T017 (its lock exists).
+  **Check**: `git merge-base --is-ancestor a0417b0 "$(git ls-remote origin
+  refs/heads/integration/kernel-v1-20261106 | cut -f1)"` succeeds and `git status --short` in the
+  checkout prints nothing.
+  **Acceptance**: GitHub resolves `a0417b0`. **Consumer**: kernel T017 (its lock exists).
   **After**: none.
-- [ ] T002 Carry the governing documents and this feature to the integration branch: apply the
-  commits of `main` that add `.specify/`, `.claude/skills/speckit-*`, the constitution,
+- [ ] T002 Carry the governing documents and this feature to the integration branch (FR-028):
+  apply the commits of `main` that add `.specify/`, `.claude/skills/speckit-*`, the constitution,
   `CONTRIBUTING.md`, the edits of `AGENTS.md` and `README.md`, and `specs/001-released-contract-v2/`.
-  **Files**: those paths. **Acceptance**: `git diff main integration/kernel-v1-20261106 --
-  .specify/memory AGENTS.md CONTRIBUTING.md specs` shows only lines that the branch's protocol-2
-  material requires in `AGENTS.md` and `README.md`. **Consumer**: every later task.
-  **After**: T001.
+  **Files**: those paths.
+  **Check**: `git diff main integration/kernel-v1-20261106 -- .specify/memory AGENTS.md
+  CONTRIBUTING.md specs` shows only lines that the branch's protocol-2 material requires in
+  `AGENTS.md` and `README.md`.
+  **Acceptance**: the governing documents are the same on both branches. **Consumer**: every
+  later task. **After**: T001.
 - [ ] T022 Move `main` to the Mathlib revision and the toolchain that the research image records
   (FR-026; research R18; issue #12). On `main`, set `lean-toolchain` to the toolchain of the image
   and run `lake update lean_categories`; repair in this repository each module that the new
   Mathlib breaks, with its statement unchanged; close #12 with a comment that names the commit.
   **Files**: `lean-toolchain`, `lake-manifest.json`, the modules that the update breaks.
-  **Acceptance**: SC-007 in a container made from the image; `lake-manifest.json` names the
-  Mathlib revision that the image records. **Consumer**: the checkout check of the image
-  (dzackgarza/sage#13); kernel T105, which pins `main`. **After**: none.
+  **Check**: in a container made from the image, `lake build` passes and `lake env lean` elaborates
+  a file whose only line is `import Mathlib` (SC-007).
+  **Acceptance**: `lake-manifest.json` names the Mathlib revision that the image records.
+  **Consumer**: the checkout check of the image (dzackgarza/sage#13); kernel T105, which pins
+  `main`. **After**: none.
 
 ## Phase 2: Foundational
 
-- [ ] T003 Build the tier 1 harness and both protocol peers at negotiation (FR-020; research R11, R16). Add `pytest` as a dev
-  dependency (`uv add --dev pytest`); add recipes `setup` (`uv sync --frozen`, `lake build
-  cas-peer`) and `test` (`uv run --frozen pytest tests/contract`) to `justfile`, and run `test`
-  in `test-push` and in CI after `setup`. Write `peer/Driver.lean` (executable `cas-peer` in
-  `lakefile.lean`, importing only `CasContract.Port` and `CasContract.Failure`): `cas-peer run
-  SCENARIO -- LEAF_COMMAND` starts the leaf, runs `negotiateV2`, sends each scenario frame and
-  compares each reply or outcome, exiting nonzero at the first difference; `cas-peer manifest
-  PATH` decodes a manifest. Write `peer/protocol_peer.py` and `peer/leaves.json`: an SDK leaf
-  whose replies come from the scenario file given as its argument. Write `tests/conftest.py`,
-  which writes `tests/logs/<UTC>-<rev>.log` and appends one record per test to
-  `tests/timing/records.jsonl` (research R12).
+- [ ] T003 Build the tier 1 harness and both protocol peers at negotiation (FR-020; research R11,
+  R16). Add `pytest` as a dev dependency (`uv add --dev pytest`); add recipes `setup` (`uv sync
+  --frozen`, `lake build cas-peer`) and `test` (`uv run --frozen pytest tests/contract`) to
+  `justfile`, and run `test` in `test-push` and in CI after `setup`. Write `peer/Driver.lean`
+  (executable `cas-peer` in `lakefile.lean`, importing only `CasContract.Port` and
+  `CasContract.Failure`): `cas-peer run SCENARIO -- LEAF_COMMAND` starts the leaf, runs
+  `negotiateV2`, sends each scenario frame and compares each reply or outcome, exiting nonzero at
+  the first difference; `cas-peer manifest PATH` decodes a manifest. Write `peer/protocol_peer.py`
+  and `peer/leaves.json`: an SDK leaf whose replies come from the scenario file given as its
+  argument. Write `tests/leaves/immediate.py`, an SDK leaf that negotiates and answers one
+  immediate request. Write `tests/conftest.py`, which writes `tests/logs/<UTC>-<rev>.log` and
+  appends one record per test to `tests/timing/records.jsonl` (research R12).
   **Files**: `pyproject.toml`, `uv.lock`, `justfile`, `.github/workflows/ci.yml`,
   `lakefile.lean`, `peer/Driver.lean`, `peer/protocol_peer.py`, `peer/leaves.json`,
-  `peer/README.md`, `tests/conftest.py`, `tests/contract/test_peer.py`, `tests/logs/`,
-  `tests/timing/records.jsonl`.
-  **Acceptance**: `just setup && just test` runs a test that negotiates between `cas-peer` and
+  `peer/README.md`, `tests/conftest.py`, `tests/leaves/immediate.py`, `tests/contract/test_peer.py`,
+  `tests/logs/`, `tests/timing/records.jsonl`.
+  **Check**: `just setup && just test` runs a test that negotiates between `cas-peer` and
   `tests/leaves/immediate.py` and a test in which `cas-peer` drives `peer/protocol_peer.py`
-  through its scenario, writes one log and one timing record per test, and finishes in under five
+  through its scenario.
+  **Acceptance**: the run writes one log and one timing record per test and finishes in under five
   minutes (SC-001, SC-002). **Consumer**: kernel T017 (protocol peer for its checks).
   **After**: T002.
 
@@ -84,29 +92,34 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   **Files**: `CasContract/Port.lean`, `python/cas_port.py`, `python/cas_session.py`,
   `api/python-sdk.md`, `api/manifest.md`, `api/wire-examples.md`, `tests/contract/test_negotiation.py`,
   `tests/leaves/immediate.py`, `tests/scenarios/negotiation-*.json`.
-  **Acceptance**: tests show a complete negotiation; a `ready` frame without `suspend-resume/2`
+  **Check**: `uv run --frozen pytest tests/contract/test_negotiation.py`, then
+  `git grep -n "readyOf\|adapter_version\|capabilities" -- CasContract python api` prints nothing.
+  **Acceptance**: the tests show a complete negotiation; a `ready` frame without `suspend-resume/2`
   gives `unavailable` with `incompatible_protocol` and no request; an extra feature string is
-  accepted; an extra field is malformed; `git grep -n "readyOf\|adapter_version\|capabilities"`
-  over `CasContract python api` returns nothing. **Consumer**: kernel T017. **After**: T003.
-- [ ] T005 [US1] Manifest (FR-004; D2; issue #1). Make `backends`, `registrations`, `args` and
-  `preferredRoutes` required, reject every unknown field, keep the nonempty-route rule, and keep
-  all-or-none admission of a manifest.
+  accepted; an extra field is malformed. **Consumer**: kernel T017. **After**: T003.
+- [ ] T005 [US1] [US3] Manifest (FR-004; D2; issue #1). Make `backends`, `registrations`, `args`
+  and `preferredRoutes` required, reject every unknown field, keep the nonempty-route rule, and
+  keep all-or-none admission of a manifest. Add the manifest of User Story 3, two registrations of
+  one operation at one input form with different backends.
   **Files**: `CasContract/Registration.lean`, `api/manifest.md`, `api/manifest.schema.json`,
-  `tests/contract/test_manifest.py`, `tests/scenarios/manifest-*.json`.
-  **Acceptance**: `cas-peer manifest` accepts the example of `api/manifest.md`; it rejects a
-  field `priority`, a missing `registrations`, an empty `route`, and a manifest whose second
-  registration is invalid, naming the field or row and admitting none of its registrations
-  (issue #1). **Consumer**: kernel T017, kernel T028.
-  **After**: T004.
+  `tests/contract/test_manifest.py`, `tests/scenarios/manifest-*.json`,
+  `tests/scenarios/two-providers.json`.
+  **Check**: `uv run --frozen pytest tests/contract/test_manifest.py`.
+  **Acceptance**: `cas-peer manifest` accepts the example of `api/manifest.md` and
+  `tests/scenarios/two-providers.json` with both registrations and no order between them; it
+  rejects a field `priority`, a missing `registrations`, an empty `route`, and a manifest whose
+  second registration is invalid, naming the field or row and admitting none of its registrations
+  (issue #1). **Consumer**: kernel T017, kernel T028. **After**: T004.
 - [ ] T006 [US2] Exact references and graph controls (FR-005). Complete the decoders of
   `inputRef`, `resultRef`, `scopeRef`, `$cas.project` and `$cas.apply` and the SDK `Proxy` and
   gateway checks.
   **Files**: `CasContract/Port.lean`, `python/cas_session.py`, `api/kernel-service.md`,
   `api/python-sdk.md`, `tests/contract/test_references.py`, `tests/leaves/references.py`,
   `tests/scenarios/references-*.json`.
-  **Acceptance**: tests show that a self, forward or out-of-range `resultRef`, a negative
-  `inputRef` index and a `scopeRef` of an expired frame are rejected, and that valid references
-  pass unchanged. **Consumer**: kernel T018. **After**: T004.
+  **Check**: `uv run --frozen pytest tests/contract/test_references.py`.
+  **Acceptance**: a self, forward or out-of-range `resultRef`, a negative `inputRef` index and a
+  `scopeRef` of an expired frame are rejected, and valid references pass unchanged.
+  **Consumer**: kernel T018. **After**: T004.
 - [ ] T007 [US2] Replies, exports, export invocation and discard (FR-006, FR-007, FR-008). Fix the
   exact `ok` reply with `exports`; one export entry per new token; the `$cas.invoke_export`
   grammar with the capture prefix and the `published` and `dependent` contexts; invocation-local
@@ -114,18 +127,21 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   **Files**: `CasContract/Port.lean`, `python/cas_session.py`, `api/kernel-service.md`,
   `api/python-sdk.md`, `tests/contract/test_replies_exports.py`, `tests/leaves/exports.py`,
   `tests/scenarios/exports-*.json`.
-  **Acceptance**: tests show an export with two captures invoked twice with fresh frames; a
-  duplicate token entry is malformed; a reply without `exports` is malformed; discard revokes only
-  the tokens of its request and a later invocation of a revoked token fails as `unavailable`.
+  **Check**: `uv run --frozen pytest tests/contract/test_replies_exports.py`.
+  **Acceptance**: an export with two captures is invoked twice with fresh frames; a duplicate
+  token entry is malformed; a reply without `exports` is malformed; discard revokes only the
+  tokens of its request and a later invocation of a revoked token fails as `unavailable`.
   **Consumer**: kernel T021, kernel T020. **After**: T006.
-- [ ] T008 [US2] Failure strata (FR-011; D4; pull request #6). Add `internal` to
+- [ ] T008 [US2] [US3] Failure strata (FR-011; D4; pull request #6). Add `internal` to
   `CasContract/Failure.lean`; map `error`, `unsupported` and malformed replies; rewrite the
   failure table of `api/kernel-service.md` with stratum names; close pull request #6 with a
   comment that names the commit that carries its stratum.
   **Files**: `CasContract/Failure.lean`, `CasContract/Port.lean`, `api/kernel-service.md`,
   `tests/contract/test_failures.py`, `tests/leaves/failing.py`, `tests/scenarios/failures-*.json`.
-  **Acceptance**: tests show each of the seven strata reached from a real frame or an empty
-  registration set, and `unsupported` naming a different `op` is malformed.
+  **Check**: `uv run --frozen pytest tests/contract/test_failures.py`.
+  **Acceptance**: each of the seven strata is reached from a real frame or an empty registration
+  set; `unsupported` naming a different `op` is malformed; a well-framed reply with arbitrary
+  opaque data is admitted and no stratum names it (User Story 3, scenario 2).
   **Consumer**: kernel T027. **After**: T007.
 - [ ] T009 [US1] Deferred programs (FR-009; D5). State and decode `deferredData` with backward
   references, reject a nested literal `deferredData`, and state that a child with no eligible
@@ -133,8 +149,9 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   **Files**: `CasContract/Port.lean`, `python/cas_port.py`, `api/deferred.schema.json`,
   `api/kernel-service.md`, `tests/contract/test_deferred.py`, `tests/leaves/deferred.py`,
   `tests/scenarios/deferred-*.json`.
-  **Acceptance**: tests show a two-node program with `resultRef(0)` in the second call accepted,
-  and a nested `deferredData` and a forward reference rejected. **Consumer**: kernel T022.
+  **Check**: `uv run --frozen pytest tests/contract/test_deferred.py`.
+  **Acceptance**: a two-node program with `resultRef(0)` in the second call is accepted, and a
+  nested `deferredData` and a forward reference are rejected. **Consumer**: kernel T022.
   **After**: T008.
 - [ ] T010 [US1] Adaptive suspension and the `noImplementation` slot (FR-010; D6; research R5).
   Add `cas_session.NoImplementation`, send it to the generator at its slot, reject a leaf reply
@@ -144,8 +161,9 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   **Files**: `CasContract/Port.lean`, `python/cas_session.py`, `api/python-sdk.md`,
   `api/kernel-service.md`, `tests/contract/test_suspension.py`, `tests/leaves/suspending.py`,
   `tests/scenarios/suspension-*.json`.
-  **Acceptance**: tests show a generator that suspends with two children and receives a proxy and
-  a `NoImplementation("op.x","in.x")`, then suspends again with a new token and returns; a second
+  **Check**: `uv run --frozen pytest tests/contract/test_suspension.py`.
+  **Acceptance**: a generator that suspends with two children receives a proxy and a
+  `NoImplementation("op.x","in.x")`, then suspends again with a new token and returns; a second
   resume of a consumed token is malformed; an empty child group is malformed; a reply containing
   `noImplementation` raises in the SDK and no frame is written. **Consumer**: kernel T023.
   **After**: T009.
@@ -156,26 +174,32 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   **Files**: `CasContract/Port.lean`, `python/cas_session.py`, `api/python-sdk.md`,
   `api/kernel-service.md`, `tests/contract/test_decision.py`, `tests/leaves/predicate.py`,
   `tests/scenarios/decision-*.json`.
-  **Acceptance**: tests show the packets `some true`, `some false` and `none` decoded to two truth
-  values and the outcome `unknown`; a JSON boolean, a string and a reply with `status:"unknown"`
-  are malformed. **Consumer**: kernel T302, kernel T113. **After**: T010.
+  **Check**: `uv run --frozen pytest tests/contract/test_decision.py`.
+  **Acceptance**: the packets `some true`, `some false` and `none` decode to two truth values and
+  the outcome `unknown`; a JSON boolean, a string and a reply with `status:"unknown"` are
+  malformed. **Consumer**: kernel T302, kernel T113. **After**: T010.
 - [ ] T012 [US1] Routine observations and SDK logging (FR-013, FR-023). Keep
   `routine-observations/1` and `invoke_routine`; add the standard-error logger of every frame,
   handler, export, suspension, resume and disposal.
   **Files**: `python/cas_session.py`, `api/python-sdk.md`, `tests/contract/test_routines.py`.
-  **Acceptance**: tests show a negotiated reply with one `entrypoint` and one `delegated` record,
-  a base hello with no `routines` field, and one log line per frame in the run log.
-  **Consumer**: kernel T100. **After**: T011.
+  **Check**: `uv run --frozen pytest tests/contract/test_routines.py`.
+  **Acceptance**: a negotiated reply has one `entrypoint` and one `delegated` record, a base hello
+  has no `routines` field, and the run log has one log line per frame. **Consumer**: kernel T100.
+  **After**: T011.
 - [ ] T013 [US1] Public documents (FR-017, FR-018, FR-019; D3, D7–D11). Delete the legacy recipe
   framing, the raw-receiver permission and the three legacy wire forms; add `exports` to every
   example reply; delete the nearest-binding rule and link C6 and FR-004; remove the greatest
   common divisor condition from the scalar-literal admission rule; replace "producer receipt" by
   the kernel's retained occurrence of the executed action; replace restated catalogue mathematics
-  by links to generated rows; state FR-017 and FR-018 with one example each.
-  **Files**: `api/kernel-service.md`, `api/README.md`, `api/wire-examples.md`, `api/manifest.md`.
-  **Acceptance**: SC-004 holds; each example frame in these documents is accepted by `cas-peer`
-  when a scenario replays it (`tests/contract/test_document_examples.py`).
-  **Consumer**: kernel T028, kernel T042, kernel T061, kernel T322. **After**: T012.
+  by links to generated rows; state FR-017 and FR-018 with one example each. Write the test that
+  replays each example frame of these documents through `cas-peer`.
+  **Files**: `api/kernel-service.md`, `api/README.md`, `api/wire-examples.md`, `api/manifest.md`,
+  `tests/contract/test_document_examples.py`, `tests/scenarios/document-examples-*.json`.
+  **Check**: `uv run --frozen pytest tests/contract/test_document_examples.py`, then the two
+  commands of SC-004.
+  **Acceptance**: each example frame of these documents is accepted by `cas-peer` when a scenario
+  replays it, and SC-004 holds. **Consumer**: kernel T028, kernel T042, kernel T061, kernel T322.
+  **After**: T012.
 
 ## Phase 4: User Story 1 — the generated category interface
 
@@ -187,10 +211,11 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   **Files**: `tools/export_declared_ports.lean`, `tools/export_admission_addresses.lean`,
   `tools/export_api.py`, `api/README.md`; generated `api/declared-ports.json`,
   `api/extension-ports.json`.
-  **Acceptance**: SC-005; `categoryInterfaces` has an entry for `cat.sets` with
-  `obj.sets.fin`, `mor.sets.fin_rev` and `mor.sets.equality`; the provenance names the locked
-  revisions. **Consumer**: kernel T028; computational milestone order (kernel plan).
-  **After**: T013.
+  **Check**: `jq` over `api/declared-ports.json`: every row of `functors` has a boolean
+  `structural` equal to its lean-categories row at the pinned revision (SC-005), and the `cat.sets`
+  entry of `categoryInterfaces` holds `obj.sets.fin`, `mor.sets.fin_rev` and `mor.sets.equality`.
+  **Acceptance**: the provenance of the generated files names the locked revisions.
+  **Consumer**: kernel T028; computational milestone order (kernel plan). **After**: T013.
 - [ ] T021 [US1] Value forms of category data (FR-025; D17; research R17; issue #14). Declare in
   `api/wire-examples.md` and `api/kernel-service.md`, and generate in `api/declared-ports.json`, the
   form, validators, one worked example and one malformed example of each data kind of #14: native
@@ -205,11 +230,14 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   `api/kernel-service.md`, `api/README.md`, `python/cas_interfaces.py`,
   `tests/contract/test_value_forms.py`, `tests/leaves/value_forms.py`,
   `tests/scenarios/value-forms-*.json`; generated `api/declared-ports.json`.
-  **Acceptance**: for each of the ten kinds, `test_value_forms.py` sends one accepted and one
-  malformed frame through `cas-peer`, and the accepted frame is built by `cas_interfaces` from the
-  generated layout; `git grep -n "leaf-chosen\|leaf's choice" api/` returns nothing.
-  **Consumer**: kernel T028, kernel T185; the rows of the lean-cas-dsl-leaves category specs whose plans name contract T021 (column "Inputs before it"). **After**: T014;
-  lean-categories T005 (#193), T013 (#191), T027 (#190), T031 (#187).
+  **Check**: `uv run --frozen pytest tests/contract/test_value_forms.py`, then
+  `git grep -n "leaf-chosen\|leaf's choice" api/` prints nothing.
+  **Acceptance**: for each of the ten kinds, one accepted and one malformed frame pass through
+  `cas-peer`, and the accepted frame is built by `cas_interfaces` from the generated layout.
+  **Consumer**: kernel T028, kernel T185; the rows of the lean-cas-dsl-leaves category specs whose
+  plans name contract T021 (column "Inputs before it"). **After**: T014; lean-categories
+  `specs/001-catalogue-inputs-for-the-cas` T005 (#193), T013 (#191), T027 (#190) and T031 (#187),
+  done first in lean-categories as a formalization author.
 - [ ] T015 [US1] SDK category helpers (FR-016, FR-024; D12). Complete `cas_interfaces.load_interfaces`
   with category, constructor, call and result access, explicit dependent descriptors and a
   category index built on first query; write `tests/leaves/sets_category.py`, an implementation of
@@ -217,51 +245,67 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   scenario data.
   **Files**: `python/cas_interfaces.py`, `api/python-sdk.md`, `tests/contract/test_interfaces.py`,
   `tests/leaves/sets_category.py`, `tests/scenarios/sets-category.json`.
-  **Acceptance**: the quickstart User Story 1 command passes; a method request at a category
-  inside a route carries the receiver, the residual descriptors and the method functor (FR-017);
-  a map request carries both image endpoints (FR-018); loading the interface takes under 0.5 s
-  and builds no category entry before the first query (timing record). **Consumer**: kernel T028,
-  kernel T042, kernel T061, kernel T322, the kernel category tasks. **After**: T021.
+  **Check**: `uv run --frozen pytest tests/contract/test_interfaces.py` and the User Story 1
+  command of the [quickstart](quickstart.md).
+  **Acceptance**: a method request at a category inside a route carries the receiver, the residual
+  descriptors and the method functor (FR-017); a map request carries both image endpoints
+  (FR-018); loading the interface builds no category entry before the first query (FR-024; timing
+  record). **Consumer**: kernel T028, kernel T042, kernel T061, kernel T322, the kernel category
+  tasks. **After**: T021.
 - [ ] T016 [US1] Author guidance (FR-021; D16). Index in `api/README.md` every document, generated
   file, SDK module and setup command that a leaf author needs; state in `README.md` and
   `AGENTS.md` the category implementation as the unit, registrations as ports, the leaf's control
   logic (kernel C22), permitted private reuse, and the absence of leaf mathematical, proof and
   acceptance authority; set the ownership row of `lean-cas-dsl-leaves` to depend on this contract.
-  **Files**: `api/README.md`, `README.md`, `AGENTS.md`. **Acceptance**: every file that a test
-  leaf imports or reads is linked from `api/README.md`. **Consumer**: kernel T028, the
-  kernel category tasks.
-  **After**: T015.
-- [ ] T017 [US1] Language interface and help (research R10). Extend `tools/export_api.py` to run
-  `#cas_export_interface` of the kernel and write `api/language-interface.json` and
+  **Files**: `api/README.md`, `README.md`, `AGENTS.md`.
+  **Check**: for each module of `python/` that a file of `tests/leaves/` imports and each file of
+  `api/` that it reads, `grep` finds its link in `api/README.md`.
+  **Acceptance**: a public-only author finds every needed file from `api/README.md`.
+  **Consumer**: kernel T028, the kernel category tasks. **After**: T015.
+- [ ] T017 [US1] Language interface and help (FR-029; research R10). Extend `tools/export_api.py`
+  to run `#cas_export_interface` of the kernel and write `api/language-interface.json` and
   `api/language-help.md`, including data-only and preferred-route interfaces; link them from
   `api/kernel-service.md` and `api/README.md`.
   **Files**: `tools/export_api.py`, `api/kernel-service.md`, `api/README.md`; generated
-  `api/language-interface.json`, `api/language-help.md`. **Acceptance**: the two files are produced
-  by one `just export-api` run and contain no path outside the public catalogue and contract.
+  `api/language-interface.json`, `api/language-help.md`.
+  **Check**: one `just export-api KERNEL` run against the kernel branch with kernel T101 produces
+  both files, and `grep -n -E '[A-Za-z]+/[A-Za-z]+\.lean|tests/acceptance|/home/|/repos/'
+  api/language-interface.json api/language-help.md` prints nothing.
+  **Acceptance**: the two files hold no path outside the public catalogue and contract.
   **Consumer**: T018, T019 (the release at kernel F). **After**: T016; kernel T101.
 - [ ] T018 [US1] Public-only run (SC-003). In a fresh clone of the integration branch at the T017
   commit, on a host path with no lean-cas-dsl checkout, run the quickstart.
   **Files**: `specs/001-released-contract-v2/quickstart.md` when a command differs.
-  **Acceptance**: every quickstart command passes; the run log and timing records are committed.
-  **Consumer**: the kernel category tasks. **After**: T017.
+  **Check**: every command of the quickstart passes in that clone.
+  **Acceptance**: the run log and timing records are committed. **Consumer**: the kernel category
+  tasks. **After**: T017.
 
 ## Phase 5: Releases
 
 - [ ] T019 Release `v2.0.0` at kernel F (FR-022; research R13). Run `just export-api` against the
   built kernel branch at F, commit the unchanged output, set `pyproject.toml` version `2.0.0`, run
-  tier 1, tag `v2.0.0` and push the branch and tag.
-  **Files**: generated `api/*.json`, `api/language-help.md`, `pyproject.toml`, `uv.lock`.
-  **Acceptance**: the kernel branch's lake manifest names the tagged commit (SC-006, first part).
-  **Consumer**: the kernel category tasks and lean-cas-dsl-leaves 001 T003 (the release at kernel F).
-  **After**: T018; kernel T100, T101.
-- [ ] T020 Merge into `main` and release `v2.0.1` at kernel T105 (FR-022). Merge the integration
-  branch into `main`; keep `lean-toolchain` and the lean-categories requirement of `main`; run
-  `lake update`; build every module and `cas-peer`; run tier 1; run `just export-api` against the
-  kernel ported by #90 and commit the unchanged output; tag `v2.0.1`; push; close pull request #11
-  with a comment that names the merge commit.
+  tier 1, tag `v2.0.0`, push the branch and tag, and set the lock of this repository in the
+  `lake-manifest.json` of the lean-cas-dsl kernel branch to the tagged commit.
+  **Files**: generated `api/*.json`, `api/language-help.md`, `pyproject.toml`, `uv.lock`; the
+  `lake-manifest.json` of the lean-cas-dsl kernel branch.
+  **Check**: `git ls-remote --tags origin v2.0.0` names the tagged commit, and
+  `jq -r '.packages[] | select(.name == "cas_leaf_contracts") | .rev'` over the kernel branch's
+  `lake-manifest.json` prints the same commit (SC-006, first part).
+  **Acceptance**: `just test` passes on the tagged commit. **Consumer**: the kernel category tasks
+  and lean-cas-dsl-leaves 001 T003 (the release at kernel F).
+  **After**: T018; kernel F, which holds kernel T100 and T101.
+- [ ] T020 Merge into `main` and release `v2.0.1` (FR-022). Merge the integration branch into
+  `main`; keep `lean-toolchain` and the lean-categories requirement of `main`; run `lake update`;
+  build every module and `cas-peer`; run tier 1; run `just export-api` against the kernel ported
+  by #90 and commit the unchanged output; tag `v2.0.1`; push; close pull request #11 with a comment
+  that names the merge commit.
   **Files**: `lean-toolchain`, `lakefile.lean`, `lake-manifest.json`, generated `api/*.json`,
-  `api/language-help.md`. **Acceptance**: SC-006 second part; tier 1 passes on `main`.
-  **Consumer**: kernel T105. **After**: T019; kernel T352 (the port of #90).
+  `api/language-help.md`.
+  **Check**: `just test` passes on `main`, and `git ls-remote --tags origin v2.0.1` names a commit
+  of `main` (SC-006, the existence of the second commit).
+  **Acceptance**: the `v2.0.1` commit holds the regenerated output of the ported kernel.
+  **Consumer**: kernel T105, which pins `v2.0.1` in kernel `main` (SC-006, second part).
+  **After**: T019; kernel T352 (the port of #90).
 
 ## Dependencies
 
@@ -273,12 +317,12 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
 | T003 | T002 |
 | T004–T013 | each the previous task |
 | T014 | T013 |
-| T021 | T014; lean-categories T005, T013, T027, T031 |
+| T021 | T014; lean-categories `001-catalogue-inputs-for-the-cas` T005, T013, T027, T031 |
 | T015 | T021 |
 | T016 | T015 |
 | T017 | T016; kernel T101 |
 | T018 | T017 |
-| T019 | T018; kernel T100, T101 |
+| T019 | T018; kernel F |
 | T020 | T019; kernel T352 |
 
 ## Kernel consumers

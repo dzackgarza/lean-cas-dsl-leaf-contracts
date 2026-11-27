@@ -97,6 +97,9 @@ Each row names the files that change and the generator of each generated file.
 | FR-022 | `lean-toolchain`, `lake-manifest.json`, `lakefile.lean`, `pyproject.toml`, `uv.lock` | `lake-manifest.json`: `lake update` at the merge only |
 | FR-023 | `python/cas_session.py` (logger to standard error) | — |
 | FR-026 | `lean-toolchain`, `lake-manifest.json` on `main` | `lake-manifest.json`: `lake update lean_categories` |
+| FR-027 | the 14 paths of the local worktree and `python/cas_interfaces.py`, on `integration/kernel-v1-20261106` | — |
+| FR-028 | `.specify/`, `.claude/skills/speckit-*`, `CONTRIBUTING.md`, `AGENTS.md`, `README.md`, `specs/` on `integration/kernel-v1-20261106` | — |
+| FR-029 | `tools/export_api.py`, `api/kernel-service.md`, `api/README.md` | `api/language-interface.json`, `api/language-help.md`: `just export-api KERNEL` |
 | FR-025 | `tools/export_declared_ports.lean` (layout of each declared object from its declaration), `api/wire-examples.md`, `api/kernel-service.md`, `python/cas_interfaces.py` (value builders from the generated layouts) | `api/declared-ports.json`: `just export-api KERNEL` |
 | Tests (RC12–RC18) | `tests/contract/*.py`, `tests/leaves/*.py`, `tests/scenarios/*.json`, `tests/conftest.py`, `justfile`, `.github/workflows/ci.yml`, `pyproject.toml` | `tests/logs/*.log`, `tests/timing/records.jsonl`: each test run |
 
@@ -156,10 +159,10 @@ task that makes it.
 2. T003–T018 and T021 land on the integration branch; the kernel branch consumes each revision.
 3. T019, at kernel F: `just export-api` against the built kernel branch, the unchanged output
    committed, `pyproject.toml` version `2.0.0`, tag `v2.0.0`. The kernel branch pins it.
-4. T020, at kernel T105: merge into `main`; `lean-toolchain` and lean-categories take the values
-   of `main`; `lake update` regenerates `lake-manifest.json`; every module builds; tier 1 passes;
-   `just export-api` against the ported kernel; tag `v2.0.1`. Pull request #11 is the record of
-   this merge. The kernel `main` pins `v2.0.1`.
+4. T020, after kernel T352 and before kernel T105: merge into `main`; `lean-toolchain` and
+   lean-categories take the values of `main`; `lake update` regenerates `lake-manifest.json`;
+   every module builds; tier 1 passes; `just export-api` against the ported kernel; tag `v2.0.1`.
+   Pull request #11 is the record of this merge. Kernel T105 pins `v2.0.1` in kernel `main`.
 
 ## Project Structure
 
