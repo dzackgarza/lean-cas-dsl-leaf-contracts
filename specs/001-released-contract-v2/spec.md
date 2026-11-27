@@ -4,7 +4,7 @@
 **Created**: 2026-11-25
 **Status**: Planned
 **Governing text**: [constitution](../../.specify/memory/constitution.md) (RC1–RC20); the
-[kernel constitution][KC] v4.0.1; the kernel's [runtime contract][KR], which is the
+[kernel constitution][KC] v5.0.0; the kernel's [runtime contract][KR], which is the
 kernel-side design of this contract and governs where an `api/` document disagrees.
 
 **Input**: everything that the kernel tasks T017, T018, T020, T021, T022, T023, T027, T028,

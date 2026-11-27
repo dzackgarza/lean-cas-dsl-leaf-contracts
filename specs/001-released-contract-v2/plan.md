@@ -59,16 +59,16 @@ Gate result: pass. No violation needs a justification.
 The kernel branch `integration/kernel-v1-20261106` of lean-cas-dsl builds on Lean `v4.33.0` and
 locks this repository at `a0417b0` of the branch of the same name. The kernel tasks that consume
 this feature (T017–T023, T027, T028, T042, T061, T100, T101, T113, T302, T322) run on that kernel branch before its port
-to the research image (kernel issue #90, completed at kernel T105). Source: kernel `AGENTS.md`,
+to the research image (kernel issue #90, completed at kernel T352). Source: kernel `AGENTS.md`,
 "Source location"; kernel `tasks.md`, T105.
 
 Decision: the contract work of tasks T003–T018 and T021 is committed on
 `integration/kernel-v1-20261106` of this repository, which the kernel branch consumes. The
 governing documents (constitution, `AGENTS.md`, `README.md`, `CONTRIBUTING.md`, `specs/`) are
 the same on both branches; an edit to one is committed on both. Task T019 releases `v2.0.0` on
-that branch at kernel F, for kernel T028, T101 and the leaf work of the computational
-milestones, the kernel category tasks. Task T020 merges
-the branch into `main` on the toolchain of `main` with the kernel port of #90 (kernel T105) and
+that branch at kernel F, after kernel T100 and T101, as the release of the publication of kernel
+T028, for the leaf work of the computational milestones, the kernel category tasks. Task T020 merges
+the branch into `main` on the toolchain of `main` with the kernel port of #90 (kernel T352) and
 releases `v2.0.1` on `main`, the delivery release. Source: the kernel rule that both kernel branches carry the same governing
 documents; the delivery-inputs policy (latest main at delivery).
 

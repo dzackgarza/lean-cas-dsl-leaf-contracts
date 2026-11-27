@@ -8,8 +8,13 @@
 
 The unchecked tasks are executed in the order of this file. The first unchecked task is the
 active task. `After` names the inputs that a task needs. `Consumer` names the lean-cas-dsl task
-that uses the result ("kernel T0nn"). A wait on an unavailable input blocks only its task; work
-continues with the next task whose inputs are present, and the waiting task keeps its position.
+that uses the result ("kernel T0nn"). An input is the result of a named task: a task of this file,
+a kernel task ("kernel T0nn") or a lean-categories task by its ID and issue. The workstream that
+needs the input does that task first, in its repository and in the role that it names (a
+lean-categories task as a formalization author, kernel constitution C16 and C21), and then returns.
+When no task produces an input, the change that finds the need adds the task and its issue in the
+owning repository. A task of this file that the kernel or a leaf needs is done by that workstream
+in the contract role of this repository.
 
 Tasks T003–T018 and T021 are committed on `integration/kernel-v1-20261106` ([plan, source
 location](plan.md#source-location)). Each frame task changes the Lean codec, the SDK, the public
@@ -233,7 +238,7 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   **Files**: `tools/export_api.py`, `api/kernel-service.md`, `api/README.md`; generated
   `api/language-interface.json`, `api/language-help.md`. **Acceptance**: the two files are produced
   by one `just export-api` run and contain no path outside the public catalogue and contract.
-  **Consumer**: kernel T101. **After**: T016; kernel T101.
+  **Consumer**: T018, T019 (the release at kernel F). **After**: T016; kernel T101.
 - [ ] T018 [US1] Public-only run (SC-003). In a fresh clone of the integration branch at the T017
   commit, on a host path with no lean-cas-dsl checkout, run the quickstart.
   **Files**: `specs/001-released-contract-v2/quickstart.md` when a command differs.
@@ -247,7 +252,8 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   tier 1, tag `v2.0.0` and push the branch and tag.
   **Files**: generated `api/*.json`, `api/language-help.md`, `pyproject.toml`, `uv.lock`.
   **Acceptance**: the kernel branch's lake manifest names the tagged commit (SC-006, first part).
-  **Consumer**: kernel T028 (closure at F), the kernel category tasks. **After**: T018; kernel T100, T101.
+  **Consumer**: the kernel category tasks and lean-cas-dsl-leaves 001 T003 (the release at kernel F).
+  **After**: T018; kernel T100, T101.
 - [ ] T020 Merge into `main` and release `v2.0.1` at kernel T105 (FR-022). Merge the integration
   branch into `main`; keep `lean-toolchain` and the lean-categories requirement of `main`; run
   `lake update`; build every module and `cas-peer`; run tier 1; run `just export-api` against the
@@ -255,7 +261,7 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
   with a comment that names the merge commit.
   **Files**: `lean-toolchain`, `lakefile.lean`, `lake-manifest.json`, generated `api/*.json`,
   `api/language-help.md`. **Acceptance**: SC-006 second part; tier 1 passes on `main`.
-  **Consumer**: kernel T105. **After**: T019; kernel #90 port.
+  **Consumer**: kernel T105. **After**: T019; kernel T352 (the port of #90).
 
 ## Dependencies
 
@@ -273,7 +279,7 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
 | T017 | T016; kernel T101 |
 | T018 | T017 |
 | T019 | T018; kernel T100, T101 |
-| T020 | T019; kernel #90 port in kernel T105 |
+| T020 | T019; kernel T352 |
 
 ## Kernel consumers
 
@@ -286,10 +292,9 @@ Format: `- [ ] ID [P?] [Story] description`. **Files**, **Acceptance**, **Consum
 | T022 | T009 |
 | T023 | T010 |
 | T027 | T008 |
-| T028 | T005, T013, T014, T021, T015, T016, T019 |
+| T028 | T005, T013, T014, T021, T015, T016 |
 | T042, T061, T322 | T013, T015 |
 | T100 | T012 |
-| T101 | T017 |
 | the category tasks (V1 and V2) | T015, T016, T018, T019 |
 | T105 | T022, T020 |
 | T302, T113 | T011 |

@@ -5,7 +5,7 @@ the port protocol, the failure strata, the generated catalogue under `api/` and 
 (`cas_port`, `cas_session`, `cas_interfaces`). A leaf is written against this contract and
 nothing else of the kernel (`AGENTS.md`, `README.md`).
 
-The [kernel constitution][K] (lean-cas-dsl, v4.0.1) governs the whole programme. This file
+The [kernel constitution][K] (lean-cas-dsl, v5.0.0) governs the whole programme. This file
 states the obligations of that constitution that bind a contract, and the rules of this
 repository's own governing documents. Article identifiers `RC1` to `RC20` are stable. A kernel
 article is cited as `K:C<n>`.
@@ -219,6 +219,6 @@ additions, patch for editorial corrections. Article identifiers are never renumb
 Work order is the task list of the active feature under `specs/`. Its unchecked tasks are
 executed in document order. Work records and evidence stay in the owning GitHub issues.
 
-**Version**: 2.0.1 | **Ratified**: 2026-11-25 | **Last Amended**: 2026-11-25
+**Version**: 2.0.2 | **Ratified**: 2026-11-25 | **Last Amended**: 2026-11-27
 
 [K]: https://github.com/dzackgarza/lean-cas-dsl/blob/main/.specify/memory/constitution.md

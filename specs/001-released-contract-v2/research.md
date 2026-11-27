@@ -11,7 +11,7 @@ the untracked `python/cas_interfaces.py`); lean-cas-dsl `main` and its feature
 **Decision**: tasks T003–T018 and T021 commit on `integration/kernel-v1-20261106` (Lean `v4.33.0`); T019
 releases `v2.0.0` there at kernel F; T020 merges into `main` with the kernel port of #90 and
 releases `v2.0.1` from `main`.
-**Source**: kernel `AGENTS.md`, "Source location"; kernel T105 (#90 port inside T105).
+**Source**: kernel `AGENTS.md`, "Source location"; kernel T352 (the #90 port) and T105.
 **Reason**: the consuming kernel tasks run on the kernel branch, which builds on Lean `v4.33.0`
 and requires this package through Lake. A `main` revision on the research-image toolchain does
 not build there.
@@ -132,7 +132,7 @@ generated provenance, not the protocol.
 builds on; the delivery release is on `main`); kernel T028 ("the release that leaf work consumes
 ... at F") and plan, "Computational milestones" (the contract is released at F); kernel T105 (the
 delivery tuple on the image toolchain, with #90); kernel `AGENTS.md`, "Source location" (the
-kernel branch builds on Lean `v4.33.0` until T105); protocol major version 2 (runtime contract
+kernel branch builds on Lean `v4.33.0` until T352); protocol major version 2 (runtime contract
 §3, `cas-computation/2`). The patch number of `v2.0.1` records that the protocol is unchanged.
 
 ## R14. Where tier 1 runs
@@ -173,8 +173,9 @@ kernel C22 ("a protocol peer or an empty set of registrations").
 **Decision**: FR-025 declares the forms of issue #14 from the declarations of lean-categories and
 the protocol grammar. A declared object whose declaration is a native inductive type uses its
 native constructor packets, as the `Option Bool` packet of R6 does. Every other value is a
-registered morphism or inclusion row applied to registered points. Four kinds wait for an
-upstream declaration that has its issue and its task: subsets (#191, lean-categories T013),
+registered morphism or inclusion row applied to registered points. Four kinds use an upstream
+declaration that has its issue and its task, which the workstream of T021 finishes first in
+lean-categories, as a formalization author: subsets (#191, lean-categories T013),
 binders (#190, T027), product legs (#187, T031) and element operations (#193, T005). No form needs
 a lean-categories declaration without an issue.
 **Source**: issue #14 (evidence with the lean-categories rows at `3bc32d03`); constitution RC1,
