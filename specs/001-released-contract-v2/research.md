@@ -175,7 +175,7 @@ the protocol grammar. A declared object whose declaration is a native inductive 
 native constructor packets, as the `Option Bool` packet of R6 does. Every other value is a
 registered morphism or inclusion row applied to registered points. Four kinds use an upstream
 declaration that has its issue and its task, which the workstream of T021 finishes first in
-lean-categories, as a formalization author: subsets (#191, lean-categories T013),
+lean-categories, as a formalization author: subsets (#191, lean-categories 001 T013),
 binders (#190, T027), product legs (#187, T031) and element operations (#193, T005). No form needs
 a lean-categories declaration without an issue.
 **Source**: issue #14 (evidence with the lean-categories rows at `3bc32d03`); constitution RC1,
