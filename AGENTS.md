@@ -26,35 +26,27 @@ owns the concrete invocation, data, failure and lifetime protocol. The
 published interface must suffice to implement a category without reading
 kernel source or its independent acceptance corpus.
 
-## Invariants
+## Build the interface a leaf author uses
 
-- Generate the category interface from actual accepted typed mathematical
-  declarations. Do not define mathematical objects, types, operation meanings,
-  domain rules or structural routes in this repository or an SDK.
-- Establish and freeze the public contract with a real first category
-  implementation before dependent versions rely on it. Develop the common
-  kernel and category implementations concurrently. The checked Lean runtime
-  works independently of surface elaboration.
-- Use statically typed implementation code: Lean and Rust under the current
-  plan. The protocol itself is language-neutral. Existing Python bindings
-  and providers are not a required host language. Do not duplicate the
-  contract or invent a private protocol for an engine.
-- Each request identifies the exact selected operation/input form, actual
-  dependent arguments and realization. Preserve selected maps, parameters,
-  handles, ownership and failures. Admission of wire data is not a proof
-  of mathematical correctness. A leaf does not define the correctness of
-  its outputs.
-- A registration realizes a declared operation on its admitted domain.
-  No missing result or unspecified default stands in for the required
-  value. Authorized formal discharge is separate from computation.
-- Resolve interface deficiencies at the actual owner without weakening
-  the mathematics. A leaf cannot privately change the contract to fit an
-  engine. Independent authorship concerns definitions and acceptance, not
-  credential or contributor isolation.
-- The contract's tests use its actual codecs, framed connections and
-  processes. They establish protocol behavior, not the correctness of
-  computed mathematical answers. Reuse standard collections and established
-  algorithms; keep useful raw logs out of Git and feedback focused.
+- Generate the actual category-version interfaces from accepted typed
+  mathematical declarations, with the complete inputs, results and registration
+  addresses needed to bind their native engine calls.
+- Supply reusable language bindings for the real engines being integrated.
+  A binding decodes arguments, resolves live handles, dispatches registered
+  handlers, encodes complete results, and manages invocation and release.
+  Reuse the existing Python binding for Sage; provide other bindings where
+  actual integrations need them. Keep the normative contract typed and the
+  implementation languages of leaves independent.
+- A leaf author should supply the existing CAS routines and only the
+  necessary conversions. Improve shared codecs, invocation and handle support
+  whenever ordinary engine calls require redundant glue.
+- Carry the exact selected operation/input form, arguments and realization;
+  preserve the actual maps, parameters, handles and outcomes. The Lean kernel
+  supplies mathematical selection and composition.
+- Establish and freeze the contract with actual first-category execution,
+  including continued use of results. Exercise real codecs and connections
+  in the contract tests, and leave mathematical acceptance to the independent
+  kernel consumer.
 
 Use the [shared research container](https://github.com/dzackgarza/ai-review-ci/blob/main/SAGE-CONTAINER.md#use-the-image),
 compatible published dependencies, the active Spec Kit work order and

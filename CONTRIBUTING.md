@@ -1,8 +1,10 @@
 # Contributing to the leaf contract
 
 The [constitution](.specify/memory/constitution.md) governs. The public typed
-contract is established and frozen with the first actual category leaf; new
-implementation code is statically typed, and no provider language is required. Each policy below has a stable
+contract is established and frozen with the first actual category leaf; the
+normative interface is typed, and the bindings use the natural languages of
+their providers. Make ordinary existing CAS calls easy to register through
+shared codecs, dispatch and handle/lifetime support. Each policy below has a stable
 identifier, a class of contribution, a defective contribution and its replacement. A new lesson
 gets the next free identifier in its category. Identifiers are never reused.
 

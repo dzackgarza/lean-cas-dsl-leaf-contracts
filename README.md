@@ -17,12 +17,19 @@ can implement several categories. The contract does not define mathematics.
 | This repository | Manifest, invocation/data protocol, failures, lifetime, generated interfaces and typed bindings |
 | lean-cas-dsl-leaves | Computational implementations of category interfaces |
 
-Establish and freeze the typed public contract with the first real category
+The purpose of this interface is to make existing CAS implementations easy
+to register and compose. Publish each category's actual signatures and
+registration addresses, and provide reusable bindings that handle argument
+and result codecs, native-value handles, dispatch and lifecycle. A leaf
+author imports an existing engine, binds its native operations to the
+declared ports and registers the category version. Use the natural language
+of each engine, with the typed public protocol in common.
+
+Establish and freeze this interface with the first real category
 implementation, using actual checked Lean runtime calls. Develop category
-versions and the common kernel together. New implementation code is statically
-typed; the current plan uses Lean and Rust. The protocol is language-neutral,
-including for existing external computational engines. Neither Python nor a
-particular engine is a required kernel dependency.
+versions and the common kernel together. For Sage, reuse the existing
+Python binding and the native set and cardinality calls. The binding
+supplies protocol machinery; the leaf supplies the engine-specific wiring.
 
 The [declared API](api/README.md) and [manifest reference](api/manifest.md)
 document the published interfaces. Lean module roots are `CasContract.*`

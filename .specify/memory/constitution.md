@@ -53,12 +53,28 @@ by hand. Generated files are produced by the exporter (`just export-api`) and ar
 unchanged; a generated file is documentation and a computational interface, never a semantic
 registry that the kernel reads to decide meaning (`api/README.md`; K:C23; kernel FR-025).
 
-The generated interface exposes, per category: object and morphism constructors, operations
-at their actual domains, immediate functor object and morphism actions, the structural flag of
-each functor, and the complete dependent parameters, choices, maps and comparisons of each
-request and result. Constructors of objects stay distinct from constructors of categories. The
-SDK helpers that give an author direct access to a category are derived from that generated
-interface at load time. A later accepted declaration reaches authors by regeneration alone.
+The generated interface gives a leaf author the category version, its
+constructors, maps, operations at their declared domains, structural functor
+actions, exact registration addresses, and complete dependent input and result
+signatures. A new accepted declaration reaches authors through regeneration.
+
+The public binding makes these interfaces implementable directly in existing
+CAS software. It supplies reusable codecs, dispatch to registered handlers,
+scoped native-value handles, invocation and release, and error replies. The
+leaf author imports the engine and binding, associates each declared port
+with the corresponding engine routine, and registers the category version.
+Handlers adapt the declared inputs to native engine values, invoke existing
+computations and return the actual declared data and maps. A native result
+may remain in the leaf and be supplied to subsequent calls by its handle.
+Use the engine's natural language and the same published protocol.
+
+The contract is typed independently of the implementation languages of
+providers. Reuse language bindings in their natural languages, including the
+existing Python binding for Sage. Where ordinary CAS calls require extensive
+new glue, simplify the reusable interface and binding so that every category
+implementation benefits. A Sage finite-set leaf should essentially connect
+the declared extent and cardinality to Sage's own set constructor and
+cardinality operation. This is the intended author experience.
 
 ### RC4. The kernel resolves; leaves compute
 
@@ -115,7 +131,8 @@ leaf author does not receive kernel source, internal handoffs, the acceptance co
 expectations or prior outcomes (K: "Independent authorship and permitted inputs"). Every
 published document, generated file and SDK interface MUST let such an author write, build and
 run a category implementation without those excluded inputs. A need for private kernel machinery is a finding against the contract or kernel. A leaf
-may use ordinary established algorithms where no mature engine provides them (`AGENTS.md`, "A leaf is glue").
+composes existing CAS routines and uses established algorithms for missing
+computations; the binding makes this work local to the mathematical adapter.
 
 ### RC10. Freeze the typed interface first; release exact source states
 
@@ -126,9 +143,9 @@ interfaces, failure/lifetime behavior, compatible mathematical declarations and
 dependency tuple. Use real typed Lean calls to the real leaf; surface elaboration
 is not a prerequisite. A category version names its actual mathematical interface
 and required inputs. New categories use the existing contract, not a new wire
-dialect. The contract is language-neutral. New project contract implementation
-code is statically typed (Lean and Rust in the current plan); a language-specific
-SDK or external engine is not the protocol.
+dialect. The normative contract is typed; language bindings expose it in the native
+languages of their users. A language-specific SDK implements that same
+protocol and supplies its reusable mechanics.
 
 A release is a tagged commit whose manifest locks the dependency revisions and
 whose generated interfaces were produced from that locked state. Consumers pin
