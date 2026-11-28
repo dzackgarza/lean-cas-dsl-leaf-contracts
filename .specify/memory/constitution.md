@@ -1,14 +1,20 @@
 # lean-cas-dsl-leaf-contracts Constitution
 
-This repository publishes the released computational contract: the manifest of a leaf package,
-the port protocol, the failure strata, the generated catalogue under `api/` and the Python SDK
-(`cas_port`, `cas_session`, `cas_interfaces`). A leaf is written against this contract and
-nothing else of the kernel (`AGENTS.md`, `README.md`).
+This repository publishes the one typed, language-neutral computational contract
+between the generic Lean kernel and independent category implementations. A leaf
+implements a category or parameterized category family; each registration is a
+port of that interface, and one engine may realize several categories.
 
-The [kernel constitution][K] (lean-cas-dsl, v5.0.0) governs the whole programme. This file
-states the obligations of that constitution that bind a contract, and the rules of this
-repository's own governing documents. Article identifiers `RC1` to `RC20` are stable. A kernel
-article is cited as `K:C<n>`.
+The [cas-dsl kernel constitution][K] governs the programme, including every
+feature and replacement implementation of this contract. The mathematical
+authority is lean-categories, the kernel is cas-dsl, and category implementations
+are supplied by the leaves. The contract owner releases the manifest, invocation
+and data protocol, failure strata, generated interfaces and typed language
+bindings. A leaf is written against that public contract and the accepted
+mathematical declarations, not kernel source or independent acceptance tests.
+Article identifiers RC1–RC20 remain stable. References to the archived kernel's
+C-numbered articles record historical source requirements; the current kernel
+constitution governs their interpretation.
 
 ## Core Principles
 
@@ -54,15 +60,16 @@ request and result. Constructors of objects stay distinct from constructors of c
 SDK helpers that give an author direct access to a category are derived from that generated
 interface at load time. A later accepted declaration reaches authors by regeneration alone.
 
-### RC4. The kernel computes nothing; a leaf may ask the kernel
+### RC4. The kernel resolves; leaves compute
 
-Every operation, method and predicate is computed by a leaf. The kernel resolves each request
-to a leaf or returns the no-implementation outcome, and it computes no mathematical value
-(K:C22). A leaf owns all control logic of its implementation. For each operation that it uses,
-a leaf MAY compute internally, call another leaf's code directly, or ask the kernel through
-this contract. A leaf that asks the kernel receives the result or the no-implementation outcome
-that names the missing operation. The contract MUST provide that answer in every service by
-which a leaf asks: a deferred program and an adaptive suspension.
+Every declared computational obligation is computed by a leaf. The common Lean
+kernel selects the exact mathematical question and realization, or reports the
+declared missing-implementation outcome. Authorized formal discharge of a
+proposition is not a leaf computation. A leaf owns the control logic of its
+implementation and may compute internally, reuse another leaf's code directly,
+or ask the kernel through the released contract. Deferred and adaptive requests
+preserve the same authority boundary and report the actual result or missing
+operation.
 
 ### RC5. Realization selection has no priority
 
@@ -107,19 +114,28 @@ A leaf author receives the released contract, the accepted catalogue and backend
 leaf author does not receive kernel source, internal handoffs, the acceptance corpus, protected
 expectations or prior outcomes (K: "Independent authorship and permitted inputs"). Every
 published document, generated file and SDK interface MUST let such an author write, build and
-run a category implementation without those excluded inputs. A need for kernel machinery or a
-hand-rolled algorithm is a finding against the contract or the kernel, never relaxed into the
-leaf (`AGENTS.md`, "A leaf is glue").
+run a category implementation without those excluded inputs. A need for private kernel machinery is a finding against the contract or kernel. A leaf
+may use ordinary established algorithms where no mature engine provides them (`AGENTS.md`, "A leaf is glue").
 
-### RC10. Releases are exact source states
+### RC10. Freeze the typed interface first; release exact source states
 
-A release is a tagged commit whose Lake manifest locks its dependency revisions and whose
-generated files were produced from that locked state (`README.md`; `api/README.md`). A release
-is cut on the branch whose toolchain its kernel consumer builds on; the delivery release is on
-`main`. A snapshot
-is never relabelled as a new export. A failed export leaves the previous snapshot intact.
-Delivery consumes latest-main dependencies and records the actual revisions (K: delivery-inputs
-policy). A revision that a consumer pins MUST exist on GitHub.
+Establish the common kernel–leaf interface at the beginning of development
+with an actual first category implementation. Before dependent category versions
+rely on it, publish and pin the tested protocol, typed invocation and data
+interfaces, failure/lifetime behavior, compatible mathematical declarations and
+dependency tuple. Use real typed Lean calls to the real leaf; surface elaboration
+is not a prerequisite. A category version names its actual mathematical interface
+and required inputs. New categories use the existing contract, not a new wire
+dialect. The contract is language-neutral. New project contract implementation
+code is statically typed (Lean and Rust in the current plan); a language-specific
+SDK or external engine is not the protocol.
+
+A release is a tagged commit whose manifest locks the dependency revisions and
+whose generated interfaces were produced from that locked state. Consumers pin
+an actual published compatible release. An incompatible correction requires an
+explicit new protocol version, not parallel private forms or a legacy fallback.
+No permanent freeze of the category catalogue, seal, or approval service is
+required. A failed export leaves the previous valid snapshot intact.
 
 ### RC11. Independent extensions compose through this contract
 
@@ -137,7 +153,7 @@ paths and the branches that matter. Its total run time is seconds or minutes; a 
 defect to repair when found. Higher tiers add the long tail: examples, permutations, edge cases
 and unusual combinations (K:C24).
 
-This repository tests its own product: the Lean codecs and the Python SDK. The permanent
+This repository tests its own product: the actual released typed codecs and language bindings. The permanent
 mathematical acceptance suite stays with lean-cas-dsl; nothing here contains or names it, and
 no test here is acceptance evidence for a leaf's answers (`AGENTS.md`; K: independent-harness
 policy).
@@ -169,22 +185,22 @@ platform is added only on explicit request.
 
 ### RC17. Logging
 
-The SDK writes detailed logs to standard error, which is the diagnostic channel: each received
-and sent frame by request ID and operation, each handler start and end, each export,
-suspension, resume and disposal. Each test run writes a durable log that is kept in the
-repository.
+Diagnostics use standard error, never the protocol channel. Keep useful logs
+outside Git and compact durable measurements where they support actual fixes.
+Do not build telemetry, archival integrity or logging machinery in place of
+contract delivery.
 
-### RC18. Timing history
+### RC18. Timing
 
-Every test has a timing record that includes setup, fixtures, construction and nested work.
-Each record carries its run, revision, environment and input. The records are durable and are
-kept in the repository.
+Measure actual setup, computation and nested work when diagnosing performance.
+Use the measured environment, input and revision; keep compact comparable
+results. Raw run logs and timing JSONL do not belong in the repository.
 
 ### RC19. Timing triage
 
-Optimization is selected from a triage table of measured costs: operation, cost per call,
-multiplying factors, aggregate cost, priority, proposed remedy and remaining measured cost.
-Optimization follows functionality (K:C21).
+Optimize the actual dominant cost; preserve fast focused feedback and the
+independent mathematical acceptance. Measurements do not become a prerequisite
+to unrelated implementation work.
 
 ### RC20. Construction cost
 
@@ -197,8 +213,8 @@ queried. Internal setup does not dominate a leaf's computational cost.
 | Owner | Owns |
 | --- | --- |
 | lean-categories | All mathematics and the catalogue |
-| This repository | Manifest shape (`CasContract.Registration`), port protocol (`CasContract.Port`), failure strata (`CasContract.Failure`), Python SDK, generated `api/` files, protocol peer |
-| lean-cas-dsl | Selection, preparation, execution, admission, retention; the exporter source (`CasTools/InterfaceExport.lean`); the acceptance suite |
+| This repository | Manifest shape (`CasContract.Registration`), port protocol (`CasContract.Port`), failure strata (`CasContract.Failure`), typed bindings, generated `api/` interfaces, protocol peer |
+| cas-dsl | The common Lean kernel: selection, preparation, execution, admission, retention, independent acceptance; typed catalogue export as required by the public interface |
 | Leaf packages | Category implementations against this contract |
 
 Changes here are kernel/contract construction work (K: authorship roles). A leaf never changes
@@ -216,9 +232,11 @@ this file, its version and its amendment date in the same change, and it reconci
 affected documents. Versions are major for incompatible changes to an obligation, minor for
 additions, patch for editorial corrections. Article identifiers are never renumbered.
 
-Work order is the task list of the active feature under `specs/`. Its unchecked tasks are
-executed in document order. Work records and evidence stay in the owning GitHub issues.
+The active feature under `specs/` specifies concrete work within these durable
+invariants. Contract development and the first real category versions proceed
+together; subsequent work follows actual categorical and contract dependencies,
+not a serial kernel-first task order.
 
-**Version**: 2.0.2 | **Ratified**: 2026-11-25 | **Last Amended**: 2026-11-27
+**Version**: 3.0.0 | **Ratified**: 2026-11-25 | **Last Amended**: 2026-11-28
 
-[K]: https://github.com/dzackgarza/lean-cas-dsl/blob/main/.specify/memory/constitution.md
+[K]: https://github.com/dzackgarza/cas-dsl/blob/main/.specify/memory/constitution.md

@@ -1,6 +1,8 @@
 # Contributing to the leaf contract
 
-The [constitution](.specify/memory/constitution.md) governs. Each policy below has a stable
+The [constitution](.specify/memory/constitution.md) governs. The public typed
+contract is established and frozen with the first actual category leaf; new
+implementation code is statically typed, and no provider language is required. Each policy below has a stable
 identifier, a class of contribution, a defective contribution and its replacement. A new lesson
 gets the next free identifier in its category. Identifiers are never reused.
 
@@ -44,9 +46,10 @@ leaf computes.
 directly, or replaces the framed connection with an in-memory stub. Replacement: the test starts
 the leaf process and the protocol peer and exchanges length-framed JSON over their pipes.
 
-**TST002 — Every test leaves a record (RC17, RC18).** Defective: a test run prints a pass count
-and writes nothing. Replacement: the run writes its log under `tests/logs/` and its timing
-records to `tests/timing/records.jsonl`, both committed.
+**TST002 — Measure actual work (RC17, RC18).** Defective: logging and timing
+records become prerequisites to mathematical or contract delivery. Replacement:
+keep useful raw logs outside Git and compact evidence-backed measurements of
+actual costs.
 
 ## Documents (DOC)
 

@@ -1,20 +1,12 @@
-# Intent: the architecture of lean-categories, lean-cas-dsl and their leaves
+# Historical design discussion
 
-This is the grounding reference for `lean-categories`, `lean-cas-dsl`, `lean-cas-dsl-leaf-contracts`,
-`lean-cas-dsl-leaves`, `sage-categories` and `research`. It recapitulates a design discussion between
-the repositories' owner and an assistant. The owner's messages are summarized in
-the third person. The assistant's responses are reproduced as written, less its progress narration
-(what it was about to check). Where a later section corrects
-an earlier one (for example the owner's correction that a leaf ships no Lean code), the later section
-governs.
-
-**Every architecture decision, contract, gate, plan node and change in these repositories is grounded
-against this document.** An agent working here checks whether anything it writes, or anything already
-present, violates this model or its invariants: single semantic authority in `lean-categories`; a
-kernel that consumes mathematics and authors none; leaves that hold zero semantic authority and ship
-no mathematics; permanent, leaf-agnostic acceptance tests as the only evidence about computations; a
-one-way workflow in which each stage is blind to the later ones. A violation found is recorded where
-the owning document records defects, even outside the task at hand.
+The [current cas-dsl constitution](https://github.com/dzackgarza/cas-dsl/blob/main/.specify/memory/constitution.md)
+and this repository's [constitution](.specify/memory/constitution.md) govern.
+The discussion below records the historical source of the architecture, not a
+work order or a competing specification. The kernel is a single Lean
+implementation; a leaf implements a category; the public contract is typed,
+language-neutral and established early with the first real leaf. Category
+versions and kernel development proceed concurrently.
 
 ## The owner's question
 
