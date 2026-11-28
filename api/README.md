@@ -7,6 +7,30 @@ parameterized signatures alongside the generic wire protocol in
 mathematical definition body, expected answer, or evidence of backend correctness. The kernel
 reads the upstream registry directly; it must not read this document to decide meaning.
 
+The `categoryInterfaces` view (version `categoryInterfaceVersion: 1`) groups
+complete rows by their independently declared owner or endpoint expression.
+Each entry has its typed `(kind, id)`, original name, all owner roles, original
+registered metadata and complete declarations. Two different row kinds may
+share an id; neither is discarded. Named categories retain their native
+signatures and realizations. Derived expressions retain their full parameters
+and selected structure. Polymorphic families with no fixed owner remain in
+`genericEntries`; no carrier or preferred backend supplies an owner.
+
+The view includes the original object, functor, construction, cell and lift
+metadata at that category. Every declaration signature retains its ordered
+dependent parameters, binder visibility, proof status, universe parameters,
+full result type and documentation. `datatypes` and `typeAliases` describe the
+native type closure, including laws, choices and callable fields. They define
+no JSON codec. Constructors of categories remain separately published in
+`categoryConstructors`.
+
+`cas_port.load_interfaces(path)` provides direct category, constructor, call
+and scoped-result access through the [Python SDK](python-sdk.md#category-interfaces).
+An author does not assemble a category from global row arrays. Regeneration
+includes later accepted rows through the same index and SDK. This view is
+documentation and a computational interface; filtering the aggregate does not
+establish a narrower dependency build or availability of a backend.
+
 [`extension-ports.json`](extension-ports.json) publishes the default catalogue together
 with the six modules listed in its `provenance.additionalImports`, including finite
 orders, two-element subsets, integer square bounds, cyclic quotients and scalar/form
@@ -237,11 +261,21 @@ run an implementation or acceptance suite.
 
 The companion [tools/export_admission_addresses.lean](../tools/export_admission_addresses.lean)
 is a read-only adapter run in the kernel environment, not a contract dependency. It
-asks the actual public `form?` and `operation?` lookups for all registered IDs and
-all directly derived application, lift, construction, cartesian-map and image addresses.
-Its output records which addresses exist, each form's complete `categoryExpression`, and
-its registered `category` ID when one exists. A derived category without its own named row
-has `category: null`; it retains the full expression rather than inventing a named category.
+reads the current `CasRuntime.ManifestAdmission` operation lookups and the original
+registered forms. Released application, lift, construction, cartesian-map, cell and
+image addresses retain their original spelling; lift fields come from their checked
+native projections. Its output records admitted operations separately from
+`missingAdmissions`, which lists declared ports absent from the selected kernel.
+Each fixed-category form retains its complete `categoryExpression` and its registered
+`category` ID when one exists. A dependent complete request additionally retains
+`nativeContext`: the original declaration, ordered universe parameters, full signature
+and lossless native type graph. When several source schemas share an input address,
+`categoryExpressions` and `nativeContexts` preserve all of them; singular fields are
+present only when unique. No declaration order chooses a parameterized category.
+A polymorphic construction with no fixed category
+uses that complete context with `category: null` and `categoryExpression: null`.
+A derived fixed category without a named row keeps its full expression and
+`category: null`; no named category is invented.
 Constructor-induced component addresses form an unbounded family over finite constructor
 paths, so they are specified by the public
 [component-address grammar](wire-examples.md#constructor-induced-components) and the exported
@@ -250,8 +284,8 @@ The adapter does not run
 implementations, rank capabilities, choose routes or certify answers.
 Before publishing the snapshot, the Python exporter checks every concrete port
 published for lifts, constructions, cells and cartesian maps against those actual
-admission inventories. A missing operation, missing input form or lost category
-context rejects the export and preserves the previous snapshot.
+admission inventories. Any missing admission, operation, input form or complete
+category/dependent context rejects the export and preserves the previous snapshot.
 
 Regenerate the single reference with `just export-api /absolute/path/to/lean-cas-dsl`
 when that checkout's manifest and default package directories identify the built

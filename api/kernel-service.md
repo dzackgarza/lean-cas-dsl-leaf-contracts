@@ -1,5 +1,59 @@
 # Kernel-mediated computational services
 
+The [native Python SDK](python-sdk.md) specifies v2 negotiation, scoped graph
+calls, native exports and adaptive generator suspension.
+
+## Generated language and selected interfaces
+
+`CasTools.InterfaceExport` exports the public registry selected by a Lean module
+as a machine-readable document and inert Markdown help. In a built kernel
+environment, create a module containing only the public mathematics imports you
+want to describe:
+
+```lean
+module
+import LeanCategories.Catalogue
+import CasTools.InterfaceExport
+
+#cas_export_interface "language-interface.json" help "language-interface.md"
+```
+
+Run it with `lake env lean -DElab.inServer=true ExportInterface.lean`. The server
+data option loads the public declaration documentation. Both output paths must
+be new and distinct. Additional public mathematics imports extend the same
+checked registry; no implementation or private assertion input is needed.
+
+The `cas-language-interface/1` document retains every accepted registry row,
+its stable identifier, original module and all fields of the independently
+owned row type. A row is identified by its `kind` and `id` together: a named
+category and its opaque-interface row may share the category identifier and
+both remain present. Declaration names use the exact native `Name` encoding. Indexed
+functor expressions retain their complete native expression graph, including
+intermediate categories. The declaration table includes full native signatures,
+universe parameters, authored documentation and record fields. Its `native`
+table retains the corresponding declaration types and values without evaluating
+them; constants referring to public dependencies remain references to those
+dependencies. The export records the loaded direct imports and their artifacts.
+
+The same document describes the actual `Manifest`, `Registration` and
+`PreferredRoute` types and the public data-only port records. Use the
+[manifest specification](manifest.md) for JSON framing and the
+[declared ports](README.md) for generated category signatures, admitted
+addresses and SDK access helpers. A preferred route selects an existing
+surviving binding; it supplies no comparison, law or mathematical definition.
+Formal laws and allowed choice data remain attached to the independently
+declared native interfaces. A well-shaped computational reply does not prove
+those laws.
+
+For a value in a live notebook, inspection returns the already committed
+`details` descriptor: its selected source context, complete type and parameters,
+candidate operations and routes, retained result data and actual invocation
+provenance. Availability is separate from applicability. This instance descriptor
+is prepared during authorized execution and read without running a provider,
+proof procedure or formatter. Regenerating public help or reading inspection
+does not install an implementation, choose a route or accept a mathematical
+answer.
+
 A leaf handler may compute through published constructors and operations without
 choosing their implementations. It returns a deferred program directly as the
 normal successful reply's `value`. The shared kernel service interprets that
@@ -18,6 +72,7 @@ multiplicative-monoid action:
 {
   "request_id": 70,
   "status": "ok",
+  "exports": [],
   "value": {
     "ctor": "deferredData",
     "args": [
@@ -214,6 +269,13 @@ The [JSON Schema](deferred.schema.json), Lean `DeferredData.decode` and Python
 the dynamic index bound; the decoders additionally enforce backward-only references.
 They do not prove registry membership, parameter types, functor laws, result
 equality, live-session validity or computational correctness.
+
+The optional `routine-observations/1` negotiation documented in
+[the Python SDK](python-sdk.md#routine-observations) permits only the exact
+`routines` data field on successful or suspended control replies.
+A receiver validates that field separately and retains it under the
+actual supplying request and connection. It does not participate in
+mathematical admission, registration selection or owner authority.
 
 | Case | Required treatment |
 | --- | --- |

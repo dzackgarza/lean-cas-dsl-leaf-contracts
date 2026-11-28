@@ -39,6 +39,21 @@ For example:
 | Registration | `operation` | String | Yes | Exact public operation or derived callable-port address. |
 | Registration | `input` | String | Yes | Exact public input-form address accepted by that operation. |
 | Registration | `backend` | String | Yes | `name` of a backend in this same manifest. |
+| Registration | `preferredRoutes` | Array of preferred-route objects | No; defaults to `[]` | Declared preferred routes of this registration (below). |
+| Preferred route | `name` | String | Yes | Surface name of a registered family, read on an object of `receiver`. |
+| Preferred route | `receiver` | String | Yes | Registered category id of the object the name is read on. |
+| Preferred route | `route` | Array of strings | Yes | Ordered structural edge labels from `receiver` to the category that owns the selected binding. `[]` explicitly selects the identity route. |
+
+A preferred route (constitution C6) is registration data, not a mathematical
+claim. When the name has several surviving bindings on an object of `receiver`
+that agree by no definitional equality or accepted comparison cell, it names the
+binding reached along `route`, and the reading records it. An empty array selects
+the binding at the receiver itself; it does not mean that the preference is absent.
+It asserts no
+agreement between the bindings. The route must be one of the surviving routes, or
+the registration is rejected. It applies while its registration is admitted;
+two admitted preferences with the same `name` and `receiver` and different
+routes are not ranked, and the reading stays ambiguous.
 
 Only these fields carry meaning. Additional fields are ignored, including fields
 named `priority`, `capabilities`, `result`, `timeout`, `cwd` or `env`. They cannot
@@ -79,11 +94,14 @@ The optional `CAS_SAGE_PYTHON` and `CAS_GAP_PYTHON` selectors identify engine Py
 interpreters where configured by the host; the backend must explicitly use them
 if it launches an engine subprocess. They do not expand inside manifest strings.
 
-The process first writes the length-framed `ready` announcement described in
-[CasContract/Port.lean](../CasContract/Port.lean). It then reads requests and writes
-replies on the same live standard-input/standard-output connection. Standard
+The process first writes the length-framed v2 `ready` announcement described in
+[CasContract/Port.lean](../CasContract/Port.lean). It acknowledges the kernel's
+`hello` with the same `cas-computation/2` contract before computation starts.
+The [Python SDK](python-sdk.md) supplies this handshake and its declared runtime
+dependencies. The process then reads requests and writes replies on the same live
+standard-input/standard-output connection. Standard
 output contains protocol frames only; diagnostics can go to standard error.
-Announcement capabilities do not add registrations. A program is started when
+A program is started when
 an admitted registration first needs it, and its connection may own opaque data
 that later requests reuse.
 
@@ -187,6 +205,24 @@ both actual endpoints. An inverse direction is available only for a cell declare
 invertible. This registration does not cover another cell or turn a comparison
 into an identity based on shared carriers. See the exported `cells` inventory and
 [natural cell component protocol](wire-examples.md#natural-cell-components).
+
+A limit's raw operation and native universal-data family are distinct. The actual
+`LimitCone.isLimit` or `ColimitCocone.isColimit` field yields
+`<limit id>#isLimit` or `<colimit id>#isColimit`; its complete input appends
+`#input`. The full native role and actual earlier cone are required by the
+[universal-data protocol](wire-examples.md#native-universal-data). A realization
+profile targeting that limit may admit its raw operation and those exact native
+universal fields; it does not admit arbitrary suffixes such as `#leg`, `#apex`
+or `#map`.
+
+An accepted creates-limits lift publishes its complete `LiftsToLimit` computation
+only under its registered lift id, with complete input `<lift id>#input`. Its
+native fields are part of that complete result interface, not independently
+registered creation-subfield operations. The exact target presentation, original
+evidence, accepted comparison, actual target cone/universal data and source owner
+remain in its complete input context. A profile targeting this creation lift
+admits that exact root operation. Use the generated `lifts[].creation` signatures
+and the [complete creation protocol](wire-examples.md#complete-creation-families).
 
 Exact-form and category-wide registrations have equal standing. If both are
 applicable to one invocation, that invocation is ambiguous; manifest order and

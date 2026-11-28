@@ -15,9 +15,17 @@ of the kernel.
 
 * **A leaf is data.** A leaf is `leaves.json` at the root of its package: the backend programs it
   runs, and for each registration the catalogue operation it computes, the input form it accepts
-  and the backend that computes it. A registration has exactly those three fields; nothing else a
-  manifest says carries meaning. The kernel admits a registration against the catalogue, or reports
-  why it does not.
+  and the backend that computes it. The optional `preferredRoutes` selects surviving
+  source bindings under C6; it asserts no equality or mathematical law. The kernel
+  admits each registration and preference against the catalogue, or reports why it does not.
+* **Implement the prescribed category interface.** The generated category view and
+  `cas_port.load_interfaces` expose object and morphism constructor families,
+  operations at their declared domains, immediate functor actions, and complete
+  dependent signatures. Category constructors are separate. A provider may reuse
+  its private engine objects, algorithms and control flow while supplying every
+  selected parameter, field, comparison and callable required by that interface.
+  Public calls use the released protocol and retain their actual owners; another
+  provider's private representation is never a required input.
 * **Registration and answers are computational claims and data.** The kernel checks a leaf's
   declaration against the published contract and may invoke it. It consumes outputs for subsequent
   computations and acceptance observations, never as authority for mathematical definitions,
@@ -50,7 +58,9 @@ field, defaults, process paths and matching behavior.
 
 Module roots: `CasContract.*` (namespaces `CasCatalogue`, shared with the kernel). The Python
 reference implementation of the port protocol is `python/cas_port.py`; the kernel puts it on every
-program's `PYTHONPATH`.
+program's `PYTHONPATH`. The [Python SDK](api/python-sdk.md) specifies native v2
+startup, exports, scoped proxies and captured generator suspension. Its runtime
+dependencies are declared in `pyproject.toml` and locked in `uv.lock`.
 
 Every `require` tracks `main`. `just test-ci` builds on Mathlib's prebuilt cache and runs the
 kernel-axiom audit of this repository's own code (`AxiomAudit.lean`); the commit and push tiers

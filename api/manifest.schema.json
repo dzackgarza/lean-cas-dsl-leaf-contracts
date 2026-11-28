@@ -61,6 +61,36 @@
         },
         "backend": {
           "type": "string"
+        },
+        "preferredRoutes": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/preferredRoute"
+          }
+        }
+      }
+    },
+    "preferredRoute": {
+      "type": "object",
+      "required": [
+        "name",
+        "receiver",
+        "route"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "receiver": {
+          "type": "string"
+        },
+        "route": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     }
