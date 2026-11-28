@@ -72,7 +72,7 @@ def package_selection(kernel: Path, packages: Path | None):
                     "manifest has no packagesDir; select existing directories "
                     "with --packages"
                 )
-            # Lake serializes quoted names, but uses their unquoted directory name.
+
             git_directory = kernel / packages_dir / name.removeprefix("«").removesuffix("»")
             if revision(git_directory) != entry["rev"]:
                 raise RuntimeError(
@@ -86,8 +86,8 @@ def package_selection(kernel: Path, packages: Path | None):
         if not directory.is_dir():
             raise RuntimeError(f"package is not a directory: {directory}")
         directories[name] = directory
-        # Path overrides prohibit Lake's implicit Git checkout/fetch behavior,
-        # including for ordinary invocations using a populated packagesDir.
+
+
         local_entries.append({
             key: value for key, value in entry.items()
             if key not in {"url", "rev", "inputRev", "subDir", "dir", "type"}
@@ -96,7 +96,7 @@ def package_selection(kernel: Path, packages: Path | None):
 
 
 def executable(value: str) -> str:
-    # Relative executable paths are relative to the caller, not the kernel cwd.
+
     return str(Path(value).resolve(strict=True)) if os.sep in value else value
 
 
@@ -107,6 +107,12 @@ def validate_addresses(document: dict) -> None:
     Formal lifts with no computation have no ports to check. Constructor-path
     component families are described by their grammar, not a finite enumeration.
     """
+    missing = document.get("missingAdmissions", [])
+    if missing:
+        raise RuntimeError(
+            "published source interfaces are absent from current kernel admission: "
+            + "; ".join(f"{row['operation']}: {row['reason']}" for row in missing)
+        )
     operations = {row["operation"] for row in document["operations"]}
     forms = {row["input"] for row in document["inputForms"]}
     ports = []
@@ -128,7 +134,26 @@ def validate_addresses(document: dict) -> None:
                     f"published {key} address is absent from admission export: {port[key]}"
                 )
     for form in document["inputForms"]:
-        if not form.get("categoryExpression") or form.get("category") == "":
+        contexts = form.get("nativeContexts") or [form.get("nativeContext")]
+        complete = []
+        for context in contexts:
+            context = context or {}
+            native = context.get("nativeType") or {}
+            roots, nodes = native.get("roots"), native.get("nodes")
+            complete.append(
+                isinstance(context.get("declaration"), str) and bool(context["declaration"])
+                and isinstance(context.get("signature"), str) and bool(context["signature"])
+                and isinstance(context.get("universeParameters"), list)
+                and isinstance(roots, list) and len(roots) == 1
+                and isinstance(nodes, list) and type(roots[0]) is int
+                and 0 <= roots[0] < len(nodes)
+            )
+        categories = form.get("categoryExpressions") or [form.get("categoryExpression")]
+        fixed_context = bool(categories) and all(isinstance(value, str) and value for value in categories)
+        dependent_context = bool(complete) and all(complete)
+        declared_native = bool(form.get("nativeContexts") or form.get("nativeContext"))
+        if ((not fixed_context and not dependent_context)
+                or (declared_native and not dependent_context) or form.get("category") == ""):
             raise RuntimeError(
                 f"input form lost its complete category context: {form['input']}"
             )
@@ -163,7 +188,8 @@ def main(kernel: Path, *, mathematics: Path | None = None,
         )
     source_digests = {
         path: digest(path) for path in
-        [declarations, addresses, kernel / "CasCatalogue/Admission.lean"]
+        [declarations, addresses, kernel / "CasCatalogue/Admission.lean",
+         kernel / "CasRuntime/ManifestAdmission.lean"]
     }
     with tempfile.TemporaryDirectory(prefix="cas-declared-api-") as directory:
         scratch = Path(directory)
@@ -190,9 +216,9 @@ def main(kernel: Path, *, mathematics: Path | None = None,
             "protocolRevision": sources[protocol],
             "exporterSha256": source_digests[declarations],
         }
-        # Docstrings are stored in Lean's server-data section. Load that public
-        # metadata while keeping ordinary module visibility; default batch imports
-        # otherwise silently replace every imported docstring with null.
+
+
+
         subprocess.run([*command, "-DElab.inServer=true", str(declaration_probe)], cwd=kernel,
                        env={**os.environ,
                             "CAS_DECLARED_PORTS_MATH_REVISION": provenance["mathematicsRevision"],
@@ -208,6 +234,7 @@ def main(kernel: Path, *, mathematics: Path | None = None,
         result["provenance"].update({
             "kernelRevision": sources[kernel],
             "admissionSourceSha256": source_digests[kernel / "CasCatalogue/Admission.lean"],
+            "runtimeAdmissionSourceSha256": source_digests[kernel / "CasRuntime/ManifestAdmission.lean"],
             "addressExporterSha256": source_digests[addresses],
         })
         if additional_imports:
@@ -224,7 +251,7 @@ def main(kernel: Path, *, mathematics: Path | None = None,
         for path, expected in sources.items():
             if source_revision(path, target) != expected:
                 raise RuntimeError(f"source revision changed during export: {path}; rerun export")
-        # Publish only complete fresh output; failures leave the prior snapshot intact.
+
         target.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=target.parent,
                                          prefix=".declared-ports-", delete=False) as output:

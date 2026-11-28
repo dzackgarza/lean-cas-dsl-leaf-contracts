@@ -14,6 +14,17 @@ in `uv.lock`. A provider can start with
 the declared SDK dependencies. The public packet helpers in `cas_port` retain
 the operation-specific input and output grammar.
 
+`functor_map_invocation(packet, functor_id)` and
+`action_map_invocation(packet, action_address)` read the existing seven-field
+`apply` packet both for an original source action and for later use of its actual
+returned map. Later use retains the complete returned `typedMap` in the arrow
+slot, the same published operation and ordered parameters, its unchanged source
+and target, and the new generalized argument. Derived actions keep their complete
+canonical action descriptor in the parameter slot. The kernel retains the
+original selected registration; a parsed packet supplies no selection or owner
+authority. The helpers preserve callable and symbolic result data without
+interpreting it or replacing it with the original action recipe.
+
 An ordinary handler can call `cas_session.request_input()` for its exact input
 address. Native-export handlers receive that address in their published context.
 `cas_session.ComputationError(kind, message)` preserves an external computation's
@@ -22,6 +33,77 @@ operation as unsupported. Both failure paths revoke that request's new leases.
 
 `cas_port.read_frame(source)` and `write_frame(value, target)` also accept binary
 streams. Their default streams are standard input and standard output.
+
+## Category interfaces
+
+`api = cas_port.load_interfaces("declared-ports.json")` reads the generated
+category interface, with its original provenance. It performs no network access
+or computation. `api.category("cat.groups")` selects that exact category id.
+`category.signatures` contains its complete native category and realization
+signatures; `category.families("object")`, `families("morphism")`,
+`families("operation")`, `families("method")` and the other published kinds
+provide direct maps by exact id. Overloaded surface names are metadata, not
+Python lookup priorities.
+
+Each `category.family(kind, id)` has `signatures`, `metadata`, `details`
+and its published `operations`. Parameters keep their order, dependent type,
+binder visibility and proof status; result signatures retain selected
+structures, universes, comparison data, laws and permitted choices. The native
+`api.datatypes` and `api.type_aliases` retain the generated type closure.
+None of those records is a serializer or a proof supplied by a provider.
+
+Limit-family `details` include both the unchanged raw cone operation and its
+separate native universal subfamily. `universal.precedingFields` records the
+original earlier cone slot, and `universal.fields` retains native data and law
+positions. Creation-lift `details` retain the fixed comparison template, original
+raw cone/universal inputs and every native `LiftsToLimit` field. The shared
+`family.call` helper uses those actual exported addresses with the existing
+dependent request packet; it does not infer an owner or comparison from the
+result's type. See [native universal data](wire-examples.md#native-universal-data).
+
+`cas_port.created_cone(packet)` reads exactly the original selected lift,
+complete source diagram and complete target cone. Nested envelopes and scoped or
+owned data are preserved unchanged. The parser supplies no construction selection
+or universal-property proof.
+
+For an object or morphism family, `family.construct(parameters)` builds its
+existing `{"ctor": id, "args": parameters}` descriptor. Supply every complete
+ordered argument descriptor prescribed by the declaration; the SDK does not
+recover a structure from a carrier. `category.select(parameters)` builds the
+existing selected-category descriptor. Category constructors are distinct:
+`api.category_constructors["ctor.arrow"].construct([category.select(parameters)])`
+builds the category of arrows, not an object in the original category.
+The constructor checks the published argument count and category framing;
+the kernel checks the full dependent types and selected structures.
+
+`family.field(selector, parameters)` uses `objectField` for a map that the
+object actually declares, including the chosen presentation or refinement in
+either direction. It preserves the complete ordered parameters.
+`family.call(input_form, arguments, operation=address)` describes one of that
+family's published operations. Omit `operation` only when its own id is the
+published address. Immediate functor object/map actions and other declared
+ports appear in `details` and `operations`. The caller supplies the exact
+input-form address and complete existing request packet. The kernel prepares
+the selected mathematical application and chooses its realization.
+`api.call(address, input_form, arguments)` provides the same helper for any
+published address. Neither helper invokes an engine synchronously.
+
+For a supplied scoped reference, use
+`result = family.result(cas_session.proxy(reference))`.
+`result.project(index)` and `result.apply(arguments)` delegate to the actual
+scoped proxy's existing graph calls; use them in `suspend` or `deferred_data`.
+Projection indexes are the kernel's ordered computational field indexes, which
+exclude proof fields. Native datatype field lists do not define those indexes
+or a wire codec. The dependent result role is supplied and checked by the
+kernel. Capture `result.value` explicitly when it is needed after suspension.
+Access after a gateway expires or without its declared capture fails.
+
+Derived category expressions are accessible by their exact exported expression
+through `api.category_expression(expression)`. Families with no fixed owner
+remain in `api.generic_families` under their typed `(kind, id)`; no category is
+guessed. Regenerating the accepted catalogue updates these views without a
+hand-maintained family table. Publication of a signature establishes no backend
+availability or acceptance of its computations.
 
 ## Connection
 
@@ -175,3 +257,4 @@ requests. The acknowledgement is
 `{"request_id":75,"status":"ok","disposed":true}`. Disposal is idempotent.
 A consumed continuation token cannot resume again. Tokens are never reissued
 during this process lifetime. Clean EOF closes remaining suspended generators.
+

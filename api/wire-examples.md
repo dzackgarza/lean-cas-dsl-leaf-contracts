@@ -1472,6 +1472,93 @@ the mapped diagram. Missing endpoint context is not permission to infer an objec
 from the graph's outputs. Each nested creation packet retains its own lift and
 source diagram, so the same rule applies at every layer.
 
+## Native universal data
+
+The raw registered limit operation returns its declared `cone` or `cocone` data.
+Its native universal record has a separate derived family:
+
+| Native presentation field | Operation | Complete input |
+| --- | --- | --- |
+| `LimitCone.isLimit` | `<limit id>#isLimit` | `<limit id>#isLimit#input` |
+| `ColimitCocone.isColimit` | `<colimit id>#isColimit` | `<colimit id>#isColimit#input` |
+
+These are the actual non-Prop native records. Their `IsLimit.lift` and
+`IsColimit.desc` fields remain callable computations; the laws in their other
+fields remain independently formal. A leaf supplies data under the original
+interface and does not prove that its cone or mediator is universal.
+
+Invocation uses the existing `dependentContext` record. Its `parameters`
+contains the original declaration's computational positions in native order,
+including implicit inputs. Proof positions stay in the exported native schema.
+Its `bindings` contains the actual completed cone at the original preceding
+native source slot. `prepared_role` keeps the full path from the original
+presentation, such as `CategoryTheory.Limits.LimitCone.isLimit/CategoryTheory.Limits.IsLimit.lift`.
+The action's arguments and native layouts follow the ordinary dependent record
+protocol. The first computational field aliases the universal family address,
+so it does not reuse the distinct raw-cone operation.
+
+The published `limits[].universal` records include the full original signature,
+universe parameters, native field path and preceding-field table. Two completed
+cones with identical declaration parameters remain distinct inputs. A delayed
+universal family captures the actual cone; later calls use that capture and its
+original owners. No generic `#leg`, `#apex` or `#map` address is introduced.
+
+### Complete creation families
+
+An independently registered creates-limits lift exposes its full native
+`LiftsToLimit` result under the lift id. Its complete input is `<lift id>#input`.
+That one computation returns the whole native record. Every native field path
+remains in the result metadata, but no independent creation-subfield registration
+is admitted. Subsequent projection/application uses the actual stored fields or
+exports from that same completion. A public field continuation first obtains this
+complete result and then selects its retained native path. The source lift,
+target presentation, evidence and standardization remain fixed before dispatch.
+
+The existing dependent packet retains this exact parameter prefix:
+
+```python
+parameters = [
+    actual_target_cone,
+    actual_target_universal,
+    original_selected_owner,
+    complete_source_diagram,
+    *original_capture_values,
+]
+```
+
+The first two are the unchanged actual target `Cone` and `IsLimit` data.
+`original_selected_owner` is an explicit scoped value whose original native
+source retains this construction. The source diagram is the original complete
+constructor packet, with its original declared fields. Capture values follow
+all computational argument positions, including implicit positions, of the
+original evidence application, standardization application and target
+presentation application, in that order and without deduplication. Full proof
+slots remain in the source schemas. The registered whole-result invocation has
+`prepared_role = ""`, `bindings = []`, and `arguments = []`; the actual cone and
+universal data are supplied once in `parameters`. Subsequent native fields and
+applications consume the stored complete result rather than registering another
+creation operation.
+
+The generic exported template describes the exact native comparison telescope.
+At a selected request, the original target diagram and accepted comparison are
+captured source context. A provider does not select a comparison or supply
+separately computed standardized `c′` and `t′` intermediates. The prescribed
+native composition remains the meaning of the fixed request, whose actual
+inputs are the original target cone and universal record.
+
+The complete result retains `LiftableCone.liftedCone`,
+`LiftableCone.validLift` and `LiftsToLimit.makesLimit`. The comparison's two
+directions and the source universal mediator remain computational fields, with
+their original endpoints and captures. They are stored actual data or owned
+native exports under the ordinary projection/application protocol. Native law
+fields do not become backend proof obligations.
+
+The existing `createdCone(lift, sourceDiagram, targetCone)` packet continues to
+retain the exact selected lift, source diagram and target cone. The
+`CreatedCone`/`created_cone` helpers check that three-field envelope and keep
+nested data unchanged. The packet alone does not supply a new source selection,
+a replacement target result, or a universal-property proof.
+
 ## Compatibility with earlier boundary reports
 
 These rules address the representation questions recorded in the leaf input

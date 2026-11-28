@@ -1,34 +1,30 @@
-/-
-Copyright (c) 2026 Dzack Garza. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
--/
 module
 
 public import Lean.Data.Json
 
 @[expose] public section
 
-/-!
-# A leaf is a manifest of registrations (`specs/leaf-registration.md`, "A registration is data")
 
-A leaf ships no Lean. It is a manifest, `leaves.json` at the root of its package, naming the
-backend programs it runs and, for each registration, the catalogue operation it computes, the
-input form it accepts and the backend that computes it:
 
-```json
-{
-  "backends": [{"name": "sage", "command": "python3", "args": ["sage/leaf.py"]}],
-  "registrations": [{"operation": "meth.cardinality", "input": "obj.sets.fin", "backend": "sage"}]
-}
-```
 
-A registration has these three fields and, optionally, its declared preferred routes
-(constitution C6): for a surface name read on objects of a category, the structural route of the
-binding the name denotes. A preference selects among bindings that survive the reading; it
-asserts no agreement between them. Nothing else in the manifest carries meaning: any other field
-is ignored. Which registrations are admitted is the kernel's decision, against the
-catalogue (`CasCatalogue.Admission`); this module only reads the data.
--/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 open Lean
 
@@ -98,7 +94,6 @@ def preferredRouteOf (j : Json) : Except String PreferredRoute := do
     | .ok a => do
         let items ← a.getArr?.mapError fun _ => s!"the field `route` is not an array in {j.compress}"
         items.mapM fun s => s.getStr?.mapError fun _ => s!"a route edge is not a string in {j.compress}"
-  if route.isEmpty then throw s!"a preferred route has no edge in {j.compress}"
   return { name := ← stringField j "name", receiver := ← stringField j "receiver", route }
 
 def registrationOf (j : Json) : Except String Registration := do

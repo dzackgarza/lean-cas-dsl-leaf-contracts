@@ -154,11 +154,16 @@ of the kernel.
 | `lean-cas-dsl-leaves` | nothing | a manifest `leaves.json` of registrations, and the programs it names; no Lean |
 | `lean-cas-dsl` | `lean-categories`, this (it runs the leaves' manifest) | the kernel's resolution and reading of statements, the language, the acceptance suite and notebooks; no leaf |
 
-* **A leaf is glue.** The contract is written so that a leaf is a thin wiring from a declared input
-  form to an existing backend's routine and back to the declared result form (`lean-cas-dsl-leaves`,
-  `AGENTS.md`, "A leaf is glue over existing backends"). When writing a leaf needs kernel machinery
-  or a hand-rolled algorithm, that is a finding against the contract or the kernel. It is never
-  relaxed into the leaf.
+* **A leaf implements a prescribed category interface.** Generate its complete object and
+  morphism constructor families, operations, immediate functor actions and dependent results
+  from the independently accepted declarations. Reuse the existing Python SDK and protocol.
+  A provider owns its computational algorithms, ordinary control flow, private engine values
+  and private reuse, and may call other published computations through the shared service.
+  A finite list of forwarding ports does not replace the complete category interface.
+  Prefer existing mature engine routines where adequate. Source interpretation, selection of
+  mathematical domains and structures, cross-provider dispatch and scoped ownership stay in
+  the generic kernel. A provider supplies no mathematics, proofs, semantic authority or
+  acceptance criterion.
 * **Authors.** Only the orchestrator writes here. Leaves are written against this contract by the
   leaf subagent, which never edits it, never reads the tests, and never edits `lean-categories`
   (`lean-cas-dsl/specs/architecture.md`, "Authors: one role per agent").

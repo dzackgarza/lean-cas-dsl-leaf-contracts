@@ -42,12 +42,14 @@ For example:
 | Registration | `preferredRoutes` | Array of preferred-route objects | No; defaults to `[]` | Declared preferred routes of this registration (below). |
 | Preferred route | `name` | String | Yes | Surface name of a registered family, read on an object of `receiver`. |
 | Preferred route | `receiver` | String | Yes | Registered category id of the object the name is read on. |
-| Preferred route | `route` | Non-empty array of strings | Yes | Ordered structural edge labels from `receiver` to the category that owns the selected binding. |
+| Preferred route | `route` | Array of strings | Yes | Ordered structural edge labels from `receiver` to the category that owns the selected binding. `[]` explicitly selects the identity route. |
 
 A preferred route (constitution C6) is registration data, not a mathematical
 claim. When the name has several surviving bindings on an object of `receiver`
 that agree by no definitional equality or accepted comparison cell, it names the
-binding reached along `route`, and the reading records it. It asserts no
+binding reached along `route`, and the reading records it. An empty array selects
+the binding at the receiver itself; it does not mean that the preference is absent.
+It asserts no
 agreement between the bindings. The route must be one of the surviving routes, or
 the registration is rejected. It applies while its registration is admitted;
 two admitted preferences with the same `name` and `receiver` and different
@@ -203,6 +205,24 @@ both actual endpoints. An inverse direction is available only for a cell declare
 invertible. This registration does not cover another cell or turn a comparison
 into an identity based on shared carriers. See the exported `cells` inventory and
 [natural cell component protocol](wire-examples.md#natural-cell-components).
+
+A limit's raw operation and native universal-data family are distinct. The actual
+`LimitCone.isLimit` or `ColimitCocone.isColimit` field yields
+`<limit id>#isLimit` or `<colimit id>#isColimit`; its complete input appends
+`#input`. The full native role and actual earlier cone are required by the
+[universal-data protocol](wire-examples.md#native-universal-data). A realization
+profile targeting that limit may admit its raw operation and those exact native
+universal fields; it does not admit arbitrary suffixes such as `#leg`, `#apex`
+or `#map`.
+
+An accepted creates-limits lift publishes its complete `LiftsToLimit` computation
+only under its registered lift id, with complete input `<lift id>#input`. Its
+native fields are part of that complete result interface, not independently
+registered creation-subfield operations. The exact target presentation, original
+evidence, accepted comparison, actual target cone/universal data and source owner
+remain in its complete input context. A profile targeting this creation lift
+admits that exact root operation. Use the generated `lifts[].creation` signatures
+and the [complete creation protocol](wire-examples.md#complete-creation-families).
 
 Exact-form and category-wide registrations have equal standing. If both are
 applicable to one invocation, that invocation is ambiguous; manifest order and

@@ -16,6 +16,12 @@ if TYPE_CHECKING:
 
 type JsonValue = None | bool | int | float | str | list[JsonValue] | dict[str, JsonValue]
 
+def load_interfaces(source):
+    """Load category signatures and protocol helpers from the public API export."""
+    from cas_interfaces import load_interfaces as load
+
+    return load(source)
+
 
 def object_field(args):
     """Read (object id, map field, ordered declaration parameters).
@@ -63,17 +69,33 @@ def point_invocation(args, operation=None):
     return tuple(fields)
 
 
+def _returned_map_invocation(fields):
+    """Recognize an actual returned complete map under the retained invocation."""
+    arrow = fields[2]
+    if not isinstance(arrow, dict) or arrow.get("ctor") != "typedMap":
+        return False
+    source, target, _ = typed_map(arrow)
+    if json.dumps([source, target], sort_keys=True, allow_nan=False) != \
+            json.dumps([fields[4], fields[5]], sort_keys=True, allow_nan=False):
+        raise ValueError("the retained callable changed its complete invocation endpoints")
+    return True
+
+
 def functor_map_invocation(args, functor_id):
     """Read the unchanged seven-field invocation of a registered functor's map.
 
-    Require its exact action id, matching ordered parameter data and a typed source
-    arrow. Both actual image endpoints and the original generalized argument remain
-    in the returned tuple. Formal types, selected images and live owners are checked
-    by the caller; this helper supplies framing, not functor laws or portability.
+    A source action keeps its exact action id, matching ordered parameter data and
+    typed source arrow. A later use keeps the actual returned typedMap, with its
+    unchanged endpoints, in the arrow slot. Both forms retain the original operation,
+    ordered parameters and generalized argument. The kernel retains the original
+    selected registration and checks formal types and live owners; this helper
+    supplies framing, not functor laws, selection authority or portability.
     """
     if not isinstance(functor_id, str) or not functor_id:
         raise ValueError("a functor map invocation has no registered id")
     fields = point_invocation(args, functor_id + "#map")
+    if _returned_map_invocation(fields):
+        return fields
     arrow = fields[2]
     if not isinstance(arrow, dict) or arrow.get("ctor") != "map":
         raise ValueError("a functor map invocation requires its selected map action")
@@ -86,7 +108,7 @@ def functor_map_invocation(args, functor_id):
     parameters = action.get("args")
     if not isinstance(parameters, list):
         raise ValueError("functor map parameters must be ordered data")
-    # Compare JSON data, so false and zero are distinct and object-key order is not.
+
     if json.dumps(parameters, sort_keys=True, allow_nan=False) != \
             json.dumps(fields[1], sort_keys=True, allow_nan=False):
         raise ValueError("the functor map action changed its ordered invocation parameters")
@@ -178,6 +200,24 @@ def construction_field(args):
         raise ValueError("a construction data field has no registered limit id")
     if type(fields[3]) is not int or fields[3] < 0:
         raise ValueError("a construction data-port index must be a natural number")
+    return tuple(fields)
+
+
+def created_cone(args):
+    """Read the original (lift, source diagram, complete target result) envelope.
+
+    This preserves nested creation data unchanged. The kernel retains the original
+    source selection and actual result occurrence; framing supplies no such authority.
+    """
+    if not isinstance(args, dict) or set(args) != {"ctor", "args"}:
+        raise ValueError("a created cone requires exactly ctor and args")
+    if args["ctor"] != "createdCone":
+        raise ValueError("a created cone requires the createdCone envelope")
+    fields = args["args"]
+    if not isinstance(fields, list) or len(fields) != 3:
+        raise ValueError("a created cone requires its lift, source diagram and complete target cone")
+    if not isinstance(fields[0], str) or not fields[0]:
+        raise ValueError("a created cone has no selected lift identity")
     return tuple(fields)
 
 
@@ -389,12 +429,18 @@ def action_invocation(args, address):
 def action_map_invocation(args, address):
     """Read the unchanged apply packet for the canonical derived map action.
 
-    These checks establish framing and exact descriptor occurrence only. Registry
-    membership, constructor functorialAction, formal endpoints and owners remain
-    independently checked; source data do not prove any mathematical law.
+    The original source action and a later actual returned typedMap retain the
+    same complete action descriptor in the parameter slot. These checks establish
+    framing and exact descriptor occurrence only. Registry membership, the original
+    selected registration, constructor functorialAction, formal endpoints and owners
+    remain independently checked; source data do not prove any mathematical law.
     """
     identity = action_identity(address)
     request = point_invocation(args, address + "#map")
+    if len(request[1]) != 1 or _descriptor_action_identity(request[1][0]) != identity:
+        raise ValueError("the derived map invocation requires its one complete selected action")
+    if _returned_map_invocation(request):
+        return request
     arrow = request[2]
     if not isinstance(arrow, dict) or arrow.get("ctor") != "map" or \
             not isinstance(arrow.get("args"), list) or len(arrow["args"]) != 2:
