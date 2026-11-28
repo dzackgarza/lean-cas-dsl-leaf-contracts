@@ -1,63 +1,42 @@
-# The leaf contract of lean-cas-dsl
+# The typed leaf contract of cas-dsl
 
-The [kernel constitution](https://github.com/dzackgarza/lean-cas-dsl/blob/main/.specify/memory/constitution.md)
-and its [mathematical execution model](https://github.com/dzackgarza/lean-cas-dsl/blob/main/specs/architecture.md)
-own the separation of concerns and the design of leaves. This repository is one part of the `lean-cas-dsl` kernel: the interface a
-computational leaf is written against, published on its own so that a leaf depends on nothing else
-of the kernel.
+This repository owns the published, language-neutral computational interface
+between the [cas-dsl Lean kernel](https://github.com/dzackgarza/cas-dsl) and
+independent category implementations. The [constitution](.specify/memory/constitution.md)
+and the [kernel constitution](https://github.com/dzackgarza/cas-dsl/blob/main/.specify/memory/constitution.md)
+govern this architecture.
 
-| Package | Depends on | Owns |
-| --- | --- | --- |
-| `lean-categories` | Mathlib | all mathematics, including the semantic registry (the catalogue) |
-| `lean-cas-dsl-leaf-contracts` (this) | `lean-categories` | the shape of a leaf's manifest (`CasContract.Registration`), the backend port protocol (`CasContract.Port`), and the failure strata (`CasContract.Failure`) |
-| `lean-cas-dsl-leaves` | nothing | a manifest `leaves.json` of registrations, and the programs it names; no Lean |
-| `lean-cas-dsl` | `lean-categories`, this | the kernel's resolution and reading of statements, the language, the acceptance suite, the harness |
+A leaf implements a category or parameterized category family. An operation
+registration is a computational port of that interface. One backend executable
+can implement several categories. The contract does not define mathematics.
 
-* **A leaf is data.** A leaf is `leaves.json` at the root of its package: the backend programs it
-  runs, and for each registration the catalogue operation it computes, the input form it accepts
-  and the backend that computes it. A registration has exactly those three fields; nothing else a
-  manifest says carries meaning. The kernel admits a registration against the catalogue, or reports
-  why it does not.
-* **Registration and answers are computational claims and data.** The kernel checks a leaf's
-  declaration against the published contract and may invoke it. It consumes outputs for subsequent
-  computations and acceptance observations, never as authority for mathematical definitions,
-  laws, semantic placement or acceptance truth. Contract conformance does not certify correctness.
-  Required structure may be supplied as data or callable operations suitable for the object;
-  completeness does not require enumerating infinite objects or functions. The abstract obligation
-  model belongs upstream; this package owns concrete invocation and representation protocols.
-* **The contract is the type at the firewall.** It fixes the type a leaf's computation must meet
-  and nothing else. On the leaf side anything goes that meets it. Only answers cross, and an answer
-  is checked against the formal side, the permanent acceptance suite of `lean-cas-dsl`, never
-  believed.
-  Structured answers retain all declared computational fields, including defining maps.
-  They do not become proved identifications with the formal construction: its identity,
-  structure and operations remain independently authoritative. Runtime does not require a
-  proof that a backend returned the correct universal object; well-formed wrong answers are
-  judged by acceptance.
-* **Kernel-owned.** Changes here are kernel changes: made with `lean-cas-dsl` and merged to
-  `main`, which `lean-cas-dsl` tracks. A leaf never changes this contract to fit itself.
-* **No mathematics.** Which operations and forms exist, and what they denote, is `lean-categories`'
-  catalogue. This package reads it and declares none.
-* **Tests of the contract, not of answers.** The tests here check this repository's product, the
-  codecs and the SDK, with a real leaf process against a real protocol peer (constitution RC12,
-  RC13). The permanent acceptance suite is `lean-cas-dsl`'s. Nothing here, and so nothing a leaf
-  can reach, contains or names it.
+| Owner | Responsibility |
+| --- | --- |
+| lean-categories | Mathematical declarations and complete typed obligations |
+| cas-dsl | One generic Lean kernel, exact selection, public session and independent acceptance |
+| This repository | Manifest, invocation/data protocol, failures, lifetime, generated interfaces and typed bindings |
+| lean-cas-dsl-leaves | Computational implementations of category interfaces |
 
-The [declared API reference](api/README.md) publishes the complete registered declaration
-signatures, computational port addresses and generic wire-shape references.
-The [manifest reference](api/manifest.md) specifies every backend command and registration
-field, defaults, process paths and matching behavior.
+Establish and freeze the typed public contract with the first real category
+implementation, using actual checked Lean runtime calls. Develop category
+versions and the common kernel together. New implementation code is statically
+typed; the current plan uses Lean and Rust. The protocol is language-neutral,
+including for existing external computational engines. Neither Python nor a
+particular engine is a required kernel dependency.
 
-Module roots: `CasContract.*` (namespaces `CasCatalogue`, shared with the kernel). The Python
-reference implementation of the port protocol is `python/cas_port.py`; the kernel puts it on every
-program's `PYTHONPATH`.
+The [declared API](api/README.md) and [manifest reference](api/manifest.md)
+document the published interfaces. Lean module roots are `CasContract.*`
+(namespaces `CasCatalogue`). The existing Python reference binding is
+`python/cas_port.py`; its existence does not prescribe a language for new
+bindings or leaves.
 
-Every `require` tracks `main`. `just test-ci` builds on Mathlib's prebuilt cache and runs the
-kernel-axiom audit of this repository's own code (`AxiomAudit.lean`); the commit and push tiers
-compile nothing.
+Contract conformance checks complete invocation and result data, including
+dependent fields and actual handles. It does not establish correctness of a
+computed answer. The kernel interprets mathematics independently of engines.
+A leaf author uses the accepted mathematical interface and released contract,
+not kernel source or protected acceptance tests.
 
-The committed Lake manifest records the exact dependency revisions used by this
-source candidate. Use that lock when reproducing its build; `lake update` selects
-new dependency revisions and is a new integration. The declaration snapshot
-records the committed sources that produced it, separately from the later commit
-publishing that snapshot; see [API provenance](api/README.md).
+Use the compatible shared research toolchain. A release identifies its actual
+locked dependencies and generated interfaces; a consumer pins the published
+compatible revision. New category versions use the same contract. Tests of the
+real codecs and connections are contract evidence, not mathematical delivery.
